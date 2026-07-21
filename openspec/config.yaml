@@ -1,0 +1,27 @@
+schema: product-change
+
+context: |
+  共享 BR、PRD 和 FEATURE 位于 docs/requirements/REQ-<id>-<slug>/，可管理多个 OpenSpec changes。
+  SPEC.md 是自动生成的导航索引。当前行为事实来源是 openspec/specs/<capability>/spec.md。
+  已归档 changes 不可修改。design.md 是产品 change 唯一的技术设计 / TD。
+  PRD 验收只描述产品结果；精确可执行场景只存在于 specs/<capability>/spec.md。
+
+rules:
+  br:
+    - 链接唯一的共享 BR，不在 change 中复制全文。
+    - 只保留目标 ID、交付切片、证据状态和阻塞项。
+  prd:
+    - 链接共享 PRD，并标识本次可独立交付切片。
+    - 只维护结果级验收，不编写精确 WHEN/THEN 场景。
+  proposal:
+    - 保持范围可独立发布，并列出受影响 capability 名称。
+  specs:
+    - 使用行为优先的 SHALL/MUST Requirement 与精确 WHEN/THEN Scenario。
+    - 由新 delta 向后链接历史 change，禁止修改归档。
+  design:
+    - design.md 是唯一 TD，所有决策追溯到 Requirement。
+  tasks:
+    - 按依赖排序工作，并记录可验证证据。
+  feature:
+    - 只记录已交付行为，保持精简并以证据为依据。
+    - feature 完成后同步并归档，重建 SPEC.md，执行治理检查。

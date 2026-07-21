@@ -1,0 +1,43 @@
+name: bugfix
+version: 1
+description: 小 Bug 工作流 - proposal -> specs -> tasks -> apply
+artifacts:
+  - id: proposal
+    generates: proposal.md
+    description: 简明定义缺陷与有界修复
+    template: proposal.md
+    instruction: |
+      仅当预期行为已经确认，并且变更不新增流程、角色、接口契约或业务规则时使用本 Schema。
+      描述可观察缺陷、预期行为、明确范围、非目标、受影响 capability、风险和回滚方式。
+      如果调研发现产品范围扩大，立即停止并改用 product-change。
+    requires: []
+
+  - id: specs
+    generates: "specs/**/*.md"
+    description: 修复对应的可执行行为增量
+    template: spec.md
+    instruction: |
+      每个受影响 capability 创建一份 delta spec。按需使用 ADDED、MODIFIED、REMOVED 或
+      RENAMED；MODIFIED 必须包含修改后的完整 Requirement。每项 Requirement 使用 SHALL/MUST，
+      并至少包含一个四级标题 Scenario 及精确 WHEN/THEN。保持 Requirement ID 稳定，链接当前
+      canonical spec，并向后链接相关历史 change。禁止修改归档以增加正向链接。
+    requires:
+      - proposal
+
+  - id: tasks
+    generates: tasks.md
+    description: 最小实现与回归检查清单
+    template: tasks.md
+    instruction: |
+      使用 `- [ ] X.Y ...` 编写按依赖排序、可独立验证的任务。包含根因确认、实现、聚焦测试、
+      适用质量门禁、回滚证据，以及当前规格同步、归档、索引和治理所需输入。不得加入无关重构。
+    requires:
+      - specs
+
+apply:
+  requires: [tasks]
+  tracks: tasks.md
+  instruction: |
+    先读 SPEC.md，再读受影响当前规格和本 change。只实现有界修复，产出回归证据并更新任务状态。
+    如果范围扩大，停止并迁移到 product-change。验证后同步当前规格、归档、重建 SPEC.md，
+    并执行治理检查。

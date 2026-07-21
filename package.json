@@ -1,0 +1,20 @@
+{
+  "name": "ai-fullstack-openspec-workflow",
+  "version": "1.0.0",
+  "description": "基于 OpenSpec 的可复用 AI 全栈交付工作流",
+  "private": true,
+  "license": "MIT",
+  "bin": {
+    "ai-fullstack-workflow": "bin/workflow.js"
+  },
+  "scripts": {
+    "test": "node tests/governance.test.js && node tests/installer.test.js && node tests/validate-schemas.test.js",
+    "index": "node scripts/openspec-governance.js index",
+    "check": "node scripts/openspec-governance.js check",
+    "validate:schemas": "node scripts/validate-schemas.js",
+    "verify": "npm test && npm run index && npm run check && npm run validate:schemas"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
