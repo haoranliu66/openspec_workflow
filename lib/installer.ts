@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { collectChangeHistory, renderChangeHistory } from "./change-history";
 import { renderIndex } from "../scripts/openspec-governance";
 
 export interface InstallOptions {
@@ -29,6 +30,14 @@ const REQUIRED_FILES: ManagedSource[] = [
   {
     sourcePath: "dist/scripts/openspec-governance.js",
     targetPath: "scripts/openspec-governance.js",
+  },
+  {
+    sourcePath: "dist/lib/schema-alignment.js",
+    targetPath: "lib/schema-alignment.js",
+  },
+  {
+    sourcePath: "dist/lib/change-history.js",
+    targetPath: "lib/change-history.js",
   },
   { sourcePath: "docs/FULLSTACK_WORKFLOW.md", targetPath: "docs/FULLSTACK_WORKFLOW.md" },
   { sourcePath: "docs/QUALITY_GATES.md", targetPath: "docs/QUALITY_GATES.md" },
@@ -116,22 +125,34 @@ export function installWorkflow(
   if (!fs.existsSync(source)) throw new Error(`源仓库不存在：${source}`);
 
   const operations = buildOperations(source, target);
-  fs.mkdirSync(target, { recursive: true });
-  const conflicts = operations
+  const sourceConflicts = operations
     .filter((operation) => {
       const targetPath = path.join(target, operation.relativePath);
       return fs.existsSync(targetPath) && !sameContent(targetPath, operation.content);
     })
     .map((operation) => operation.relativePath);
 
-  const existingSpec = path.join(target, "SPEC.md");
-  if (fs.existsSync(existingSpec)) {
-    const specContent = fs.readFileSync(existingSpec, "utf8");
-    if (!specContent.includes("# AI 全栈规格索引")) {
-      conflicts.push("SPEC.md");
-    }
+  if (sourceConflicts.length > 0 && !options.force) {
+    throw new Error(`发现冲突的工作流文件，本次未修改任何文件：\n${sourceConflicts.join("\n")}`);
   }
 
+  const model = collectChangeHistory(target);
+  const generatedOperations: FileOperation[] = [
+    { relativePath: "SPEC.md", content: Buffer.from(renderIndex(target, model), "utf8") },
+    {
+      relativePath: "openspec/change-history.json",
+      content: Buffer.from(renderChangeHistory(model), "utf8"),
+    },
+  ];
+  const managedOperations = [...operations, ...generatedOperations]
+    .sort((left, right) => left.relativePath.localeCompare(right.relativePath, "en"));
+  const generatedConflicts = generatedOperations
+    .filter((operation) => {
+      const targetPath = path.join(target, operation.relativePath);
+      return fs.existsSync(targetPath) && !sameContent(targetPath, operation.content);
+    })
+    .map((operation) => operation.relativePath);
+  const conflicts = [...sourceConflicts, ...generatedConflicts];
   if (conflicts.length > 0 && !options.force) {
     throw new Error(`发现冲突的工作流文件，本次未修改任何文件：\n${conflicts.join("\n")}`);
   }
@@ -142,6 +163,7 @@ export function installWorkflow(
     conflicts: [],
     backedUp: [],
   };
+  fs.mkdirSync(target, { recursive: true });
   const backupStamp = options.backupStamp || new Date().toISOString().replace(/[:.]/g, "-");
   const backupRoot = path.join(target, ".ai-workflow-backup", backupStamp);
 
@@ -151,7 +173,7 @@ export function installWorkflow(
     });
   }
 
-  operations.forEach((operation) => {
+  managedOperations.forEach((operation) => {
     const targetPath = path.join(target, operation.relativePath);
     if (sameContent(targetPath, operation.content)) {
       result.skipped.push(operation.relativePath);
@@ -162,21 +184,13 @@ export function installWorkflow(
     result.copied.push(operation.relativePath);
   });
 
-  const specContent = Buffer.from(renderIndex(target), "utf8");
-  if (sameContent(existingSpec, specContent)) {
-    result.skipped.push("SPEC.md");
-  } else {
-    fs.writeFileSync(existingSpec, specContent);
-    result.copied.push("SPEC.md");
-  }
-
   const packageJson = JSON.parse(
     fs.readFileSync(path.join(source, "package.json"), "utf8"),
   ) as { version: string };
   const manifestPath = path.join(target, ".ai-workflow.json");
   const manifest = `${JSON.stringify({
     version: packageJson.version,
-    managedFiles: operations.map((operation) => operation.relativePath).concat("SPEC.md").sort(),
+    managedFiles: managedOperations.map((operation) => operation.relativePath).sort(),
   }, null, 2)}\n`;
   if (sameContent(manifestPath, Buffer.from(manifest))) {
     result.skipped.push(".ai-workflow.json");

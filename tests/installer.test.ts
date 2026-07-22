@@ -24,7 +24,10 @@ function read(root: string, relativePath: string): string {
 function makeSource(root: string): void {
   write(root, "package.json", '{"version":"1.0.0"}\n');
   write(root, "dist/scripts/openspec-governance.js", "module.exports = {};\n");
+  write(root, "dist/lib/schema-alignment.js", "exports.schemaAlignment = true;\n");
+  write(root, "dist/lib/change-history.js", "exports.changeHistory = true;\n");
   write(root, "openspec/config.yaml", "schema: product-change\n");
+  write(root, "openspec/change-history.json", '{"version":999}\n');
   write(root, "openspec/schemas/bugfix/schema.yaml", "name: bugfix\n");
   write(root, "openspec/schemas/product-change/schema.yaml", "name: product-change\n");
   write(root, "docs/requirements/_templates/BR.md", "# BR\n");
@@ -62,6 +65,16 @@ test("installs versioned assets and required OpenSpec structure", () => {
     assert.ok(fs.existsSync(path.join(target, "openspec/specs/.gitkeep")));
     assert.ok(fs.existsSync(path.join(target, "openspec/changes/archive/.gitkeep")));
     assert.ok(fs.existsSync(path.join(target, ".ai-workflow.json")));
+    assert.strictEqual(read(target, "lib/schema-alignment.js"), "exports.schemaAlignment = true;\n");
+    assert.strictEqual(read(target, "lib/change-history.js"), "exports.changeHistory = true;\n");
+    assert.match(read(target, "SPEC.md"), /openspec\/change-history\.json/);
+    assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 1,/);
+    assert.doesNotMatch(read(target, "openspec/change-history.json"), /999/);
+    const manifest = JSON.parse(read(target, ".ai-workflow.json")) as {
+      managedFiles: string[];
+    };
+    assert.ok(manifest.managedFiles.includes("SPEC.md"));
+    assert.ok(manifest.managedFiles.includes("openspec/change-history.json"));
   });
 });
 
@@ -109,6 +122,37 @@ test("force mode backs up conflicts before overwrite", () => {
       "# local customization\n",
     );
     assert.strictEqual(result.backedUp.length, 1);
+  });
+});
+
+test("generated files participate in conflict preflight and force backup", () => {
+  withRoots(({ source, target }) => {
+    write(target, "SPEC.md", "# local spec\n");
+    write(target, "openspec/change-history.json", '{"version":0}\n');
+
+    assert.throws(() => installWorkflow(source, target), /冲突的工作流文件/);
+    assert.strictEqual(read(target, "SPEC.md"), "# local spec\n");
+    assert.strictEqual(read(target, "openspec/change-history.json"), '{"version":0}\n');
+    assert.ok(!fs.existsSync(path.join(target, "scripts/openspec-governance.js")));
+
+    const result = installWorkflow(source, target, {
+      force: true,
+      backupStamp: "generated-backup",
+    });
+
+    assert.strictEqual(
+      read(target, ".ai-workflow-backup/generated-backup/SPEC.md"),
+      "# local spec\n",
+    );
+    assert.strictEqual(
+      read(target, ".ai-workflow-backup/generated-backup/openspec/change-history.json"),
+      '{"version":0}\n',
+    );
+    assert.ok(result.backedUp.includes(".ai-workflow-backup/generated-backup/SPEC.md"));
+    assert.ok(result.backedUp.includes(
+      ".ai-workflow-backup/generated-backup/openspec/change-history.json",
+    ));
+    assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 1,/);
   });
 });
 

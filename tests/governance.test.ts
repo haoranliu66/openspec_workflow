@@ -3,12 +3,16 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { collectChangeHistory } from "../lib/change-history";
+
 import {
+  checkGeneratedFiles,
   checkIndex,
   checkProject,
   collectCapabilities,
   findArchiveViolations,
   renderIndex,
+  writeGeneratedFiles,
 } from "../scripts/openspec-governance";
 
 const tests: Array<{ name: string; fn: () => void }> = [];
@@ -21,6 +25,10 @@ function write(root: string, relativePath: string, content = ""): void {
   const target = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.writeFileSync(target, content, "utf8");
+}
+
+function read(root: string, relativePath: string): string {
+  return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
 function withProject(fn: (root: string) => void): void {
@@ -64,6 +72,119 @@ test("renders a deterministic navigation-only index", () => {
   });
 });
 
+test("renders active changes before capability specs exist", () => {
+  withProject((root) => {
+    write(root, "openspec/changes/early-change/.openspec.yaml", "schema: product-change\n");
+    write(root, "openspec/changes/early-change/proposal.md", "## Why\n");
+
+    const rendered = renderIndex(root);
+
+    assert.match(rendered, /## 活动 Change/);
+    assert.match(rendered, /early-change/);
+    assert.match(rendered, /product-change/);
+    assert.match(rendered, /proposal\.md/);
+    assert.doesNotMatch(rendered, /\(null\)/);
+    assert.match(rendered, /openspec\/change-history\.json/);
+  });
+});
+
+test("renders active capability navigation from the supplied history snapshot", () => {
+  withProject((root) => {
+    write(root, "openspec/changes/snapshot-change/.openspec.yaml", "schema: product-change\n");
+    write(
+      root,
+      "openspec/changes/snapshot-change/specs/snapshot-cap/spec.md",
+      "## ADDED Requirements\n",
+    );
+    const model = collectChangeHistory(root);
+    fs.rmSync(path.join(root, "openspec/changes/snapshot-change"), {
+      recursive: true,
+      force: true,
+    });
+
+    const rendered = renderIndex(root, model);
+
+    assert.match(
+      rendered,
+      /\| snapshot-cap \(pending sync\) \| - \| - \| \[snapshot-change\]\(openspec\/changes\/snapshot-change\/specs\/snapshot-cap\/spec\.md\) \|/,
+    );
+  });
+});
+
+test("rejects missing and stale generated files separately", () => {
+  withProject((root) => {
+    write(root, "openspec/specs/.gitkeep");
+    write(root, "openspec/changes/archive/.gitkeep");
+
+    assert.throws(() => checkGeneratedFiles(root), /缺少 SPEC\.md/);
+
+    write(root, "SPEC.md", renderIndex(root));
+    assert.throws(() => checkGeneratedFiles(root), /缺少 openspec\/change-history\.json/);
+
+    write(root, "openspec/change-history.json", '{"version":0}\n');
+    assert.throws(() => checkGeneratedFiles(root), /change-history\.json 已过期/);
+  });
+});
+
+test("accepts CRLF generated files and writes byte-identical output repeatedly", () => {
+  withProject((root) => {
+    write(root, "openspec/specs/.gitkeep");
+    write(root, "openspec/changes/archive/.gitkeep");
+
+    writeGeneratedFiles(root);
+    const firstSpec = read(root, "SPEC.md");
+    const firstHistory = read(root, "openspec/change-history.json");
+    writeGeneratedFiles(root);
+
+    assert.strictEqual(read(root, "SPEC.md"), firstSpec);
+    assert.strictEqual(read(root, "openspec/change-history.json"), firstHistory);
+    assert.deepStrictEqual(
+      fs.readdirSync(root).filter((entry) => entry.endsWith(".tmp")),
+      [],
+    );
+    assert.deepStrictEqual(
+      fs.readdirSync(path.join(root, "openspec")).filter((entry) => entry.endsWith(".tmp")),
+      [],
+    );
+
+    write(root, "SPEC.md", firstSpec.replace(/\n/g, "\r\n"));
+    write(root, "openspec/change-history.json", firstHistory.replace(/\n/g, "\r\n"));
+    assert.doesNotThrow(() => checkGeneratedFiles(root));
+  });
+});
+
+test("rejects active unknown schemas and returns archived unknown schema warnings", () => {
+  withProject((root) => {
+    write(root, "openspec/specs/.gitkeep");
+    write(root, "openspec/changes/archive/.gitkeep");
+    write(root, "openspec/changes/future-change/.openspec.yaml", "schema: future\n");
+    writeGeneratedFiles(root);
+
+    assert.throws(
+      () => checkProject(root, { archiveStatus: "" }),
+      /Active change future-change has unknown schema future/,
+    );
+  });
+
+  withProject((root) => {
+    write(root, "openspec/specs/.gitkeep");
+    write(root, "openspec/changes/archive/.gitkeep");
+    write(
+      root,
+      "openspec/changes/archive/2026-01-01-legacy/.openspec.yaml",
+      "schema: legacy\n",
+    );
+    writeGeneratedFiles(root);
+
+    const warnings = checkProject(root, { archiveStatus: "" });
+
+    assert.deepStrictEqual(warnings, [{
+      severity: "warning",
+      message: "Archived change 2026-01-01-legacy has unknown schema legacy",
+    }]);
+  });
+});
+
 test("allows new archive additions but rejects committed history edits", () => {
   const status = [
     "A\topenspec/changes/archive/2026-03-01-new/proposal.md",
@@ -92,7 +213,7 @@ test("passes project check with current index and unchanged archive", () => {
   withProject((root) => {
     write(root, "openspec/specs/.gitkeep");
     write(root, "openspec/changes/archive/.gitkeep");
-    write(root, "SPEC.md", renderIndex(root));
+    writeGeneratedFiles(root);
 
     assert.doesNotThrow(() => checkProject(root, { archiveStatus: "" }));
   });
