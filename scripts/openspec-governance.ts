@@ -189,7 +189,12 @@ export function renderIndex(root: string, model?: ChangeHistory): string {
       const active = capability.active.length > 0
         ? capability.active.map(renderReference).join("<br>")
         : "-";
-      return `| ${current} | ${renderReference(first)} | ${renderReference(latest)} | ${active} |`;
+      return [
+        current,
+        renderReference(first),
+        renderReference(latest),
+        active,
+      ].map(escapeTableCell).join(" | ").replace(/^/, "| ").concat(" |");
     })
     : ["| _暂无已同步或活动的 capability_ | - | - | - |"];
 

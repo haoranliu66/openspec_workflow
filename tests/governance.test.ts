@@ -118,7 +118,7 @@ test("escapes active change table cells, link labels, and link targets", () => {
       diagnostics: [],
       changes: [{
         changeId: "change|draft",
-        directoryName: "change space",
+        directoryName: "change |[active]",
         state: "active",
         archiveDate: null,
         schema: "product|change",
@@ -136,6 +136,46 @@ test("escapes active change table cells, link labels, and link targets", () => {
           deltaSpec: "openspec/changes/change space/specs/cap (one)#/spec.md",
           requirements: [],
         }],
+      }, {
+        changeId: "first",
+        directoryName: "archive |[first]",
+        state: "archived",
+        archiveDate: "2026-01-01",
+        schema: "product-change",
+        paths: {
+          br: null,
+          prd: null,
+          proposal: null,
+          design: null,
+          tasks: null,
+          feature: null,
+        },
+        capabilities: [{
+          name: "cap|[label]",
+          canonicalSpec: "openspec/specs/cap/spec.md",
+          deltaSpec: "openspec/changes/archive/archive (first)#/specs/cap/spec.md",
+          requirements: [],
+        }],
+      }, {
+        changeId: "last",
+        directoryName: "archive |[last]",
+        state: "archived",
+        archiveDate: "2026-02-01",
+        schema: "product-change",
+        paths: {
+          br: null,
+          prd: null,
+          proposal: null,
+          design: null,
+          tasks: null,
+          feature: null,
+        },
+        capabilities: [{
+          name: "cap|[label]",
+          canonicalSpec: "openspec/specs/cap/spec.md",
+          deltaSpec: "openspec/changes/archive/archive (last)#/specs/cap/spec.md",
+          requirements: [],
+        }],
       }],
     };
 
@@ -143,8 +183,14 @@ test("escapes active change table cells, link labels, and link targets", () => {
     const safeRow = "| change\\|draft | product\\|change | "
       + "[cap\\|\\[label\\]](openspec/changes/change%20space/specs/cap%20%28one%29%23/spec.md) | "
       + "[proposal.md](openspec/changes/change%20space/%28draft%29%23proposal.md) |";
+    const safeCapabilityRow = "| cap\\|[label] (pending sync) | "
+      + "[archive \\|\\[first\\]](openspec/changes/archive/archive%20%28first%29%23/specs/cap/spec.md) | "
+      + "[archive \\|\\[last\\]](openspec/changes/archive/archive%20%28last%29%23/specs/cap/spec.md) | "
+      + "[change \\|\\[active\\]](openspec/changes/change%20space/specs/cap%20%28one%29%23/spec.md) |";
 
-    assert.ok(rendered.split("\n").includes(safeRow));
+    const lines = rendered.split("\n");
+    assert.ok(lines.includes(safeRow));
+    assert.ok(lines.includes(safeCapabilityRow));
   });
 });
 
