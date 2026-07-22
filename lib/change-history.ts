@@ -176,8 +176,15 @@ function artifactPaths(root: string, changeDirectory: string): ChangeRecord["pat
   ) as ChangeRecord["paths"];
 }
 
-function archiveDate(directoryName: string): string | null {
-  return directoryName.match(/^(\d{4}-\d{2}-\d{2})(?:-|$)/)?.[1] ?? null;
+function archiveIdentity(directoryName: string): { archiveDate: string | null; changeId: string } {
+  const match = directoryName.match(/^(\d{4}-\d{2}-\d{2})-(.+)$/);
+  if (match === null) {
+    return { archiveDate: null, changeId: directoryName };
+  }
+  return {
+    archiveDate: match[1],
+    changeId: match[2],
+  };
 }
 
 function collectCapabilities(root: string, changeDirectory: string): CapabilityChange[] {
@@ -206,6 +213,7 @@ function collectRecord(
 ): ChangeRecord {
   const changeDirectory = state === "active" ? directoryName : `archive/${directoryName}`;
   const changeRoot = path.join(root, "openspec", "changes", ...changeDirectory.split("/"));
+  const archive = state === "archived" ? archiveIdentity(directoryName) : undefined;
   const schema = schemaName(changeRoot);
   if (!KNOWN_SCHEMAS.has(schema)) {
     diagnostics.push({
@@ -214,10 +222,10 @@ function collectRecord(
     });
   }
   return {
-    changeId: directoryName,
+    changeId: archive?.changeId ?? directoryName,
     directoryName,
     state,
-    archiveDate: state === "archived" ? archiveDate(directoryName) : null,
+    archiveDate: archive?.archiveDate ?? null,
     schema,
     paths: artifactPaths(root, changeDirectory),
     capabilities: collectCapabilities(root, changeDirectory),
