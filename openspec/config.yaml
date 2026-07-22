@@ -1,27 +1,23 @@
 schema: product-change
 
 context: |
-  共享 BR、PRD 和 FEATURE 位于 docs/requirements/REQ-<id>-<slug>/，可管理多个 OpenSpec changes。
-  SPEC.md 是自动生成的导航索引。当前行为事实来源是 openspec/specs/<capability>/spec.md。
-  已归档 changes 不可修改。design.md 是产品 change 唯一的技术设计 / TD。
-  PRD 验收只描述产品结果；精确可执行场景只存在于 specs/<capability>/spec.md。
-
+  Shared BR, PRD, and FEATURE records live in docs/requirements/REQ-<id>-<slug>/ and can govern multiple OpenSpec changes. SPEC.md is generated navigation; current behavior lives in openspec/specs/<capability>/spec.md, while a change only owns its deltas under openspec/changes/<change>/specs/<capability>/spec.md. Archived changes are immutable.
 rules:
   br:
-    - 链接唯一的共享 BR，不在 change 中复制全文。
-    - 只保留目标 ID、交付切片、证据状态和阻塞项。
+    - Link the single shared BR instead of copying it into a change.
+    - Record only the target ID, delivery slice, evidence status, and blockers.
   prd:
-    - 链接共享 PRD，并标识本次可独立交付切片。
-    - 只维护结果级验收，不编写精确 WHEN/THEN 场景。
+    - Link the shared PRD and identify the independently deliverable slice.
+    - Keep outcome-level acceptance here; executable WHEN/THEN scenarios belong only in specs.
   proposal:
-    - 保持范围可独立发布，并列出受影响 capability 名称。
+    - Link the governing BR and PRD while keeping the proposal independently releasable.
+    - Use the native Why, What Changes, Capabilities, and Impact sections.
   specs:
-    - 使用行为优先的 SHALL/MUST Requirement 与精确 WHEN/THEN Scenario。
-    - 由新 delta 向后链接历史 change，禁止修改归档。
+    - Use behavior-first SHALL/MUST requirements and precise WHEN/THEN scenarios.
+    - Trace PRD acceptance IDs and historical changes without modifying archives.
   design:
-    - design.md 是唯一 TD，所有决策追溯到 Requirement。
+    - design.md is the only technical design; trace decisions to requirement IDs.
   tasks:
-    - 按依赖排序工作，并记录可验证证据。
+    - Order numbered checkbox work by dependency and record independently verifiable evidence.
   feature:
-    - 只记录已交付行为，保持精简并以证据为依据。
-    - feature 完成后同步并归档，重建 SPEC.md，执行治理检查。
+    - Record only delivered behavior backed by evidence, then synchronize and archive the change.

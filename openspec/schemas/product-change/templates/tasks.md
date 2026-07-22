@@ -1,20 +1,13 @@
-# 任务
+## 1. Implementation
 
-## 追溯与前置条件
+- [ ] 1.1 [Implement the first independently verifiable change]
+- [ ] 1.2 [Add or update the required behavior]
 
-- [ ] 1.1 确认已批准范围、Requirement ID、依赖和发布前置条件。
+## 2. Validation
 
-## 实施
+- [ ] 2.1 [Run focused tests and required quality gates]
+- [ ] 2.2 [Record verification evidence]
 
-- [ ] 2.1 按依赖顺序实现产品切片。
-- [ ] 2.2 增加可追溯到 Requirement 的自动化测试。
+## 3. Delivery
 
-## 验证
-
-- [ ] 3.1 执行所有适用的前端、后端、数据、安全和集成门禁。
-- [ ] 3.2 记录验收、发布、可观测性和回滚证据。
-
-## 交付
-
-- [ ] 4.1 根据已验证行为定稿 change 级与共享 FEATURE。
-- [ ] 4.2 准备当前规格同步、归档、索引重建和治理检查。
+- [ ] 3.1 [Synchronize affected specifications and delivery records]

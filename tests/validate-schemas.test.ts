@@ -1,6 +1,10 @@
 import assert from "node:assert";
+import path from "node:path";
 
-import { buildInvocation, schemas } from "../scripts/validate-schemas";
+import { buildInvocation, resolveRepositoryRoot, schemas } from "../scripts/validate-schemas";
+
+const repositoryRoot = path.resolve(__dirname, "..", "..");
+assert.strictEqual(resolveRepositoryRoot(path.join(repositoryRoot, "dist", "scripts")), repositoryRoot);
 
 assert.deepStrictEqual(schemas, ["bugfix", "product-change"]);
 

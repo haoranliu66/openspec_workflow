@@ -28,11 +28,16 @@ export function buildInvocation(
   };
 }
 
+export function resolveRepositoryRoot(scriptDirectory: string): string {
+  return path.resolve(scriptDirectory, "..", "..");
+}
+
 function main(): void {
+  const repositoryRoot = resolveRepositoryRoot(__dirname);
   schemas.forEach((schema) => {
     const invocation = buildInvocation(process.platform, schema);
     childProcess.execFileSync(invocation.command, invocation.args, {
-      cwd: path.resolve(__dirname, ".."),
+      cwd: repositoryRoot,
       stdio: "inherit",
     });
   });

@@ -1,24 +1,24 @@
-# 变更提案
+# Change: [Brief description]
 
-## 产品来源
+## Why
 
-- **需求 / 切片**：REQ-000 / DS-001
-- **BR / PRD**：`docs/requirements/REQ-000-slug/`
+[Briefly explain why this change is needed now.]
 
-## 变更原因
+## What Changes
 
-<!-- 说明为什么现在需要这个可独立交付切片。 -->
+- [Summarize the behavior changes and any non-goals.]
 
-## 范围
+## Capabilities
 
-- **范围内**：
-- **范围外**：
+### New Capabilities
 
-## 能力范围
+- `capability-name`: [Brief description]
 
-- **新增**：`capability-name` / 无
-- **修改**：`existing-capability` / 无
+### Modified Capabilities
 
-## 依赖与影响
+- `existing-capability`: [Brief description]
 
-<!-- 说明受影响的角色、模块、接口、数据、部署或兼容性。 -->
+## Impact
+
+- Affected specs: [list capabilities]
+- Affected code: [key modules or systems]

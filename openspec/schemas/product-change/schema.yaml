@@ -1,93 +1,55 @@
 name: product-change
-version: 1
-description: 产品工作流 - BR -> PRD -> proposal -> specs -> design(TD) -> tasks -> apply -> feature
+version: 2
+description: Product workflow with a native OpenSpec change core
 artifacts:
   - id: br
     generates: br.md
-    description: 对共享业务需求的轻量绑定
+    description: Shared business requirement reference
     template: br.md
-    instruction: |
-      链接 docs/requirements/REQ-<id>-<slug>/ 下唯一的共享 BR 需求包。只记录需求与目标 ID、
-      本 change 承担的业务切片、证据状态、关键约束和阻塞决策。一个 BR 可以管理多个 changes。
-      不要把共享 BR 复制到本 change。
     requires: []
 
   - id: prd
     generates: prd.md
-    description: 对共享产品需求及交付切片的轻量绑定
+    description: Shared product requirement reference
     template: prd.md
-    instruction: |
-      链接 br.md 对应的共享 PRD。标明目标角色、用户旅程片段、范围内外、产品结果验收 ID、
-      受影响 capabilities 和关联 changes。一个 PRD 可以对应多个 changes。不要在这里编写
-      精确 WHEN/THEN 场景；可执行场景只属于 specs。
     requires:
       - br
 
   - id: proposal
     generates: proposal.md
-    description: 可独立交付的 OpenSpec 变更提案
+    description: OpenSpec change proposal
     template: proposal.md
-    instruction: |
-      从 BR/PRD 派生一个简明、可独立发布的 change。说明本切片存在的原因、范围、非目标、
-      capability 名称、依赖和影响。链接产品来源，不重复其业务理由。实现决策留给 design.md。
-    requires:
-      - br
-      - prd
+    requires: []
 
   - id: specs
     generates: "specs/**/*.md"
-    description: 精确、可执行的行为契约
+    description: Executable behavior deltas
     template: spec.md
-    instruction: |
-      每个受影响 capability 创建一份 delta spec。specs 是精确可执行验收场景的唯一来源。
-      按需使用 ADDED、MODIFIED、REMOVED 或 RENAMED；MODIFIED 下重复完整 Requirement。
-      每项 Requirement 使用 SHALL/MUST，并至少包含一个四级标题 WHEN/THEN Scenario。
-      保持 ID 稳定，追溯 PRD 验收 ID，链接当前 canonical spec，并向后链接相关历史 changes。
-      归档不可修改。
     requires:
       - proposal
-      - prd
 
   - id: design
     generates: design.md
-    description: 作为唯一 TD 的技术设计文档
+    description: Technical design for the change
     template: design.md
-    instruction: |
-      design.md 是本 change 唯一的 TD。解释已批准 Requirement 如何实现，并仅覆盖适用内容：
-      现状、架构、责任边界、UI/API/数据契约、状态与生命周期、权限与安全、失败恢复、兼容与迁移、
-      可观测性、测试、发布、回滚、风险、备选方案和未决事项。决策追溯到 Requirement ID；
-      不重新定义产品目标或验收场景。
     requires:
       - proposal
-      - specs
 
   - id: tasks
     generates: tasks.md
-    description: 可追溯的实施与验证计划
+    description: Traceable implementation plan
     template: tasks.md
-    instruction: |
-      将 specs 和 design 转换为按依赖排序的 `- [ ] X.Y ...` 任务。包含追溯、实现、测试、
-      条件式全栈门禁、适用的安全与数据检查、发布、回滚、交付证据、共享 FEATURE 更新、
-      当前规格同步、归档、索引和治理。每项任务必须可独立验证，并保持在 PRD 切片内。
     requires:
       - specs
       - design
 
   - id: feature
     generates: feature.md
-    description: 精简的实施后交付记录
+    description: Post-implementation delivery record
     template: feature.md
-    instruction: |
-      仅在实现证据存在后定稿。只记录已交付的用户可见行为、验证证据、运营要点、限制、
-      发布状态、共享 FEATURE 章节和 spec 链接。不要重复 BR、PRD、spec 或 design。
-      如果任何已声明行为尚未验证，将本文标记为草稿。
     requires:
       - tasks
 
 apply:
   requires: [tasks]
   tracks: tasks.md
-  instruction: |
-    先读 SPEC.md，再读受影响当前规格与本 change。只在需要解决产品范围时读取 BR/PRD。
-    实现一个已批准切片，并随证据更新 tasks；design.md 始终是唯一 TD。行为变化时先修订 specs。
-    验证后定稿 feature.md、更新共享 FEATURE、同步当前规格、归档、重建 SPEC.md 并执行检查。

@@ -1,26 +1,33 @@
-# 技术设计
+# Design: [Change name]
 
-## 背景与约束
+## Context
 
-<!-- 记录现状、代码证据、Requirement ID 和硬约束。 -->
+[Describe the current state, constraints, and relevant requirements.]
 
-## 技术决策
+## Goals / Non-Goals
 
-| 决策 | 选择与理由 | 对应 Requirements |
-|---|---|---|
+### Goals
 
-## 架构与契约
+- [Goal]
 
-<!-- 只描述受影响的 UI、API、数据、生命周期和责任边界。 -->
+### Non-Goals
 
-## 安全与失败处理
+- [Non-goal]
 
-<!-- 按需描述权限、校验、恢复、并发和降级状态。 -->
+## Decisions
 
-## 验证方案
+### Decision: [Title]
 
-<!-- 把测试和条件式质量门禁映射到 Requirements。 -->
+[Describe the decision and rationale.]
 
-## 发布与回滚
+## Risks / Trade-offs
 
-## 风险、备选方案与未决事项
+- [Risk or trade-off]
+
+## Migration Plan
+
+[Describe rollout, migration, and rollback steps when applicable.]
+
+## Open Questions
+
+- [Question]
