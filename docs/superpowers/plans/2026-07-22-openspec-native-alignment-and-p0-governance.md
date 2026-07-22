@@ -1,5 +1,8 @@
 # OpenSpec Native Alignment and P0 Governance Implementation Plan
 
+> [!WARNING]
+> This JavaScript/CommonJS plan is superseded by [the TypeScript implementation plan](2026-07-22-openspec-native-alignment-and-p0-governance-typescript.md). Do not execute this file.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Restore the OpenSpec v1.5.0 native planning core inside `product-change`, generate deterministic machine-readable change history, and make archive immutability plus active-change validation enforceable in CI.
