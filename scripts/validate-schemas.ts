@@ -1,39 +1,43 @@
-// @ts-nocheck
-'use strict';
+import childProcess from "node:child_process";
+import path from "node:path";
 
-const childProcess = require('child_process');
-const path = require('path');
+interface Invocation {
+  command: string;
+  args: string[];
+}
 
-const schemas = ['bugfix', 'product-change'];
+export const schemas = ["bugfix", "product-change"];
 
-function buildInvocation(platform, schema, commandShell = process.env.ComSpec || 'cmd.exe') {
+export function buildInvocation(
+  platform: NodeJS.Platform,
+  schema: string,
+  commandShell = process.env.ComSpec || "cmd.exe",
+): Invocation {
   if (!/^[a-z0-9-]+$/.test(schema)) {
     throw new Error(`Schema 名称无效：${schema}`);
   }
-  if (platform === 'win32') {
+  if (platform === "win32") {
     return {
       command: commandShell,
-      args: ['/d', '/s', '/c', `openspec.cmd schema validate ${schema}`],
+      args: ["/d", "/s", "/c", `openspec.cmd schema validate ${schema}`],
     };
   }
   return {
-    command: 'openspec',
-    args: ['schema', 'validate', schema],
+    command: "openspec",
+    args: ["schema", "validate", schema],
   };
 }
 
-function main() {
+function main(): void {
   schemas.forEach((schema) => {
     const invocation = buildInvocation(process.platform, schema);
     childProcess.execFileSync(invocation.command, invocation.args, {
-      cwd: path.resolve(__dirname, '..'),
-      stdio: 'inherit',
+      cwd: path.resolve(__dirname, ".."),
+      stdio: "inherit",
     });
   });
 }
 
-if (require.main === module) {
+if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === __filename) {
   main();
 }
-
-module.exports = { buildInvocation, schemas };

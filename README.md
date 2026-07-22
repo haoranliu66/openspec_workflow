@@ -13,10 +13,12 @@
 
 ## 快速开始
 
-前置条件：Node.js 18+、Git、OpenSpec CLI。
+前置条件：Node.js 20.19+、Git、OpenSpec CLI。
 
 ```powershell
-node D:\ai-fullstack-openspec-workflow\bin\workflow.js install --target D:\your-project
+cd D:\ai-fullstack-openspec-workflow
+npm install
+node dist\bin\workflow.js install --target D:\your-project
 cd D:\your-project
 openspec schema validate bugfix
 openspec schema validate product-change
@@ -37,7 +39,12 @@ openspec new change add-example --schema product-change
 openspec status --change add-example
 openspec instructions br --change add-example
 
-# 归档后刷新导航并检查治理约束
+# 在源仓库归档后刷新导航、检查治理约束并执行完整验证
+npm run index
+npm run check
+npm run verify
+
+# 在已安装的目标项目中刷新导航并检查治理约束
 node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 ```

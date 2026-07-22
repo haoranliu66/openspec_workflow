@@ -1,6 +1,6 @@
 # AI 全栈规格索引
 
-> 由 `node scripts/openspec-governance.js index` 自动生成，请勿手工编辑。
+> 源仓库使用 `npm run index`，已安装目标使用 `node scripts/openspec-governance.js index`；本文件自动生成，请勿手工编辑。
 
 ## AI 最小上下文顺序
 

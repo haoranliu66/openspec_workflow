@@ -1,14 +1,23 @@
 #!/usr/bin/env node
-// @ts-nocheck
-'use strict';
+import path from "node:path";
 
-const path = require('path');
+import { installWorkflow } from "../lib/installer";
+import { checkProject, writeIndex } from "../scripts/openspec-governance";
 
-const { installWorkflow } = require('../lib/installer');
-const { writeIndex, checkProject } = require('../scripts/openspec-governance');
+interface CliOptions {
+  command: string | undefined;
+  target: string;
+  force: boolean;
+  archiveBase: string | undefined;
+}
 
-function parseArguments(args) {
-  const options = { command: args[0], target: process.cwd(), force: false };
+export function parseArguments(args: string[]): CliOptions {
+  const options: CliOptions = {
+    command: args[0],
+    target: process.cwd(),
+    force: false,
+    archiveBase: undefined,
+  };
   for (let index = 1; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--force') {

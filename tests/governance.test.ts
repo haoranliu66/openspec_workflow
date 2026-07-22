@@ -1,33 +1,30 @@
-// @ts-nocheck
-'use strict';
+import assert from "node:assert";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-const assert = require('assert');
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-
-const {
-  collectCapabilities,
-  renderIndex,
-  findArchiveViolations,
+import {
   checkIndex,
   checkProject,
-} = require('../scripts/openspec-governance');
+  collectCapabilities,
+  findArchiveViolations,
+  renderIndex,
+} from "../scripts/openspec-governance";
 
-const tests = [];
+const tests: Array<{ name: string; fn: () => void }> = [];
 
-function test(name, fn) {
+function test(name: string, fn: () => void): void {
   tests.push({ name, fn });
 }
 
-function write(root, relativePath, content = '') {
+function write(root: string, relativePath: string, content = ""): void {
   const target = path.join(root, relativePath);
   fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, content, 'utf8');
+  fs.writeFileSync(target, content, "utf8");
 }
 
-function withProject(fn) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-workflow-governance-'));
+function withProject(fn: (root: string) => void): void {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-governance-"));
   try {
     fn(root);
   } finally {
@@ -35,28 +32,28 @@ function withProject(fn) {
   }
 }
 
-test('collects current, first/latest archived, and active capability references', () => {
+test("collects current, first/latest archived, and active capability references", () => {
   withProject((root) => {
-    write(root, 'openspec/specs/admin-panel/spec.md');
-    write(root, 'openspec/changes/archive/2026-01-01-create/specs/admin-panel/spec.md');
-    write(root, 'openspec/changes/archive/2026-02-01-refresh/specs/admin-panel/spec.md');
-    write(root, 'openspec/changes/add-filter/specs/admin-panel/spec.md');
+    write(root, "openspec/specs/admin-panel/spec.md");
+    write(root, "openspec/changes/archive/2026-01-01-create/specs/admin-panel/spec.md");
+    write(root, "openspec/changes/archive/2026-02-01-refresh/specs/admin-panel/spec.md");
+    write(root, "openspec/changes/add-filter/specs/admin-panel/spec.md");
 
     const capabilities = collectCapabilities(root);
 
     assert.strictEqual(capabilities.length, 1);
-    assert.strictEqual(capabilities[0].canonical, 'openspec/specs/admin-panel/spec.md');
+    assert.strictEqual(capabilities[0].canonical, "openspec/specs/admin-panel/spec.md");
     assert.deepStrictEqual(capabilities[0].archived.map((item) => item.change), [
-      '2026-01-01-create',
-      '2026-02-01-refresh',
+      "2026-01-01-create",
+      "2026-02-01-refresh",
     ]);
-    assert.deepStrictEqual(capabilities[0].active.map((item) => item.change), ['add-filter']);
+    assert.deepStrictEqual(capabilities[0].active.map((item) => item.change), ["add-filter"]);
   });
 });
 
-test('renders a deterministic navigation-only index', () => {
+test("renders a deterministic navigation-only index", () => {
   withProject((root) => {
-    write(root, 'openspec/specs/auth/spec.md', '### Requirement: AUTH-01\nsecret body');
+    write(root, "openspec/specs/auth/spec.md", "### Requirement: AUTH-01\nsecret body");
     const first = renderIndex(root);
     const second = renderIndex(root);
 
@@ -67,37 +64,37 @@ test('renders a deterministic navigation-only index', () => {
   });
 });
 
-test('allows new archive additions but rejects committed history edits', () => {
+test("allows new archive additions but rejects committed history edits", () => {
   const status = [
-    'A\topenspec/changes/archive/2026-03-01-new/proposal.md',
-    'M\topenspec/changes/archive/2026-01-01-old/specs/a/spec.md',
-    'D\topenspec/changes/archive/2026-01-01-old/tasks.md',
-    'R100\topenspec/changes/archive/old/proposal.md\topenspec/changes/archive/new/proposal.md',
-  ].join('\n');
+    "A\topenspec/changes/archive/2026-03-01-new/proposal.md",
+    "M\topenspec/changes/archive/2026-01-01-old/specs/a/spec.md",
+    "D\topenspec/changes/archive/2026-01-01-old/tasks.md",
+    "R100\topenspec/changes/archive/old/proposal.md\topenspec/changes/archive/new/proposal.md",
+  ].join("\n");
 
   const violations = findArchiveViolations(status);
 
   assert.strictEqual(violations.length, 3);
 });
 
-test('detects missing structure and stale index', () => {
+test("detects missing structure and stale index", () => {
   withProject((root) => {
-    assert.throws(() => checkProject(root, { archiveStatus: '' }), /缺少必要目录/);
+    assert.throws(() => checkProject(root, { archiveStatus: "" }), /缺少必要目录/);
 
-    write(root, 'openspec/specs/.gitkeep');
-    write(root, 'openspec/changes/archive/.gitkeep');
-    write(root, 'SPEC.md', '# stale\n');
+    write(root, "openspec/specs/.gitkeep");
+    write(root, "openspec/changes/archive/.gitkeep");
+    write(root, "SPEC.md", "# stale\n");
     assert.throws(() => checkIndex(root), /SPEC\.md 已过期/);
   });
 });
 
-test('passes project check with current index and unchanged archive', () => {
+test("passes project check with current index and unchanged archive", () => {
   withProject((root) => {
-    write(root, 'openspec/specs/.gitkeep');
-    write(root, 'openspec/changes/archive/.gitkeep');
-    write(root, 'SPEC.md', renderIndex(root));
+    write(root, "openspec/specs/.gitkeep");
+    write(root, "openspec/changes/archive/.gitkeep");
+    write(root, "SPEC.md", renderIndex(root));
 
-    assert.doesNotThrow(() => checkProject(root, { archiveStatus: '' }));
+    assert.doesNotThrow(() => checkProject(root, { archiveStatus: "" }));
   });
 });
 
@@ -108,7 +105,9 @@ tests.forEach(({ name, fn }) => {
     process.stdout.write(`PASS ${name}\n`);
   } catch (error) {
     failures += 1;
-    process.stderr.write(`FAIL ${name}\n${error.stack}\n`);
+    const message = error instanceof Error ? error.message : String(error);
+    const detail = error instanceof Error && error.stack ? error.stack : message;
+    process.stderr.write(`FAIL ${name}\n${detail}\n`);
   }
 });
 
