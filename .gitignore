@@ -1,5 +1,6 @@
 .ai-workflow-backup/
 node_modules/
+dist/
 .worktrees/
 *.log
 .DS_Store

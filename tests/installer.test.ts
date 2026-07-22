@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use strict';
 
 const assert = require('assert');
@@ -25,7 +26,7 @@ function read(root, relativePath) {
 
 function makeSource(root) {
   write(root, 'package.json', '{"version":"1.0.0"}\n');
-  write(root, 'scripts/openspec-governance.js', 'module.exports = {};\n');
+  write(root, 'dist/scripts/openspec-governance.js', 'module.exports = {};\n');
   write(root, 'openspec/config.yaml', 'schema: product-change\n');
   write(root, 'openspec/schemas/bugfix/schema.yaml', 'name: bugfix\n');
   write(root, 'openspec/schemas/product-change/schema.yaml', 'name: product-change\n');

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @ts-nocheck
 'use strict';
 
 const path = require('path');
@@ -37,7 +38,7 @@ function printHelp() {
 
 function main() {
   const options = parseArguments(process.argv.slice(2));
-  const sourceRoot = path.resolve(__dirname, '..');
+  const sourceRoot = path.resolve(__dirname, "..", "..");
   if (!options.command || options.command === 'help' || options.command === '--help') {
     printHelp();
     return;
@@ -64,6 +65,7 @@ function main() {
 try {
   main();
 } catch (error) {
-  process.stderr.write(`${error.message}\n`);
+  const message = error instanceof Error ? error.message : String(error);
+  process.stderr.write(`${message}\n`);
   process.exitCode = 1;
 }

@@ -5,16 +5,28 @@
   "private": true,
   "license": "MIT",
   "bin": {
-    "ai-fullstack-workflow": "bin/workflow.js"
+    "ai-fullstack-workflow": "dist/bin/workflow.js"
   },
   "scripts": {
-    "test": "node tests/governance.test.js && node tests/installer.test.js && node tests/validate-schemas.test.js",
-    "index": "node scripts/openspec-governance.js index",
-    "check": "node scripts/openspec-governance.js check",
-    "validate:schemas": "node scripts/validate-schemas.js",
-    "verify": "npm test && npm run index && npm run check && npm run validate:schemas"
+    "clean": "tsc -b --clean",
+    "build": "npm run clean && tsc -b",
+    "prepare": "npm run build",
+    "prepack": "npm run build",
+    "test:compiled": "node dist/tests/typescript-layout.test.js && node dist/tests/governance.test.js && node dist/tests/installer.test.js && node dist/tests/validate-schemas.test.js",
+    "test": "npm run build && npm run test:compiled",
+    "index:compiled": "node dist/scripts/openspec-governance.js index",
+    "index": "npm run build && npm run index:compiled",
+    "check:compiled": "node dist/scripts/openspec-governance.js check",
+    "check": "npm run build && npm run check:compiled",
+    "validate:schemas:compiled": "node dist/scripts/validate-schemas.js",
+    "validate:schemas": "npm run build && npm run validate:schemas:compiled",
+    "verify": "npm run build && npm run test:compiled && npm run index:compiled && npm run check:compiled && npm run validate:schemas:compiled"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "typescript": "7.0.2"
   }
 }

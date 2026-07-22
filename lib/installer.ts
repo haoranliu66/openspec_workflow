@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use strict';
 
 const fs = require('fs');
@@ -6,7 +7,7 @@ const path = require('path');
 const { renderIndex } = require('../scripts/openspec-governance');
 
 const REQUIRED_FILES = [
-  'scripts/openspec-governance.js',
+  'dist/scripts/openspec-governance.js',
   'docs/FULLSTACK_WORKFLOW.md',
   'docs/QUALITY_GATES.md',
 ];
@@ -58,12 +59,15 @@ function buildOperations(sourceRoot, targetRoot) {
     const sourceRelative = relativePath === 'openspec/ai-workflow.config.example.yaml'
       ? 'openspec/config.yaml'
       : relativePath;
+    const targetRelative = relativePath === 'dist/scripts/openspec-governance.js'
+      ? 'scripts/openspec-governance.js'
+      : relativePath;
     const sourcePath = path.join(sourceRoot, sourceRelative);
     if (!fs.existsSync(sourcePath)) {
       throw new Error(`工作流源文件缺失：${sourceRelative}`);
     }
     return {
-      relativePath,
+      relativePath: targetRelative,
       content: readFile(sourcePath),
     };
   });
