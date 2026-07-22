@@ -115,6 +115,33 @@ function backupFile(targetRoot: string, relativePath: string, backupRoot: string
   return toPosix(path.relative(targetRoot, backupPath));
 }
 
+function readSourceVersion(sourceRoot: string): string {
+  const packagePath = path.join(sourceRoot, "package.json");
+  if (!fs.existsSync(packagePath)) {
+    throw new Error("工作流源 package.json 缺失。");
+  }
+
+  let content: string;
+  try {
+    content = fs.readFileSync(packagePath, "utf8");
+  } catch {
+    throw new Error("工作流源 package.json 无法读取。");
+  }
+
+  let metadata: unknown;
+  try {
+    metadata = JSON.parse(content);
+  } catch {
+    throw new Error("工作流源 package.json 不是有效 JSON。");
+  }
+  if (typeof metadata !== "object" || metadata === null
+    || !("version" in metadata) || typeof metadata.version !== "string"
+    || metadata.version.trim() === "") {
+    throw new Error("工作流源 package.json 的 version 必须是非空字符串。");
+  }
+  return metadata.version;
+}
+
 export function installWorkflow(
   sourceRoot: string,
   targetRoot: string,
@@ -123,6 +150,7 @@ export function installWorkflow(
   const source = path.resolve(sourceRoot);
   const target = path.resolve(targetRoot);
   if (!fs.existsSync(source)) throw new Error(`源仓库不存在：${source}`);
+  const version = readSourceVersion(source);
 
   const operations = buildOperations(source, target);
   const sourceConflicts = operations
@@ -184,12 +212,9 @@ export function installWorkflow(
     result.copied.push(operation.relativePath);
   });
 
-  const packageJson = JSON.parse(
-    fs.readFileSync(path.join(source, "package.json"), "utf8"),
-  ) as { version: string };
   const manifestPath = path.join(target, ".ai-workflow.json");
   const manifest = `${JSON.stringify({
-    version: packageJson.version,
+    version,
     managedFiles: managedOperations.map((operation) => operation.relativePath).sort(),
   }, null, 2)}\n`;
   if (sameContent(manifestPath, Buffer.from(manifest))) {

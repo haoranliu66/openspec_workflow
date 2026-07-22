@@ -21,6 +21,26 @@ function read(root: string, relativePath: string): string {
   return fs.readFileSync(path.join(root, relativePath), "utf8");
 }
 
+function snapshot(root: string): string[] {
+  const entries: string[] = [];
+  const visit = (directory: string, relativeDirectory: string): void => {
+    fs.readdirSync(directory, { withFileTypes: true })
+      .sort((left, right) => left.name.localeCompare(right.name, "en"))
+      .forEach((entry) => {
+        const relativePath = path.posix.join(relativeDirectory, entry.name);
+        const absolutePath = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          entries.push(`D ${relativePath}`);
+          visit(absolutePath, relativePath);
+        } else {
+          entries.push(`F ${relativePath}:${fs.readFileSync(absolutePath).toString("base64")}`);
+        }
+      });
+  };
+  visit(root, "");
+  return entries;
+}
+
 function makeSource(root: string): void {
   write(root, "package.json", '{"version":"1.0.0"}\n');
   write(root, "dist/scripts/openspec-governance.js", "module.exports = {};\n");
@@ -52,6 +72,32 @@ function withRoots(fn: (roots: { source: string; target: string }) => void): voi
   }
 }
 
+function assertInvalidPackageMetadataDoesNotMutateTarget(
+  mutateSource: (source: string) => void,
+  expectedMessage: RegExp,
+): void {
+  withRoots(({ source, target }) => {
+    write(target, "sentinel.bin", "sentinel\0bytes");
+    write(target, "docs/QUALITY_GATES.md", "# Gates\n");
+    mutateSource(source);
+    const before = snapshot(target);
+    let thrown: unknown;
+
+    try {
+      installWorkflow(source, target, { force: true, backupStamp: "must-not-exist" });
+    } catch (error) {
+      thrown = error;
+    }
+
+    assert.deepStrictEqual(snapshot(target), before);
+    assert.ok(!fs.existsSync(path.join(target, ".ai-workflow-backup")));
+    if (!(thrown instanceof Error)) {
+      assert.fail("installWorkflow should reject invalid package metadata");
+    }
+    assert.match(thrown.message, expectedMessage);
+  });
+}
+
 test("installs versioned assets and required OpenSpec structure", () => {
   withRoots(({ source, target }) => {
     const result = installWorkflow(source, target);
@@ -76,6 +122,27 @@ test("installs versioned assets and required OpenSpec structure", () => {
     assert.ok(manifest.managedFiles.includes("SPEC.md"));
     assert.ok(manifest.managedFiles.includes("openspec/change-history.json"));
   });
+});
+
+test("rejects a missing source package before mutating the target", () => {
+  assertInvalidPackageMetadataDoesNotMutateTarget(
+    (source) => fs.rmSync(path.join(source, "package.json")),
+    /工作流源 package\.json 缺失/,
+  );
+});
+
+test("rejects malformed source package JSON before mutating the target", () => {
+  assertInvalidPackageMetadataDoesNotMutateTarget(
+    (source) => write(source, "package.json", "{not-json\n"),
+    /工作流源 package\.json 不是有效 JSON/,
+  );
+});
+
+test("rejects a blank source package version before mutating the target", () => {
+  assertInvalidPackageMetadataDoesNotMutateTarget(
+    (source) => write(source, "package.json", '{"version":"   "}\n'),
+    /工作流源 package\.json 的 version 必须是非空字符串/,
+  );
 });
 
 test("validates a missing compiled source before creating the target", () => {

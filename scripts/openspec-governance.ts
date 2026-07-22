@@ -130,8 +130,26 @@ export function collectCapabilities(root: string, model?: ChangeHistory): Capabi
     .sort((left, right) => left.name.localeCompare(right.name, "en"));
 }
 
+function escapeTableCell(value: string): string {
+  return value.replace(/\r?\n|\r/g, "<br>").replace(/\|/g, "\\|");
+}
+
+function escapeLinkLabel(label: string): string {
+  return label
+    .replace(/\r?\n|\r/g, " ")
+    .replace(/\\/g, "\\\\")
+    .replace(/\[/g, "\\[")
+    .replace(/]/g, "\\]");
+}
+
+function escapeLinkTarget(target: string): string {
+  return target.split("/").map((segment) => encodeURIComponent(segment)
+    .replace(/[!'()*]/g, (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`))
+    .join("/");
+}
+
 function markdownLink(label: string, target: string): string {
-  return `[${label}](${target})`;
+  return `[${escapeLinkLabel(label)}](${escapeLinkTarget(target)})`;
 }
 
 function renderReference(reference: CapabilityReference | undefined): string {
@@ -155,7 +173,7 @@ function renderActiveChange(change: ChangeHistory["changes"][number]): string {
     change.schema,
     capabilities,
     artifacts.length > 0 ? artifacts.join("<br>") : "-",
-  ].map((value) => ` ${value} `).join("|").replace(/^/, "|").concat("|");
+  ].map(escapeTableCell).join(" | ").replace(/^/, "| ").concat(" |");
 }
 
 export function renderIndex(root: string, model?: ChangeHistory): string {

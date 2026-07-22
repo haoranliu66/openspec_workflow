@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { collectChangeHistory } from "../lib/change-history";
+import { collectChangeHistory, type ChangeHistory } from "../lib/change-history";
 
 import {
   checkGeneratedFiles,
@@ -108,6 +108,43 @@ test("renders active capability navigation from the supplied history snapshot", 
       rendered,
       /\| snapshot-cap \(pending sync\) \| - \| - \| \[snapshot-change\]\(openspec\/changes\/snapshot-change\/specs\/snapshot-cap\/spec\.md\) \|/,
     );
+  });
+});
+
+test("escapes active change table cells, link labels, and link targets", () => {
+  withProject((root) => {
+    const model: ChangeHistory = {
+      version: 1,
+      diagnostics: [],
+      changes: [{
+        changeId: "change|draft",
+        directoryName: "change space",
+        state: "active",
+        archiveDate: null,
+        schema: "product|change",
+        paths: {
+          br: null,
+          prd: null,
+          proposal: "openspec/changes/change space/(draft)#proposal.md",
+          design: null,
+          tasks: null,
+          feature: null,
+        },
+        capabilities: [{
+          name: "cap|[label]",
+          canonicalSpec: "openspec/specs/cap/spec.md",
+          deltaSpec: "openspec/changes/change space/specs/cap (one)#/spec.md",
+          requirements: [],
+        }],
+      }],
+    };
+
+    const rendered = renderIndex(root, model);
+    const safeRow = "| change\\|draft | product\\|change | "
+      + "[cap\\|\\[label\\]](openspec/changes/change%20space/specs/cap%20%28one%29%23/spec.md) | "
+      + "[proposal.md](openspec/changes/change%20space/%28draft%29%23proposal.md) |";
+
+    assert.ok(rendered.split("\n").includes(safeRow));
   });
 });
 
