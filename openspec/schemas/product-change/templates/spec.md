@@ -1,12 +1,9 @@
-# [Capability Name] Specification
-
 ## ADDED Requirements
 
-### Requirement: [Requirement Name]
+### Requirement: <!-- requirement name -->
+<!-- requirement text -->
 
-The system SHALL [describe the required behavior].
+#### Scenario: <!-- scenario name -->
 
-#### Scenario: [Scenario Name]
-
-- **WHEN** [a triggering condition occurs]
-- **THEN** [the expected observable outcome occurs]
+- **WHEN** <!-- condition -->
+- **THEN** <!-- expected outcome -->

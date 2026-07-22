@@ -19,5 +19,7 @@ rules:
     - design.md is the only technical design; trace decisions to requirement IDs.
   tasks:
     - Order numbered checkbox work by dependency and record independently verifiable evidence.
+    - Add applicable validation, security, data, and integration quality-gate tasks here rather than changing the native template.
+    - Record delivery evidence, specification synchronization, and FEATURE updates here rather than changing the native template.
   feature:
     - Record only delivered behavior backed by evidence, then synchronize and archive the change.

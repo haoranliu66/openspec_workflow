@@ -1,13 +1,9 @@
-## 1. Implementation
+## 1. <!-- Task Group Name -->
 
-- [ ] 1.1 [Implement the first independently verifiable change]
-- [ ] 1.2 [Add or update the required behavior]
+- [ ] 1.1 <!-- Task description -->
+- [ ] 1.2 <!-- Task description -->
 
-## 2. Validation
+## 2. <!-- Task Group Name -->
 
-- [ ] 2.1 [Run focused tests and required quality gates]
-- [ ] 2.2 [Record verification evidence]
-
-## 3. Delivery
-
-- [ ] 3.1 [Synchronize affected specifications and delivery records]
+- [ ] 2.1 <!-- Task description -->
+- [ ] 2.2 <!-- Task description -->

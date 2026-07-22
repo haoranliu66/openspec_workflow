@@ -1,33 +1,27 @@
-# Design: [Change name]
-
 ## Context
 
-[Describe the current state, constraints, and relevant requirements.]
+<!-- Background and current state -->
 
 ## Goals / Non-Goals
 
-### Goals
+**Goals:**
+<!-- What this design aims to achieve -->
 
-- [Goal]
-
-### Non-Goals
-
-- [Non-goal]
+**Non-Goals:**
+<!-- What is explicitly out of scope -->
 
 ## Decisions
 
-### Decision: [Title]
-
-[Describe the decision and rationale.]
+<!-- Key design decisions and rationale -->
 
 ## Risks / Trade-offs
 
-- [Risk or trade-off]
+<!-- Known risks and trade-offs -->
 
 ## Migration Plan
 
-[Describe rollout, migration, and rollback steps when applicable.]
+<!-- Describe rollout, migration, and rollback steps when applicable. -->
 
 ## Open Questions
 
-- [Question]
+<!-- Record unresolved questions that need follow-up. -->

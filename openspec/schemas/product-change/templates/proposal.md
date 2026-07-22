@@ -1,24 +1,25 @@
-# Change: [Brief description]
-
 ## Why
 
-[Briefly explain why this change is needed now.]
+<!-- Explain the motivation for this change. What problem does this solve? Why now? -->
 
 ## What Changes
 
-- [Summarize the behavior changes and any non-goals.]
+<!-- Describe what will change. Be specific about new capabilities, modifications, or removals. -->
 
 ## Capabilities
 
 ### New Capabilities
+<!-- Capabilities being introduced. Replace <name> with kebab-case identifier (e.g., user-auth, data-export, api-rate-limiting). Each creates specs/<name>/spec.md -->
 
-- `capability-name`: [Brief description]
+- `<name>`: <brief description of what this capability covers>
 
 ### Modified Capabilities
+<!-- Existing capabilities whose REQUIREMENTS are changing (not just implementation).
+     Only list here if spec-level behavior changes. Each needs a delta spec file.
+     Use existing spec names from openspec/specs/. Leave empty if no requirement changes. -->
 
-- `existing-capability`: [Brief description]
+- `<existing-name>`: <what requirement is changing>
 
 ## Impact
 
-- Affected specs: [list capabilities]
-- Affected code: [key modules or systems]
+<!-- Affected code, APIs, dependencies, systems -->
