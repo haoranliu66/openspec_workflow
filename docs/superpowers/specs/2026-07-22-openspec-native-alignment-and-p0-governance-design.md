@@ -28,6 +28,7 @@ OpenSpec v1.5.0 的运行时要求是 Node.js `>=20.19.0`。本工作流的文�
 - 让 AI 在开始任务时准确发现活动 change、受影响 capability 和当前规格。
 - 让 AI 在需要回归、冲突分析或设计追溯时，能够机械定位历史 change 实际新增、修改、删除或重命名过的 Requirement。
 - 让 CI 真正阻止历史归档篡改，并严格校验所有活动 change 的 delta specs。
+- 将工作流仓库的可执行源码与测试统一为 TypeScript，同时保持安装目标的运行时零 TypeScript 依赖。
 
 ### 2.2 非目标
 
@@ -36,6 +37,7 @@ OpenSpec v1.5.0 的运行时要求是 Node.js `>=20.19.0`。本工作流的文�
 - 不从 proposal 自由文本生成带主观判断的 AI 摘要。
 - 不自动批准业务范围、技术方案、发布风险或合规结论。
 - 不在本轮实现 manifest 三方合并、完整升级迁移器或发布平台集成。
+- 不要求采用本工作流的业务项目安装 TypeScript、`tsx` 或其他 JavaScript 运行时依赖。
 
 ## 3. 设计原则
 
@@ -189,8 +191,9 @@ Capability 表继续包含 canonical spec、首次归档、最新归档和活动
 治理 CLI 新增显式参数：
 
 ```text
-node scripts/openspec-governance.js check --archive-base <git-ref>
-workflow check --target <project> --archive-base <git-ref>
+npm run check -- --archive-base <git-ref> # 工作流源码仓库
+node scripts/openspec-governance.js check --archive-base <git-ref> # 已安装的目标项目
+ai-fullstack-workflow check --target <project> --archive-base <git-ref> # package CLI
 ```
 
 未传基线时仍执行本地工作区检查；CI 必须传入基线。传入的 ref 不存在、Git 不可用或无法读取基线树时失败关闭。
@@ -294,6 +297,17 @@ openspec archive <change> --skip-specs --yes --json
 - `--force` 覆盖前必须保留 `.ai-workflow-backup/<timestamp>/`。
 - 更新后重新执行 Schema 校验、活动 change 严格校验、index 和 check。
 
+### 9.4 TypeScript 源码与运行产物
+
+工作流仓库采用“TypeScript 单一源码、JavaScript 编译产物分发”的边界：
+
+- `bin/`、`lib/`、`scripts/`、`tests/` 中现有与新增的可执行源码全部使用 `.ts`，不保留并行维护的 `.js` 源文件。
+- `tsconfig.json` 开启 `strict`，目标为 ES2022，使用 CommonJS 模块，按原目录结构编译到 `dist/`，以兼容 Node.js `>=20.19.0` 和现有相对导入。
+- `dist/` 是未提交的派生产物；`npm run build` 是唯一编译入口，`prepare`/`prepack` 保证 CLI 打包或本地安装前已有新鲜产物。
+- 源仓库通过 npm scripts 执行 build、test、index、check 与 validate；package bin 指向 `dist/bin/workflow.js`。
+- 安装器把 `dist/lib/*.js` 与 `dist/scripts/*.js` 映射为目标项目的 `lib/*.js` 与 `scripts/*.js`，目标项目继续直接使用 Node.js，不依赖 TypeScript 工具链。
+- `typescript` 与 Node 类型声明只属于开发依赖；生产运行时不得新增第三方依赖。
+
 ## 10. 错误处理
 
 - Git 不存在、HEAD 不存在或显式基线不可解析：治理检查失败并给出可执行修复提示。
@@ -301,6 +315,8 @@ openspec archive <change> --skip-specs --yes --json
 - delta spec 无法解析：index 不伪造 Requirement，治理检查失败并指出文件。
 - OpenSpec JSON 命令退出非零：保留 stderr，CI 失败；不得把实验性提示与 stdout 合并后再解析 JSON。
 - 生成文件写入采用同目录临时文件加原子替换，避免中断留下截断的 `SPEC.md` 或历史 JSON。
+- TypeScript 类型检查或编译失败：build、测试和 CI 立即失败，不使用旧 `dist/` 继续执行。
+- 安装器在第一次写入目标项目前验证全部编译产物；缺失时失败并提示先执行 `npm run build`，不得产生部分安装。
 
 ## 11. 测试策略
 
@@ -315,6 +331,8 @@ openspec archive <change> --skip-specs --yes --json
 - 新顶层 archive 目录允许新增。
 - 无效或缺失 Git 基线失败关闭。
 - Windows/Unix OpenSpec 调用参数。
+- TypeScript 编译配置、严格类型边界和编译产物到安装路径的映射。
+- 所有新增生产函数遵循测试先行，测试源码同样使用 TypeScript。
 
 ### 11.2 集成测试
 
@@ -322,12 +340,15 @@ openspec archive <change> --skip-specs --yes --json
 - 新归档目录相对 base 仅包含新增文件时必须通过。
 - 使用真实 OpenSpec 1.5.0 创建 product-change fixture，验证 artifact readiness 与 strict validation。
 - 安装到临时目标后执行 index、history、check 和 strict validation。
+- 从 TypeScript 源码构建 CLI 后安装到临时目标，确认目标仅靠 Node.js 即可执行编译后的治理脚本。
 
 ### 11.3 CI 矩阵
 
 - Node.js `20.19.x`；
 - Node.js `22.x`；
 - 固定 OpenSpec `1.5.0`。
+- 在测试和治理命令前执行 `npm run build`，类型错误与编译错误失败关闭；
+- `dist/` 不进入 Git diff，安装器测试验证其目标侧 JavaScript 产物。
 
 ## 12. 验收标准
 
@@ -343,3 +364,4 @@ openspec archive <change> --skip-specs --yes --json
 8. index/check 连续运行字节一致。
 9. Node、OpenSpec 版本、archive/sync 文档与实际行为一致。
 10. 单元、集成、Schema、strict validation、Git diff 检查全部通过。
+11. 仓库可执行源码与测试全部为 TypeScript，CLI 和安装目标使用编译后的 JavaScript 且无 TypeScript 运行时依赖。
