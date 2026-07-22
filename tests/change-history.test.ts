@@ -158,6 +158,7 @@ test("sorts active and archived discovery, capabilities, and requirements", () =
       [
         "## ADDED Requirements",
         "",
+        "### Requirement: ZZZ-1 Zulu",
         "### Requirement: Alpha",
         "### Requirement: AAA-9 Alpha",
         "### Requirement: AAA-1 Alpha",
@@ -184,7 +185,7 @@ test("sorts active and archived discovery, capabilities, and requirements", () =
       active[1].capabilities[0].requirements.map(
         (requirement) => requirement.name + "|" + requirement.operation + "|" + (requirement.id ?? "null"),
       ),
-      ["Alpha|ADDED|null", "Alpha|ADDED|AAA-1", "Alpha|ADDED|AAA-9", "Alpha|MODIFIED|CCC-1"],
+      ["Alpha|ADDED|null", "Alpha|ADDED|AAA-1", "Alpha|ADDED|AAA-9", "Alpha|MODIFIED|CCC-1", "Zulu|ADDED|ZZZ-1"],
     );
   });
 });
