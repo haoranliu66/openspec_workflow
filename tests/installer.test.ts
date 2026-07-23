@@ -305,6 +305,44 @@ test("runs installed schema validation when the target directory is named dist",
   }
 });
 
+test("rejects installed product schema drift before invoking OpenSpec", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-schema-drift-runtime-"));
+  const target = path.join(base, "target");
+  try {
+    installWorkflow(releaseRoot, target);
+    const probe = createOpenSpecProbe(base);
+    const schemaPath = path.join(target, "openspec", "schemas", "product-change", "schema.yaml");
+    const schema = fs.readFileSync(schemaPath, "utf8");
+    const nativeDesign = [
+      "  - id: design",
+      "    generates: design.md",
+      "    description: Technical design for the change",
+      "    template: design.md",
+      "    requires:",
+      "      - proposal",
+    ].join("\n");
+    const driftedDesign = `${nativeDesign}\n      - specs`;
+    assert.match(schema, new RegExp(nativeDesign.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    fs.writeFileSync(schemaPath, schema.replace(nativeDesign, driftedDesign), "utf8");
+
+    assert.throws(
+      () => childProcess.execFileSync(
+        process.execPath,
+        [path.join(target, "scripts", "validate-schemas.js")],
+        {
+          cwd: target,
+          env: probe.environment,
+          stdio: "pipe",
+        },
+      ),
+      /design must require only proposal/,
+    );
+    assert.ok(!fs.existsSync(probe.logPath), "OpenSpec must not run after native alignment fails");
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
 test("rejects a missing source package before mutating the target", () => {
   assertInvalidPackageMetadataDoesNotMutateTarget(
     (source) => fs.rmSync(path.join(source, "package.json")),

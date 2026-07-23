@@ -55,7 +55,7 @@ docs/requirements/REQ-001-example/
   FEATURE.md
 ```
 
-先批准 BR/PRD，再按可独立交付的切片创建一个或多个 changes。FEATURE ready 不代表关闭已经完成。
+先批准 BR/PRD，再按可独立交付的切片创建一个或多个 changes。`feature` artifact ready 只表示可以开始编写 FEATURE；FEATURE 中的可交付声明必须有实现与验证证据支持，而且仍不代表关闭已经完成。
 
 ## 接入 CI
 

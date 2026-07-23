@@ -14,7 +14,7 @@
 | 当前规格 | `openspec/specs/<capability>/spec.md` | 系统现在必须如何行为 | 归档同步或显式 sync 时更新 |
 | 最小导航 | `SPEC.md` | 去哪里找当前、活动与相关历史 | 确定性生成，不手改 |
 | 机器历史 | `openspec/change-history.json` | change、artifact、capability 与 Requirement 变更 | 确定性生成，不手改 |
-| 共享 FEATURE | `docs/requirements/REQ-*/FEATURE.md` | 哪些已验证行为已经 ready | 仅按真实证据更新 |
+| 共享 FEATURE | `docs/requirements/REQ-*/FEATURE.md` | 哪些行为已有证据、可以声明可交付 | 仅按真实证据更新 |
 
 一个 BR/PRD 可以对应多个 changes。change 内的 `br.md`、`prd.md` 只是轻量绑定与交付切片，不复制共享文档。
 
@@ -47,7 +47,7 @@ proposal ─┬─> specs ──┐
 4. **并行定义**：delta specs 写 SHALL/MUST 与 WHEN/THEN；`design.md` 记录上下文、目标/非目标、决策、风险、迁移与开放问题。
 5. **计划实现**：二者完成后生成 `tasks.md`；每项都能以代码、测试或运行证据关闭。
 6. **实施验证**：先建立失败证据，再实现；按改动面执行质量门禁并更新任务状态。
-7. **记录 readiness**：只把已验证行为写入 change `feature.md` 与共享 `FEATURE.md`。ready 不等于关闭已完成。
+7. **记录交付证据**：`feature` artifact ready 只表示前置 artifact 已具备、可以开始编写；只有已验证行为才能写入 change `feature.md` 与共享 `FEATURE.md` 并声明可交付，这仍不等于关闭已完成。
 8. **关闭 change**：归档、重建两份生成历史并检查。
 
 ## 5. 关闭与 sync 选择
@@ -90,4 +90,4 @@ AI 开始任务时依次读取：
 
 ## 8. 完成定义
 
-FEATURE ready 之后仍需完成适用测试、任务证据、OpenSpec 归档、`SPEC.md`/`change-history.json` 重建与当前非 P0 治理检查，change 才完成关闭。
+`feature` artifact ready 只允许开始编写 FEATURE；形成由实现与验证证据支持的可交付声明后，仍需完成适用测试、任务证据、OpenSpec 归档、`SPEC.md`/`change-history.json` 重建与当前非 P0 治理检查，change 才完成关闭。

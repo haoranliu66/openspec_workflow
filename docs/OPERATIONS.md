@@ -46,7 +46,7 @@ node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 ```
 
-FEATURE ready 只表示交付内容已有证据；归档、历史重建和检查完成后 change 才关闭。
+`feature` artifact ready 只表示前置 artifact 已具备、可以开始编写 FEATURE；FEATURE 中只有具备实现与验证证据的内容才能声明可交付。即便已经形成这样的交付声明，也需完成归档、历史重建和检查后 change 才关闭。
 
 ## 升级已接入项目
 

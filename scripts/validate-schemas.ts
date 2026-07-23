@@ -2,6 +2,8 @@ import childProcess from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { checkProductSchemaAlignment } from "../lib/schema-alignment";
+
 interface Invocation {
   command: string;
   args: string[];
@@ -43,6 +45,10 @@ export function resolveRepositoryRoot(scriptDirectory: string): string {
 
 function main(): void {
   const repositoryRoot = resolveRepositoryRoot(__dirname);
+  checkProductSchemaAlignment(
+    path.join(repositoryRoot, "openspec", "schemas", "product-change"),
+  );
+
   schemas.forEach((schema) => {
     const invocation = buildInvocation(process.platform, schema);
     childProcess.execFileSync(invocation.command, invocation.args, {

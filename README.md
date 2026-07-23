@@ -9,7 +9,7 @@
 | 小 Bug，预期行为已明确，无新业务规则或接口 | `bugfix` | `proposal -> specs -> tasks -> apply` |
 | 新功能、管理台、跨角色流程、接口或业务规则调整 | `product-change` | `BR/PRD（外层治理） -> proposal -> {specs ∥ design} -> tasks -> apply -> feature` |
 
-产品 change 中，`proposal` 完成后同时解锁 `specs` 和 `design`；`tasks` 必须等待二者完成，`apply` 以 `tasks.md` 为进度事实。FEATURE ready 只表示已验证行为可供交付，不表示关闭流程已经完成。
+产品 change 中，`proposal` 完成后同时解锁 `specs` 和 `design`；`tasks` 必须等待二者完成，`apply` 以 `tasks.md` 为进度事实。`feature` artifact ready 只表示前置 artifact 已具备、可以开始编写 FEATURE；只有具备实现与验证证据的内容才能在 FEATURE 中声明可交付，而且这仍不表示关闭流程已经完成。
 
 ## 开发与安装
 
