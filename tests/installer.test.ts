@@ -274,6 +274,37 @@ test("runs installed emitted scripts with the target as the project root", () =>
   }
 });
 
+test("runs installed schema validation when the target directory is named dist", () => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-dist-target-runtime-"));
+  const target = path.join(base, "dist");
+  try {
+    installWorkflow(releaseRoot, target);
+    const probe = createOpenSpecProbe(base);
+
+    childProcess.execFileSync(
+      process.execPath,
+      [path.join(target, "scripts/validate-schemas.js")],
+      {
+        cwd: target,
+        env: probe.environment,
+        stdio: "pipe",
+      },
+    );
+
+    const records = fs.readFileSync(probe.logPath, "utf8")
+      .trim()
+      .split(/\r?\n/)
+      .map((line) => JSON.parse(line) as OpenSpecProbeRecord);
+    assert.strictEqual(records.length, 2);
+    records.forEach((record) => {
+      assert.strictEqual(path.resolve(record.cwd), path.resolve(target));
+      assert.ok(record.schemaFile.startsWith(path.join(target, "openspec", "schemas")));
+    });
+  } finally {
+    fs.rmSync(base, { recursive: true, force: true });
+  }
+});
+
 test("rejects a missing source package before mutating the target", () => {
   assertInvalidPackageMetadataDoesNotMutateTarget(
     (source) => fs.rmSync(path.join(source, "package.json")),
