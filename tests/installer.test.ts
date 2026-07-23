@@ -111,8 +111,11 @@ function makeSource(root: string): void {
   write(root, "package.json", '{"version":"1.0.0"}\n');
   write(root, "dist/scripts/openspec-governance.js", "module.exports = {};\n");
   write(root, "dist/scripts/validate-schemas.js", "module.exports = {};\n");
+  write(root, "dist/scripts/validate-changes.js", "module.exports = {};\n");
   write(root, "dist/lib/schema-alignment.js", "exports.schemaAlignment = true;\n");
   write(root, "dist/lib/change-history.js", "exports.changeHistory = true;\n");
+  write(root, "dist/lib/openspec-cli.js", "exports.openSpecCli = true;\n");
+  write(root, "dist/lib/project-root.js", "exports.projectRoot = true;\n");
   write(root, "openspec/config.yaml", "schema: product-change\n");
   write(root, "openspec/change-history.json", '{"version":999}\n');
   write(root, "openspec/schemas/bugfix/schema.yaml", "name: bugfix\n");
@@ -181,6 +184,9 @@ test("installs versioned assets and required OpenSpec structure", () => {
     assert.ok(fs.existsSync(path.join(target, ".ai-workflow.json")));
     assert.strictEqual(read(target, "lib/schema-alignment.js"), "exports.schemaAlignment = true;\n");
     assert.strictEqual(read(target, "lib/change-history.js"), "exports.changeHistory = true;\n");
+    assert.strictEqual(read(target, "scripts/validate-changes.js"), "module.exports = {};\n");
+    assert.strictEqual(read(target, "lib/openspec-cli.js"), "exports.openSpecCli = true;\n");
+    assert.strictEqual(read(target, "lib/project-root.js"), "exports.projectRoot = true;\n");
     assert.match(read(target, "SPEC.md"), /openspec\/change-history\.json/);
     assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 1,/);
     assert.doesNotMatch(read(target, "openspec/change-history.json"), /999/);
@@ -192,7 +198,7 @@ test("installs versioned assets and required OpenSpec structure", () => {
   });
 });
 
-test("installs the 2.0 release manifest and emitted JavaScript runtime", () => {
+test("installs the 2.1 release manifest and emitted JavaScript runtime", () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-release-install-"));
   const target = path.join(base, "target");
   try {
@@ -203,12 +209,15 @@ test("installs the 2.0 release manifest and emitted JavaScript runtime", () => {
     };
     const runtimeFiles = [
       "lib/change-history.js",
+      "lib/openspec-cli.js",
+      "lib/project-root.js",
       "lib/schema-alignment.js",
       "scripts/openspec-governance.js",
+      "scripts/validate-changes.js",
       "scripts/validate-schemas.js",
     ];
 
-    assert.strictEqual(manifest.version, "2.0.0");
+    assert.strictEqual(manifest.version, "2.1.0");
     assert.deepStrictEqual(
       [
         ...listRelativeFiles(target, "lib"),
@@ -253,6 +262,7 @@ test("runs installed emitted scripts with the target as the project root", () =>
     run("scripts/openspec-governance.js", ["index"]);
     run("scripts/openspec-governance.js", ["check"]);
     run("scripts/validate-schemas.js", []);
+    run("scripts/validate-changes.js", []);
 
     const records = fs.readFileSync(probe.logPath, "utf8")
       .trim()
