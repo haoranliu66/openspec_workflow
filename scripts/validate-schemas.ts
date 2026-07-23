@@ -2,6 +2,8 @@ import childProcess from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { OpenSpecRunner, runOpenSpec } from "../lib/openspec-cli";
+import { resolveProjectRoot } from "../lib/project-root";
 import { checkProductSchemaAlignment } from "../lib/schema-alignment";
 
 interface Invocation {
@@ -9,7 +11,23 @@ interface Invocation {
   args: string[];
 }
 
-export const schemas = ["bugfix", "product-change"];
+export const schemas = ["bugfix", "product-change"] as const;
+
+export function validateSchemas(
+  root: string,
+  run: OpenSpecRunner = runOpenSpec,
+): void {
+  checkProductSchemaAlignment(
+    path.join(root, "openspec", "schemas", "product-change"),
+  );
+
+  schemas.forEach((schema) => {
+    run(["schema", "validate", schema], {
+      cwd: root,
+      stdio: "inherit",
+    });
+  });
+}
 
 export function buildInvocation(
   platform: NodeJS.Platform,
@@ -43,19 +61,13 @@ export function resolveRepositoryRoot(scriptDirectory: string): string {
   return path.basename(parent) === "dist" ? path.resolve(parent, "..") : parent;
 }
 
-function main(): void {
-  const repositoryRoot = resolveRepositoryRoot(__dirname);
-  checkProductSchemaAlignment(
-    path.join(repositoryRoot, "openspec", "schemas", "product-change"),
-  );
+export function main(
+  run: OpenSpecRunner = runOpenSpec,
+  root = resolveProjectRoot(__dirname),
+): void {
+  validateSchemas(root, run);
+  return;
 
-  schemas.forEach((schema) => {
-    const invocation = buildInvocation(process.platform, schema);
-    childProcess.execFileSync(invocation.command, invocation.args, {
-      cwd: repositoryRoot,
-      stdio: "inherit",
-    });
-  });
 }
 
 if (process.argv[1] !== undefined && path.resolve(process.argv[1]) === __filename) {
