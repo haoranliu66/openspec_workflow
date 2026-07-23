@@ -2,7 +2,7 @@
 
 ## 运行环境
 
-维护版本 `2.0.0` 需要 Node.js `>=20.19.0` 与 OpenSpec `1.5.0`：
+维护版本 `2.1.0` 需要 Node.js `>=20.19.0` 与 OpenSpec `1.5.0`：
 
 ```powershell
 npm ci
@@ -26,7 +26,15 @@ node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 ```
 
-当前非 P0 检查验证必要目录、两份生成文件是否过期、历史解析诊断，并对工作区相对当前 HEAD 的 archive 修改/删除提供局部保护。它不是跨分支 base ref 的归档不可变性证明；full-history/baseRef 比较与自动严格活动 change 校验属于暂缓 P0。
+当前治理检查验证必要目录、两份生成文件是否过期、历史解析诊断，并对工作区相对当前 HEAD 的 archive 修改/删除提供局部保护。它不是跨分支 base ref 的归档不可变性证明；本版本不新增 full-history、baseRef 或 hash 强制。
+
+## 活动 change 严格校验
+
+```powershell
+node scripts/validate-changes.js
+```
+
+该命令读取 `openspec/changes/` 的一级目录，排除 `archive`、隐藏目录和非目录项，按英文名称排序，并逐项执行 `openspec validate <change> --strict`。单项失败不会阻止后续诊断，全部处理后统一失败。归档不可变没有新增 base ref、full-history 或 hash 强制。
 
 ## 关闭 change
 
@@ -54,7 +62,7 @@ node scripts/openspec-governance.js check
 2. 运行 `npm ci`、`npm run build` 与 `npm run verify` 并提交。
 3. 在目标项目执行不带 `--force` 的安装，查看冲突。
 4. 审核本地定制后再决定是否 `--force`；保留并检查自动备份。
-5. 合并 config 示例，验证两个 schemas、两份生成文件和项目已有 changes。
+5. 合并 config 示例，验证两个 schemas、两份生成文件、严格校验项目全部活动 changes，并确认项目已有 CI 调用 `node scripts/validate-changes.js`。
 6. 不移动或改写已有 archive；继续旧的活动 product change 前，将 proposal/design/tasks 与 delta headings 迁移到原生结构。
 
 ## 历史修正策略

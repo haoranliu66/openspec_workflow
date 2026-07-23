@@ -32,7 +32,8 @@
 - 按改动面选择质量门禁，并在 tasks 或 feature 中记录命令和结果。
 - 未执行 `/opsx:sync` 时用 `openspec archive <change> --yes --json`；已经 sync 时改用 `--skip-specs`，避免 delta 重复应用。
 - 归档后重建 `SPEC.md` 与 `openspec/change-history.json`，再执行治理检查。
-- 自动严格校验所有活动 changes 与 base-ref 归档不可变性检查是暂缓 P0，不能宣称 2.0.0 已提供。
+- 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项执行 `openspec validate <change> --strict`。
+- 归档不可变仍是流程约束；2.1.0 不提供 base-ref、hash 或 full-history 程序化强制，不得宣称已经提供。
 
 ## 工具边界
 

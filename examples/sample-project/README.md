@@ -5,9 +5,12 @@ project/
   SPEC.md
   lib/
     change-history.js
+    openspec-cli.js
+    project-root.js
     schema-alignment.js
   scripts/
     openspec-governance.js
+    validate-changes.js
     validate-schemas.js
   docs/requirements/
     REQ-001-operations-console/
@@ -37,3 +40,5 @@ project/
 `SPEC.md` 是最小导航，`openspec/change-history.json` 是详细确定性历史，二者都由 `node scripts/openspec-governance.js index` 生成。安装目标只运行 JavaScript，不需要 TypeScript。
 
 正常关闭使用 `openspec archive <change> --yes --json`；已经执行 `/opsx:sync` 时使用 `--skip-specs`。升级 2.0 不改写已有 archive，旧的活动 product change 应先迁移到原生 OpenSpec headings 和 artifact 结构。
+
+安装目标在 CI 中运行 `node scripts/validate-changes.js`，按文件系统一级目录逐项执行 `openspec validate <change> --strict`。归档不可变仍由流程政策约束，2.1.0 没有新增 base ref、full-history 或 hash 程序。

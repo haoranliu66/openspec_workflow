@@ -1,5 +1,13 @@
 # 变更日志
 
+## 2.1.0 - 2026-07-23
+
+- 新增活动 change 文件系统枚举器，按英文名称稳定排序，并逐项执行精确命令 `openspec validate <change> --strict`。
+- 单个 change 校验失败后继续处理其他 change，最终稳定汇总非法名称与全部 OpenSpec strict validation 失败项。
+- 新增跨平台安全 OpenSpec 调用层与共享项目根识别；源仓库和安装后的 JavaScript 运行时使用同一逻辑。
+- CI 在 Node.js 20.19 与 22 上启用活动 change 严格校验，安装器同步分发所需脚本和共享库。
+- 归档不可变仍是工作流政策；本版本不新增 base ref、full-history、hash 或其他程序化强制。
+
 ## 2.0.0 - 2026-07-23
 
 - 将 `bin/`、`lib/`、`scripts/` 与 `tests/` 的维护源码统一为 TypeScript；`dist/` 为不跟踪的编译产物，安装目标只接收可由普通 Node.js 执行的 JavaScript。

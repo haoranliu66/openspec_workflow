@@ -31,5 +31,6 @@ jobs:
       - run: npm run index:compiled
       - run: git diff --exit-code -- SPEC.md openspec/change-history.json
       - run: npm run validate:schemas:compiled
+      - run: npm run validate:changes:compiled
       - run: npm run check:compiled
       - run: git diff --check

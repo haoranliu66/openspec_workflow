@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-2.0 工作流把产品发现、行为契约、技术设计、编码验证和交付运营连成一条可审计链路，同时避免每个 change 复制整套产品文档。长期文档保存仍有价值的产品事实，change 保存本次增量，生成历史帮助 AI 只加载最小必要上下文。
+2.1 工作流把产品发现、行为契约、技术设计、编码验证和交付运营连成一条可审计链路，同时避免每个 change 复制整套产品文档。长期文档保存仍有价值的产品事实，change 保存本次增量，生成历史帮助 AI 只加载最小必要上下文。
 
 ## 2. 文档分层
 
@@ -86,7 +86,8 @@ AI 开始任务时依次读取：
 - 安装/升级 2.0 不移动或改写已有 archive 目录。
 - 继续旧的活动 product change 前，先把 proposal/design/tasks 与 delta spec headings 迁移到原生 OpenSpec 模板。
 - 历史错误通过新的 correction change 表达，避免把当前修订伪装成过去事实。
-- 自动严格校验所有活动 changes 和基于 base ref 的 archive immutability 比较属于暂缓 P0，不在 2.0.0 中启用。
+- CI 和本地 `verify` 从文件系统枚举所有活动 change，并逐项执行 `openspec validate <change> --strict`；损坏或非法命名的目录不能被静默遗漏。
+- 归档不可变继续作为流程政策；本版本不增加基于 base ref、hash 或 full-history 的程序化强制。
 
 ## 8. 完成定义
 

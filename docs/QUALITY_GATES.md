@@ -8,7 +8,7 @@
 - 建立可复现的失败或现状证据，再实施修复或能力。
 - 运行受影响单元测试、静态检查与构建。
 - 检查错误、空态、重试、权限和回滚路径。
-- 按当前 change 执行 OpenSpec 校验并记录结果；2.0.0 CI 尚不自动枚举并严格校验所有活动 changes。
+- 按当前 change 执行 OpenSpec 校验并记录结果；工作流 CI 还会枚举全部活动 changes 并逐项执行 `openspec validate <change> --strict`。
 
 ## 前端
 
@@ -54,7 +54,7 @@ npm run verify
 git diff --check
 ```
 
-CI 在 Node.js 20.19 和 22 上检查 TypeScript 源边界、测试、两个确定性生成文件、两个 schema 以及当前治理命令。`dist/` 可以在构建时生成，但 `bin/`、`lib/`、`scripts/`、`tests/` 下不得出现 `.js`。
+CI 在 Node.js 20.19 和 22 上检查 TypeScript 源边界、测试、两个确定性生成文件、两个 schema、全部活动 changes 的逐项 strict validation 以及当前治理命令。`dist/` 可以在构建时生成，但 `bin/`、`lib/`、`scripts/`、`tests/` 下不得出现 `.js`。
 
 ## 收尾治理
 
@@ -73,4 +73,4 @@ git diff --check
 openspec archive <change> --skip-specs --yes --json
 ```
 
-基于 base ref 的归档不可变性比较和自动严格活动 change 校验属于暂缓 P0，不是上述 2.0.0 门禁的一部分。
+活动 change strict validation 已是 2.1.0 门禁。归档不可变仍是流程政策，本版本不新增跨 base ref、full-history、hash 或其他程序化强制。

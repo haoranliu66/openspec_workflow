@@ -1,6 +1,6 @@
 # AI 全栈 OpenSpec 工作流
 
-版本 `2.0.0` 是一套可移植、可审计、低上下文负担的 AI 全栈开发工作流。OpenSpec 负责 change 内的行为契约，精简 BR/PRD 负责 change 外的产品目标；`SPEC.md` 提供最小导航，`openspec/change-history.json` 保存确定性的机器可读变更历史。
+版本 `2.1.0` 是一套可移植、可审计、低上下文负担的 AI 全栈开发工作流。OpenSpec 负责 change 内的行为契约，精简 BR/PRD 负责 change 外的产品目标；`SPEC.md` 提供最小导航，`openspec/change-history.json` 保存确定性的机器可读变更历史。
 
 ## 两条交付路径
 
@@ -41,12 +41,14 @@ openspec instructions proposal --change add-example
 # 在源仓库中重建历史并校验
 npm run index
 npm run check
+npm run validate:changes
 npm run verify
 
 # 在安装目标中重建历史并校验
 node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 node scripts/validate-schemas.js
+node scripts/validate-changes.js
 ```
 
 ## 正常关闭 change
@@ -72,7 +74,8 @@ openspec archive <change> --skip-specs --yes --json
 - `SPEC.md` 只做最小导航；`openspec/change-history.json` 记录详细历史，也会记录尚未产生 specs 的活动 change。
 - `design.md` 是唯一 TD；FEATURE 只记录已验证的 readiness、证据、运营要点和限制。
 - 升级 2.0 不改写已有 archive 目录；继续活动 product change 前，应把 proposal/design/tasks 与 delta spec 标题迁移到原生 OpenSpec 结构。
-- 自动严格校验所有活动 changes，以及基于 base ref 的归档不可变性检查属于暂缓 P0，不在 2.0.0 发布范围内。
+- CI 与 `npm run verify` 会枚举 `openspec/changes/` 下除 `archive`、隐藏目录和非目录项之外的所有一级目录，并逐项执行 `openspec validate <change> --strict`；任一失败都会使门禁失败。
+- 归档不可变仍是流程政策；2.1.0 不增加 base ref、full-history、hash 或其他额外程序强制。
 
 完整规则见[全栈工作流](docs/FULLSTACK_WORKFLOW.md)、[质量门禁](docs/QUALITY_GATES.md)、[接入指南](docs/ADOPTION.md)和[维护手册](docs/OPERATIONS.md)。
 
