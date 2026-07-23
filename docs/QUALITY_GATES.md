@@ -8,7 +8,7 @@
 - 建立可复现的失败或现状证据，再实施修复或能力。
 - 运行受影响单元测试、静态检查与构建。
 - 检查错误、空态、重试、权限和回滚路径。
-- `openspec validate <change> --strict` 通过。
+- 按当前 change 执行 OpenSpec 校验并记录结果；2.0.0 CI 尚不自动枚举并严格校验所有活动 changes。
 
 ## 前端
 
@@ -41,14 +41,36 @@
 
 - 明确开关、灰度、兼容窗口、监控指标和告警责任人。
 - 回滚步骤可执行，且不会破坏已写入数据。
-- FEATURE 仅写已验证并可用的行为，已知限制有后续 change 或运营说明。
+- FEATURE 仅写已验证并 ready 的行为；ready 不代表关闭已经完成，已知限制应有后续 change 或运营说明。
+
+## 工作流仓库门禁
+
+贡献者使用 Node.js `>=20.19.0`、OpenSpec `1.5.0`，并运行：
+
+```powershell
+npm ci
+npm run build
+npm run verify
+git diff --check
+```
+
+CI 在 Node.js 20.19 和 22 上检查 TypeScript 源边界、测试、两个确定性生成文件、两个 schema 以及当前治理命令。`dist/` 可以在构建时生成，但 `bin/`、`lib/`、`scripts/`、`tests/` 下不得出现 `.js`。
 
 ## 收尾治理
 
+未提前 sync：
+
 ```powershell
-openspec validate <change> --strict
-openspec archive <change>
+openspec archive <change> --yes --json
 node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 git diff --check
 ```
+
+已经执行 `/opsx:sync` 时，将 archive 命令改为：
+
+```powershell
+openspec archive <change> --skip-specs --yes --json
+```
+
+基于 base ref 的归档不可变性比较和自动严格活动 change 校验属于暂缓 P0，不是上述 2.0.0 门禁的一部分。

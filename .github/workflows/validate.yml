@@ -1,5 +1,4 @@
 name: 校验工作流
-
 on:
   push:
   pull_request:
@@ -7,14 +6,30 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [20.19.x, 22.x]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+      - run: npm ci
       - run: npm install --global @fission-ai/openspec@1.5.0
-      - run: npm test
-      - run: npm run index
-      - run: git diff --exit-code -- SPEC.md
-      - run: npm run check
-      - run: npm run validate:schemas
+      - run: npm run build
+      - name: Assert TypeScript source boundary
+        shell: bash
+        run: |
+          mapfile -t unexpected < <(find bin lib scripts tests -type f -name '*.js' -print)
+          if (( ${#unexpected[@]} > 0 )); then
+            printf 'JavaScript is only allowed in generated dist/:\n%s\n' "${unexpected[@]}"
+            exit 1
+          fi
+      - run: npm run test:compiled
+      - run: npm run index:compiled
+      - run: git diff --exit-code -- SPEC.md openspec/change-history.json
+      - run: npm run validate:schemas:compiled
+      - run: npm run check:compiled
+      - run: git diff --check

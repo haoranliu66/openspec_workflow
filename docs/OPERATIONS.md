@@ -1,12 +1,24 @@
 # 维护手册
 
-## 更新导航
+## 运行环境
+
+维护版本 `2.0.0` 需要 Node.js `>=20.19.0` 与 OpenSpec `1.5.0`：
+
+```powershell
+npm ci
+npm run build
+npm run verify
+```
+
+`bin/`、`lib/`、`scripts/` 与 `tests/` 保存 TypeScript 源码，`dist/` 仅为不跟踪的编译结果。安装目标接收 JavaScript，可用普通 Node.js 运行。
+
+## 更新导航与机器历史
 
 ```powershell
 node scripts/openspec-governance.js index
 ```
 
-该命令扫描当前规格、活动 changes 和归档 delta，确定性生成根 `SPEC.md`。输出不含时间戳，连续执行结果应完全一致。
+该命令用同一份 change snapshot 确定性生成根 `SPEC.md` 与 `openspec/change-history.json`。前者只提供最小导航，后者保存 change、artifact、capability 与 Requirement 级历史；活动 change 即使还没有 specs 也会出现。输出不含时间戳，连续执行结果必须完全一致。
 
 ## 治理检查
 
@@ -14,22 +26,43 @@ node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 ```
 
-检查内容：必要目录存在、`SPEC.md` 未过期、相对 Git HEAD 的已提交归档没有修改/删除/重命名。新增归档允许提交。
+当前非 P0 检查验证必要目录、两份生成文件是否过期、历史解析诊断，并对工作区相对当前 HEAD 的 archive 修改/删除提供局部保护。它不是跨分支 base ref 的归档不可变性证明；full-history/baseRef 比较与自动严格活动 change 校验属于暂缓 P0。
+
+## 关闭 change
+
+正常关闭不要先 sync，让 OpenSpec archive 应用 delta：
+
+```powershell
+openspec archive <change> --yes --json
+node scripts/openspec-governance.js index
+node scripts/openspec-governance.js check
+```
+
+如果已经执行 `/opsx:sync`，必须避免二次应用同一 delta：
+
+```powershell
+openspec archive <change> --skip-specs --yes --json
+node scripts/openspec-governance.js index
+node scripts/openspec-governance.js check
+```
+
+FEATURE ready 只表示交付内容已有证据；归档、历史重建和检查完成后 change 才关闭。
 
 ## 升级已接入项目
 
-1. 在本仓库更新 Schema、模板或工具，增加相应测试并提升版本。
-2. 运行 `npm run verify` 并提交。
+1. 在本仓库更新 schema、模板或工具，增加相应测试并提升版本。
+2. 运行 `npm ci`、`npm run build` 与 `npm run verify` 并提交。
 3. 在目标项目执行不带 `--force` 的安装，查看冲突。
 4. 审核本地定制后再决定是否 `--force`；保留并检查自动备份。
-5. 合并 config 示例，验证两个 Schema 和项目已有 changes。
+5. 合并 config 示例，验证两个 schemas、两份生成文件和项目已有 changes。
+6. 不移动或改写已有 archive；继续旧的活动 product change 前，将 proposal/design/tasks 与 delta headings 迁移到原生结构。
 
-## 归档修正策略
+## 历史修正策略
 
-归档存在错误时不要原地修改。创建一个新的 correction change，在其 delta spec 中引用错误归档和当前规格，明确修正后的完整行为。这样 Git 历史、交付审计和 AI 回溯路径保持一致。
+历史记录存在错误时，创建新的 correction change，在 delta spec 中引用相关历史与当前规格，明确修正后的完整行为。
 
 ## 版本策略
 
 - Patch：文案澄清、兼容性修复，不改变产物图。
 - Minor：新增模板字段、校验或向后兼容能力。
-- Major：Schema 产物顺序、目录契约或安装语义不兼容变化。
+- Major：schema 产物顺序、目录契约或安装语义不兼容变化。

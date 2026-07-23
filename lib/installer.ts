@@ -32,6 +32,10 @@ const REQUIRED_FILES: ManagedSource[] = [
     targetPath: "scripts/openspec-governance.js",
   },
   {
+    sourcePath: "dist/scripts/validate-schemas.js",
+    targetPath: "scripts/validate-schemas.js",
+  },
+  {
     sourcePath: "dist/lib/schema-alignment.js",
     targetPath: "lib/schema-alignment.js",
   },

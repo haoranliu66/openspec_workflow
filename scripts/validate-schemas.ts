@@ -29,7 +29,8 @@ export function buildInvocation(
 }
 
 export function resolveRepositoryRoot(scriptDirectory: string): string {
-  return path.resolve(scriptDirectory, "..", "..");
+  const parent = path.resolve(scriptDirectory, "..");
+  return path.basename(parent) === "dist" ? path.resolve(parent, "..") : parent;
 }
 
 function main(): void {

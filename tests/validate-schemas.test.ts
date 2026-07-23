@@ -5,6 +5,10 @@ import { buildInvocation, resolveRepositoryRoot, schemas } from "../scripts/vali
 
 const repositoryRoot = path.resolve(__dirname, "..", "..");
 assert.strictEqual(resolveRepositoryRoot(path.join(repositoryRoot, "dist", "scripts")), repositoryRoot);
+assert.strictEqual(
+  resolveRepositoryRoot(path.join(repositoryRoot, "installed-project", "scripts")),
+  path.join(repositoryRoot, "installed-project"),
+);
 
 assert.deepStrictEqual(schemas, ["bugfix", "product-change"]);
 
