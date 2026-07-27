@@ -68,6 +68,14 @@ test("renders a deterministic navigation-only index", () => {
     assert.strictEqual(first, second);
     assert.match(first, /AI 全栈规格索引/);
     assert.match(first, /\[auth\]\(openspec\/specs\/auth\/spec\.md\)/);
+    assert.match(
+      first,
+      /归档内容按团队流程不得修改；该规则不由程序或 CI 强制证明/,
+    );
+    assert.match(
+      first,
+      /BR\/PRD 定义目标与范围；其前置完成属于团队流程治理，不是 OpenSpec artifact graph 或程序门禁/,
+    );
     assert.doesNotMatch(first, /secret body|### Requirement:/);
   });
 });
