@@ -15,3 +15,5 @@
 
 - **WHEN** 触发条件发生
 - **THEN** 系统产生修复后的可观察结果
+
+<!-- For RENAMED Requirements, both FROM and TO must begin with the same stable Requirement ID. -->

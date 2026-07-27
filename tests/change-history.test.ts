@@ -58,6 +58,31 @@ The system SHALL authenticate a valid account.
   ]);
 });
 
+test("preserves a stable ID only when both renamed sides agree", () => {
+  const sourcePath = "specs/auth/spec.md";
+
+  assert.deepStrictEqual(parseDeltaSpec(
+    "## RENAMED Requirements\n\n- FROM: AUTH-001 Old name\n- TO: AUTH-001 New name\n",
+    sourcePath,
+  ), [{
+    operation: "RENAMED",
+    id: "AUTH-001",
+    name: "Old name -> New name",
+    from: "Old name",
+    to: "New name",
+  }]);
+
+  for (const renamed of [
+    "- FROM: AUTH-001 Old name\n- TO: AUTH-002 New name",
+    "- FROM: AUTH-001 Old name\n- TO: New name",
+  ]) {
+    assert.strictEqual(
+      parseDeltaSpec(`## RENAMED Requirements\n\n${renamed}\n`, sourcePath)[0].id,
+      null,
+    );
+  }
+});
+
 test("parses bold renamed markers and rejects an incomplete pair", () => {
   const delta = `## RENAMED Requirements
 

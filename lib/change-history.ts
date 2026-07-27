@@ -59,16 +59,19 @@ function toRelativePath(...parts: string[]): string {
   return path.posix.join(...parts);
 }
 
-function requirementFromHeading(operation: DeltaOperation, heading: string): RequirementChange {
+function requirementIdentity(heading: string): Pick<RequirementChange, "id" | "name"> {
   const [firstToken, ...remaining] = heading.trim().split(/\s+/);
   if (REQUIREMENT_ID.test(firstToken)) {
     return {
-      operation,
       id: firstToken,
       name: remaining.join(" "),
     };
   }
-  return { operation, id: null, name: heading.trim() };
+  return { id: null, name: heading.trim() };
+}
+
+function requirementFromHeading(operation: DeltaOperation, heading: string): RequirementChange {
+  return { operation, ...requirementIdentity(heading) };
 }
 
 function renamedMarker(line: string): { marker: "FROM" | "TO"; value: string } | undefined {
@@ -136,12 +139,19 @@ export function parseDeltaSpec(content: string, sourcePath: string): Requirement
     if (pendingRename === undefined) {
       throw new Error(`Incomplete RENAMED Requirement in ${sourcePath}`);
     }
+    const fromIdentity = requirementIdentity(pendingRename);
+    const toIdentity = requirementIdentity(marker.value);
+    const id = fromIdentity.id !== null && fromIdentity.id === toIdentity.id
+      ? fromIdentity.id
+      : null;
+    const from = id === null ? pendingRename : fromIdentity.name;
+    const to = id === null ? marker.value : toIdentity.name;
     requirements.push({
       operation: "RENAMED",
-      id: null,
-      name: `${pendingRename} -> ${marker.value}`,
-      from: pendingRename,
-      to: marker.value,
+      id,
+      name: `${from} -> ${to}`,
+      from,
+      to,
     });
     pendingRename = undefined;
   });
