@@ -193,13 +193,13 @@ Capability 表继续包含 canonical spec、首次归档、最新归档和活动
 
 ### 7.1 活动 change 校验
 
-CI 与 `npm run verify` 增加：
+CI 与 `npm run verify` 运行 `validate:changes`。该脚本从文件系统枚举所有活动 change，并逐项执行：
 
 ```text
-openspec --no-color validate --changes --strict --json --no-interactive
+openspec validate <change> --strict
 ```
 
-该命令校验所有活动 change 的 delta specs。它不负责验证 proposal、design、tasks、BR、PRD 或 FEATURE 的业务内容，因此不能替代自定义治理检查。
+没有活动 change 时，脚本输出明确的跳过提示并成功退出。不得使用或推荐 `validate` 的 `--changes` 聚合模式。逐项校验只验证活动 change 的 delta specs 严格有效性；它不负责验证 proposal、design、tasks、BR、PRD 或 FEATURE 的业务内容，因此不能替代自定义治理检查。
 
 跨平台调用继续使用 `execFileSync` 参数数组。Windows 调用 `openspec.cmd`，Unix 调用 `openspec`；Schema 名和其他枚举参数继续白名单校验。
 
