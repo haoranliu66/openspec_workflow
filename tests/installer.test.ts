@@ -4,6 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
+import { parseCloseoutJson } from "../lib/closeout-contract";
 import { installWorkflow } from "../lib/installer";
 
 const tests: Array<{ name: string; fn: () => void }> = [];
@@ -112,10 +113,20 @@ function makeSource(root: string): void {
   write(root, "dist/scripts/openspec-governance.js", "module.exports = {};\n");
   write(root, "dist/scripts/validate-schemas.js", "module.exports = {};\n");
   write(root, "dist/scripts/validate-changes.js", "module.exports = {};\n");
+  write(root, "dist/scripts/validate-close.js", "module.exports = {};\n");
+  write(root, "dist/bin/workflow.js", "module.exports = {};\n");
   write(root, "dist/lib/schema-alignment.js", "exports.schemaAlignment = true;\n");
   write(root, "dist/lib/change-history.js", "exports.changeHistory = true;\n");
   write(root, "dist/lib/openspec-cli.js", "exports.openSpecCli = true;\n");
   write(root, "dist/lib/project-root.js", "exports.projectRoot = true;\n");
+  write(root, "dist/lib/closeout-contract.js", "exports.closeoutContract = true;\n");
+  write(root, "dist/lib/structured-markdown.js", "exports.structuredMarkdown = true;\n");
+  write(root, "dist/lib/closeout-p0.js", "exports.closeoutP0 = true;\n");
+  write(root, "dist/lib/closeout-trace.js", "exports.closeoutTrace = true;\n");
+  write(root, "dist/lib/closeout-feature.js", "exports.closeoutFeature = true;\n");
+  write(root, "dist/lib/closeout-validation.js", "exports.closeoutValidation = true;\n");
+  write(root, "dist/lib/close-workflow.js", "exports.closeWorkflow = true;\n");
+  write(root, "dist/lib/installer.js", "exports.installer = true;\n");
   write(root, "openspec/config.yaml", "schema: product-change\n");
   write(root, "openspec/change-history.json", '{"version":999}\n');
   write(root, "openspec/schemas/bugfix/schema.yaml", "name: bugfix\n");
@@ -126,6 +137,8 @@ function makeSource(root: string): void {
   write(root, "docs/requirements/_templates/FEATURE.md", "# FEATURE\n");
   write(root, "docs/FULLSTACK_WORKFLOW.md", "# Workflow\n");
   write(root, "docs/QUALITY_GATES.md", "# Gates\n");
+  write(root, "docs/closeout-templates/product-change.json", '{"version":1,"prd":"docs/requirements/REQ-000/PRD-000.md","sharedFeature":"docs/requirements/REQ-000/FEATURE.md","requirements":[],"featureResults":[],"evidence":[],"gates":{"security":{"applicable":false,"reason":"replace","evidenceIds":[]},"migration":{"applicable":false,"reason":"replace","evidenceIds":[]},"browser":{"applicable":false,"reason":"replace","evidenceIds":[]},"rollback":{"applicable":false,"reason":"replace","evidenceIds":[]}}}\n');
+  write(root, "docs/closeout-templates/bugfix.json", '{"version":1,"evidence":[],"gates":{"security":{"applicable":false,"reason":"replace","evidenceIds":[]},"migration":{"applicable":false,"reason":"replace","evidenceIds":[]},"browser":{"applicable":false,"reason":"replace","evidenceIds":[]},"rollback":{"applicable":false,"reason":"replace","evidenceIds":[]}}}\n');
 }
 
 function withRoots(fn: (roots: { source: string; target: string }) => void): void {
@@ -209,17 +222,28 @@ test("installs the 2.1 release manifest and emitted JavaScript runtime", () => {
     };
     const runtimeFiles = [
       "lib/change-history.js",
+      "lib/close-workflow.js",
+      "lib/closeout-contract.js",
+      "lib/closeout-feature.js",
+      "lib/closeout-p0.js",
+      "lib/closeout-trace.js",
+      "lib/closeout-validation.js",
+      "lib/installer.js",
       "lib/openspec-cli.js",
       "lib/project-root.js",
       "lib/schema-alignment.js",
+      "lib/structured-markdown.js",
+      "bin/workflow.js",
       "scripts/openspec-governance.js",
       "scripts/validate-changes.js",
+      "scripts/validate-close.js",
       "scripts/validate-schemas.js",
-    ];
+    ].sort();
 
     assert.strictEqual(manifest.version, "2.1.0");
     assert.deepStrictEqual(
       [
+        ...listRelativeFiles(target, "bin"),
         ...listRelativeFiles(target, "lib"),
         ...listRelativeFiles(target, "scripts"),
       ],
@@ -234,11 +258,39 @@ test("installs the 2.1 release manifest and emitted JavaScript runtime", () => {
     });
     assert.ok(manifest.managedFiles.includes("SPEC.md"));
     assert.ok(manifest.managedFiles.includes("openspec/change-history.json"));
+    [
+      "bin/workflow.js",
+      "scripts/validate-close.js",
+      "lib/closeout-contract.js",
+      "lib/structured-markdown.js",
+      "lib/closeout-p0.js",
+      "lib/closeout-trace.js",
+      "lib/closeout-feature.js",
+      "lib/closeout-validation.js",
+      "lib/close-workflow.js",
+      "lib/installer.js",
+      "docs/closeout-templates/product-change.json",
+      "docs/closeout-templates/bugfix.json",
+    ].forEach((relativePath) => {
+      assert.ok(manifest.managedFiles.includes(relativePath), relativePath);
+    });
     assert.ok(result.copied.includes("SPEC.md"));
     assert.ok(result.copied.includes("openspec/change-history.json"));
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
   }
+});
+
+test("ships templates accepted by the matching closeout schema", () => {
+  const templates: Array<{ file: string; schema: "product-change" | "bugfix" }> = [
+    { file: "product-change.json", schema: "product-change" },
+    { file: "bugfix.json", schema: "bugfix" },
+  ];
+  templates.forEach(({ file, schema }) => {
+    const content = fs.readFileSync(path.join(releaseRoot, "docs", "closeout-templates", file), "utf8");
+    const parsed = parseCloseoutJson(content, schema, file);
+    assert.deepStrictEqual(parsed.diagnostics, []);
+  });
 });
 
 test("runs installed emitted scripts with the target as the project root", () => {
@@ -263,6 +315,16 @@ test("runs installed emitted scripts with the target as the project root", () =>
     run("scripts/openspec-governance.js", ["check"]);
     run("scripts/validate-schemas.js", []);
     run("scripts/validate-changes.js", []);
+
+    let validationError: unknown;
+    try {
+      run("scripts/validate-close.js", ["missing-change"]);
+    } catch (error) {
+      validationError = error;
+    }
+    assert.ok(validationError instanceof Error, "missing change must fail validation");
+    const failureOutput = (validationError as Error & { stderr?: string | Buffer }).stderr;
+    assert.match(String(failureOutput), /CHANGE_NOT_ACTIVE/);
 
     const records = fs.readFileSync(probe.logPath, "utf8")
       .trim()

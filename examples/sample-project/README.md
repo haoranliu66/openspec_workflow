@@ -42,3 +42,15 @@ project/
 正常关闭使用 `openspec archive <change> --yes --json`；已经执行 `/opsx:sync` 时使用 `--skip-specs`。升级 2.0 不改写已有 archive，旧的活动 product change 应先迁移到原生 OpenSpec headings 和 artifact 结构。
 
 安装目标在 CI 中运行 `node scripts/validate-changes.js`，按文件系统一级目录逐项执行 `openspec validate <change> --strict`。已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
+
+## Closeout validation
+
+Create and complete a change-specific closeout input before closing it:
+
+```powershell
+Copy-Item docs/closeout-templates/product-change.json openspec/changes/<change>/closeout.json
+node scripts/validate-close.js <change>
+node bin/workflow.js close <change> --target .
+```
+
+The copied template is an input to complete with factual evidence and gate decisions; it is not ready to close as-is. Pass `--skip-specs` to `close` only after the change has already been synced with `/opsx:sync`.

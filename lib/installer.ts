@@ -40,6 +40,14 @@ const REQUIRED_FILES: ManagedSource[] = [
     targetPath: "scripts/validate-changes.js",
   },
   {
+    sourcePath: "dist/scripts/validate-close.js",
+    targetPath: "scripts/validate-close.js",
+  },
+  {
+    sourcePath: "dist/bin/workflow.js",
+    targetPath: "bin/workflow.js",
+  },
+  {
     sourcePath: "dist/lib/openspec-cli.js",
     targetPath: "lib/openspec-cli.js",
   },
@@ -55,6 +63,38 @@ const REQUIRED_FILES: ManagedSource[] = [
     sourcePath: "dist/lib/change-history.js",
     targetPath: "lib/change-history.js",
   },
+  {
+    sourcePath: "dist/lib/closeout-contract.js",
+    targetPath: "lib/closeout-contract.js",
+  },
+  {
+    sourcePath: "dist/lib/structured-markdown.js",
+    targetPath: "lib/structured-markdown.js",
+  },
+  {
+    sourcePath: "dist/lib/closeout-p0.js",
+    targetPath: "lib/closeout-p0.js",
+  },
+  {
+    sourcePath: "dist/lib/closeout-trace.js",
+    targetPath: "lib/closeout-trace.js",
+  },
+  {
+    sourcePath: "dist/lib/closeout-feature.js",
+    targetPath: "lib/closeout-feature.js",
+  },
+  {
+    sourcePath: "dist/lib/closeout-validation.js",
+    targetPath: "lib/closeout-validation.js",
+  },
+  {
+    sourcePath: "dist/lib/close-workflow.js",
+    targetPath: "lib/close-workflow.js",
+  },
+  {
+    sourcePath: "dist/lib/installer.js",
+    targetPath: "lib/installer.js",
+  },
   { sourcePath: "docs/FULLSTACK_WORKFLOW.md", targetPath: "docs/FULLSTACK_WORKFLOW.md" },
   { sourcePath: "docs/QUALITY_GATES.md", targetPath: "docs/QUALITY_GATES.md" },
 ];
@@ -63,6 +103,7 @@ const REQUIRED_DIRECTORIES = [
   "openspec/schemas/bugfix",
   "openspec/schemas/product-change",
   "docs/requirements/_templates",
+  "docs/closeout-templates",
 ];
 
 function toPosix(relativePath: string): string {
