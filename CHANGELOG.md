@@ -20,7 +20,7 @@
 - 新增确定性的 `SPEC.md` 最小导航与 `openspec/change-history.json` 机器历史，活动 change 在尚无 specs 时也可见。
 - 加固安装器的非 P0 JavaScript 映射、生成文件管理和真实目标运行验证；CI 覆盖 Node.js 20.19 与 22、TypeScript 源边界及双生成文件漂移。
 - 2.0 升级不会改写已有 archive；活动 product changes 需迁移到原生 artifact/template 结构。
-- 自动严格活动 change 校验和基于 base ref 的归档不可变性检查仍为暂缓 P0，不属于本版本。
+- 2.0.0 当时未提供基于 base ref 的归档强制；后续治理决策明确不要求、也不承诺提供该程序门禁。活动 change 的逐项严格校验已在 2.1.0 实现。
 
 ## 1.0.0 - 2026-07-21
 

@@ -17,9 +17,13 @@
 ## 两条交付路径
 
 - `bugfix`：`proposal -> specs -> tasks -> apply`，用于行为已经明确、没有新增角色/流程/接口/业务规则的小 Bug。
-- `product-change`：`BR -> PRD -> proposal -> specs -> design(TD) -> tasks -> apply -> feature`，用于新功能、管理台、跨角色流程、接口/数据契约和业务规则。
+- `product-change` 用于新功能、管理台、跨角色流程、接口/数据契约和业务规则。
 
-团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于人工流程治理，不进入 OpenSpec Schema 或 `requires`，也不由脚本或 CI 校验完成状态。
+团队流程：团队应在启动 product change 前完成并确认共享 BR/PRD。
+
+OpenSpec 原生 graph：`proposal -> {specs ∥ design(TD)} -> tasks -> apply -> feature`。
+
+上述 BR/PRD 顺序属于人工流程治理，不进入 OpenSpec Schema 或 `requires`，也不由脚本或 CI 校验完成状态；`proposal` 仍是原生 graph 的独立 root。
 
 产品交付完成后执行 `verify -> feature -> sync/archive -> index -> check`。CLI archive 同时完成 delta 合并与归档，不与已经执行的 CLI sync 重复使用。
 

@@ -1,13 +1,11 @@
 # OpenSpec Native Alignment and P0 Governance Implementation Plan
 
 > [!WARNING]
-> This JavaScript/CommonJS plan is superseded by [the TypeScript implementation plan](2026-07-22-openspec-native-alignment-and-p0-governance-typescript.md). Do not execute this file.
+> Both 2026-07-22 plans (JavaScript/CommonJS and TypeScript) are superseded by [the 2026-07-27 final governance-boundary design](../specs/2026-07-27-governance-boundary-language-design.md). Do not execute this file.
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Historical goal (cancelled):** This plan recorded a JavaScript-era proposal to restore the OpenSpec v1.5.0 native planning core, generate deterministic machine-readable change history, and add active-change validation. Its proposed program enforcement of archive immutability is cancelled and must not be implemented; the final boundary is defined by the 2026-07-27 design above.
 
-**Goal:** Restore the OpenSpec v1.5.0 native planning core inside `product-change`, generate deterministic machine-readable change history, and make archive immutability plus active-change validation enforceable in CI.
-
-**Architecture:** Keep BR/PRD/FEATURE as outer product artifacts while preserving the native `proposal -> (specs, design) -> tasks -> apply` subgraph. Split deterministic history collection, native-schema alignment checks, Git archive integrity, and OpenSpec CLI invocation into focused CommonJS modules; keep `scripts/openspec-governance.js` as the orchestration layer.
+**Historical architecture (not to implement):** The remaining body records the original CommonJS approach: BR/PRD/FEATURE as outer product artifacts, the native `proposal -> (specs, design) -> tasks -> apply` subgraph, and focused modules for history, alignment, archive integrity, and OpenSpec invocation. The archive-integrity and CI-enforcement portions are cancelled; archived changes are protected by team process, not by a base-ref, full-history, hash, script, or CI proof.
 
 **Tech Stack:** Node.js `>=20.19.0`, CommonJS, OpenSpec CLI `1.5.0`, Git, Markdown, YAML, GitHub Actions, built-in `assert` test runner.
 

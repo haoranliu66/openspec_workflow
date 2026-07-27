@@ -1,8 +1,9 @@
 # OpenSpec Native Alignment, TypeScript Unification, and P0 Governance Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
+> [!WARNING]
+> This historical plan is superseded by [the 2026-07-27 final governance-boundary design](../specs/2026-07-27-governance-boundary-language-design.md). Do not execute it. Its proposed archive base-ref, full-history, hash, and Git-baseline enforcement is cancelled; the final design preserves only real program gates, including per-active-change strict validation.
 
-**Goal:** Unify all executable repository source and tests on TypeScript, restore the OpenSpec v1.5.0 native product-change core, generate deterministic change history, and enforce archive immutability plus strict active-change validation.
+**Goal:** Unify all executable repository source and tests on TypeScript, restore the OpenSpec v1.5.0 native product-change core, generate deterministic change history, and validate every active change strictly.
 
 **Architecture:** Keep TypeScript as the only maintained source language under bin, lib, scripts, and tests. Compile strict TypeScript to an untracked CommonJS dist tree; the package CLI runs from dist, while the installer maps compiled JavaScript into target projects so targets need only Node.js. Keep BR/PRD/FEATURE as outer governance and preserve the native proposal to specs/design to tasks to apply subgraph.
 
@@ -19,7 +20,7 @@
 - Target projects receive compiled lib/*.js and scripts/*.js and require no TypeScript, tsx, or third-party runtime package.
 - Runtime code adds no npm production dependencies.
 - proposal, specs, design, tasks, and apply preserve the OpenSpec v1.5.0 dependency graph exactly.
-- Existing committed archives are never rewritten.
+- Existing archived changes are not modified under the team process; this is a human governance rule, not a cross-commit or full-history program gate.
 - Generated SPEC.md and openspec/change-history.json contain no timestamps and are byte-deterministic.
 - Production behavior is written only after the focused test has failed for the expected reason.
 - Each task commits only its listed scope.
@@ -33,7 +34,6 @@
 | lib/installer.ts | Conflict-safe installation and compiled-runtime-to-target mapping. |
 | lib/schema-alignment.ts | OpenSpec v1.5.0 native graph and template drift guard. |
 | lib/change-history.ts | Deterministic active/archive discovery and delta Requirement parsing. |
-| lib/archive-integrity.ts | Git baseline and working-tree archive immutability checks. |
 | lib/openspec-cli.ts | Safe cross-platform OpenSpec command construction and execution. |
 | scripts/openspec-governance.ts | Generated navigation plus governance orchestration. |
 | scripts/validate-schemas.ts | Validate both custom Schemas through the shared CLI runner. |
@@ -41,7 +41,6 @@
 | tests/typescript-layout.test.ts | Source-language, package-bin, and compiled-layout contract. |
 | tests/schema-alignment.test.ts | Native artifact graph and template drift tests. |
 | tests/change-history.test.ts | Delta parsing, discovery, ordering, and deterministic JSON tests. |
-| tests/archive-integrity.test.ts | Real Git baseline tests for old/new archive rules. |
 | tests/openspec-integration.test.ts | Real OpenSpec readiness and strict-validation fixture. |
 
 ---
@@ -65,7 +64,7 @@
 - Modify: SPEC.md
 
 **Interfaces:**
-- Produces CliOptions with command, target, force, and archiveBase fields.
+- Produces CliOptions with command, target, and force fields.
 - Preserves installWorkflow(sourceRoot, targetRoot, options): InstallResult.
 - Preserves renderIndex, writeIndex, checkIndex, and checkProject behavior until later tasks replace selected aliases.
 - Produces a mirrored dist/bin, dist/lib, dist/scripts, and dist/tests tree.
@@ -231,13 +230,12 @@ interface CliOptions {
   command: string | undefined;
   target: string;
   force: boolean;
-  archiveBase: string | undefined;
 }
 
 function parseArguments(args: string[]): CliOptions;
 ~~~
 
-Keep archiveBase undefined until Task 5 wires it. Change the compiled CLI source root to:
+Change the compiled CLI source root to:
 
 ~~~ts
 const sourceRoot = path.resolve(__dirname, "..", "..");
@@ -639,94 +637,9 @@ git commit -m "feat: integrate change history into workflow governance"
 
 ---
 
-### Task 5: Enforce Archive Immutability Across Commits and Working State
+### Task 5: Cancelled Archive-Enforcement Proposal
 
-**Files:**
-- Create: lib/archive-integrity.ts
-- Create: tests/archive-integrity.test.ts
-- Modify: scripts/openspec-governance.ts
-- Modify: bin/workflow.ts
-- Modify: tests/governance.test.ts
-- Modify: package.json
-
-**Interfaces:**
-- Produces parseNameStatus(output: string): FileChange[].
-- Produces checkArchiveIntegrity(root: string, options?: ArchiveIntegrityOptions): { checkedBase: string | null }.
-- CLI accepts --archive-base <git-ref> only for check.
-
-- [ ] **Step 1: Write real Git tests first**
-
-Create a temporary Git repository, configure local test identity, commit openspec/changes/archive/2026-01-01-old/proposal.md, and capture that SHA as baseRef.
-
-Fail cases:
-
-- committed modification in the old archive after baseRef;
-- staged or unstaged deletion;
-- rename or copy touching an old archive;
-- newly added tracked file in the old archive;
-- untracked file in the old archive;
-- invalid base ref.
-
-Pass case: a wholly new openspec/changes/archive/2026-02-01-new directory containing additions only.
-
-- [ ] **Step 2: Verify RED**
-
-Run npm run build. Expected: TS2307 for ../lib/archive-integrity.
-
-- [ ] **Step 3: Implement typed Git classification**
-
-Use:
-
-~~~ts
-export interface FileChange {
-  status: string;
-  oldPath: string | null;
-  path: string;
-}
-
-export type GitRunner = (root: string, args: string[]) => string;
-
-export interface ArchiveIntegrityOptions {
-  baseRef?: string;
-  git?: GitRunner;
-}
-~~~
-
-Implementation rules:
-
-- Validate HEAD with rev-parse --verify HEAD.
-- Validate baseRef as a commit when supplied.
-- Read top-level archives at a ref with ls-tree.
-- Compare baseRef to HEAD with diff --name-status --find-renames.
-- Compare HEAD to index/working tree with diff --name-status --find-renames HEAD.
-- Add untracked files from ls-files --others --exclude-standard.
-- Normalize slash direction.
-- Reject A/M/D/R/C/?? that touches any archive present at the comparison baseline.
-- Permit additions only when the new top-level name matches YYYY-MM-DD-<change> and that directory did not exist at the baseline.
-- A rename/copy from outside archive into a new archive is an addition; a rename/copy with an archive oldPath is not.
-- Throw one "Existing OpenSpec archive is immutable:" error with all violations.
-
-- [ ] **Step 4: Wire governance and both CLIs**
-
-scripts/openspec-governance.ts parses command plus one optional --archive-base. checkProject accepts an injectable archiveIntegrity function for temporary-project tests; production defaults to checkArchiveIntegrity. Remove readArchiveStatus and findArchiveViolations after replacement tests are green.
-
-bin/workflow.ts forwards archiveBase for check and rejects it for install/index. Help uses the actual package command ai-fullstack-workflow.
-
-- [ ] **Step 5: Verify GREEN and commit**
-
-Add the test to test:compiled. Run:
-
-~~~powershell
-npm test
-npm run check
-~~~
-
-Commit:
-
-~~~powershell
-git add lib/archive-integrity.ts tests/archive-integrity.test.ts scripts/openspec-governance.ts tests/governance.test.ts bin/workflow.ts package.json
-git commit -m "fix: enforce archive immutability across Git baselines"
-~~~
+This task's proposed `archive-integrity.ts`, archive-base CLI option, Git-baseline tests, and full-history enforcement are cancelled by the [2026-07-27 final governance-boundary design](../specs/2026-07-27-governance-boundary-language-design.md). Archived changes remain protected by the team's review and collaboration process and must not be modified, but this repository neither requires nor promises a base ref, hash, full-history, script, or CI proof. Existing governance commands may give only the local working-tree signals they actually implement; active-change strict validation remains a real program gate.
 
 ---
 
@@ -895,7 +808,7 @@ git commit -m "feat: strictly validate active OpenSpec changes"
 
 **Interfaces:**
 - Installer manages all compiled runtime dependencies and both generated outputs.
-- CI builds TypeScript before tests and supplies an archive base for every PR/push.
+- CI builds TypeScript before tests and runs the repository's implemented schema, strict active-change, and generated-file checks.
 - Package and install manifest version become 2.0.0.
 
 - [ ] **Step 1: Write failing installer/version assertions**
@@ -906,7 +819,6 @@ Assert a fresh target contains:
 [
   "lib/schema-alignment.js",
   "lib/change-history.js",
-  "lib/archive-integrity.js",
   "lib/openspec-cli.js",
   "scripts/openspec-governance.js",
   "scripts/validate-schemas.js",
@@ -942,15 +854,11 @@ Set:
 
 The workflow must:
 
-- checkout with fetch-depth 0;
 - use a Node matrix of 20.19.x and 22.x;
 - run npm ci;
 - install @fission-ai/openspec@1.5.0 globally;
 - run npm run build and reject tracked .js source under bin/lib/scripts/tests;
-- run npm test, npm run index, generated-file diff, Schema validation, strict change validation, base-aware governance, and git diff --check;
-- use pull_request.base.sha for PRs;
-- use github.event.before for normal pushes;
-- on an all-zero push base, use merge-base with origin/default-branch, then the Git empty-tree SHA 4b825dc642cb6eb9a060e54bf8d69288fbee4904.
+- run npm test, npm run index, generated-file diff, Schema validation, strict change validation, implemented working-tree governance checks, and git diff --check.
 
 Use this source-language guard:
 
@@ -972,7 +880,7 @@ Document these exact facts:
 - normal closeout uses openspec archive <change> --yes --json without prior sync;
 - after /opsx:sync, archive uses --skip-specs;
 - SPEC.md is minimal navigation and change-history.json is detailed machine history;
-- CI uses full history, strict changes, generated drift, and archive base;
+- CI uses strict active-change validation, generated-file drift checks, and the implemented working-tree governance checks; it does not use a full-history or archive-base gate;
 - existing archives remain untouched and active product changes migrate native headings.
 
 Add a 2.0.0 CHANGELOG entry calling the graph, Node floor, and TypeScript source migration breaking changes.
@@ -1004,7 +912,7 @@ git commit -m "docs: publish TypeScript OpenSpec workflow 2.0 contract"
 
 **Interfaces:**
 - Consumes every interface and command from Tasks 1-7.
-- Produces a clean branch whose source, compiled tests, real OpenSpec fixture, and Git-history checks pass.
+- Produces a clean branch whose source, compiled tests, real OpenSpec fixture, and implemented governance checks pass.
 
 - [ ] **Step 1: Rebuild deterministic outputs twice**
 
@@ -1028,16 +936,15 @@ npm run verify
 git diff --check
 ~~~
 
-Expected: strict TypeScript build, all compiled tests, both Schemas, active changes, generated-file checks, and archive governance pass.
+Expected: strict TypeScript build, all compiled tests, both Schemas, active changes, generated-file checks, and implemented working-tree governance checks pass.
 
-- [ ] **Step 3: Run P0 regressions directly**
+- [ ] **Step 3: Run the direct OpenSpec fixture regression**
 
 ~~~powershell
-node dist/tests/archive-integrity.test.js
 node dist/tests/openspec-integration.test.js
 ~~~
 
-Expected: both processes exit 0; the archive fixture internally proves old-history mutation rejection and the OpenSpec fixture proves native readiness.
+Expected: the process exits 0 and the OpenSpec fixture proves native readiness.
 
 - [ ] **Step 4: Prove source/runtime language boundaries**
 
@@ -1080,18 +987,16 @@ Do not create an empty commit.
 | 1. Native graph matches OpenSpec v1.5.0 | Task 2 static guard, Task 6 real fixture, Task 8 direct integration run. |
 | 2. Native proposal/design/tasks semantics remain | Task 2 templates and checker. |
 | 3. Active delta changes receive strict CI validation | Tasks 6-7 and Task 8 verify. |
-| 4. Existing archives are immutable across PR/push histories | Task 5 real Git tests and Task 7 base selection. |
-| 5. A wholly new archive directory is allowed | Task 5 pass fixture. |
-| 6. SPEC discovers active changes before specs exist | Tasks 3-4 governance test. |
-| 7. Machine history records changes, capabilities, operations, Requirements | Task 3 parser/model and Task 4 output. |
-| 8. Repeated index/check is byte-deterministic | Task 4 regression and Task 8 double run. |
-| 9. Version and archive/sync docs match runtime | Tasks 6-7. |
-| 10. Unit, integration, Schema, strict validation, and Git gates pass | Task 8 full verification. |
-| 11. Source/tests are TypeScript and targets run compiled JavaScript without TS runtime | Tasks 1, 7, and 8 boundary tests. |
+| 4. SPEC discovers active changes before specs exist | Tasks 3-4 governance test. |
+| 5. Machine history records changes, capabilities, operations, Requirements | Task 3 parser/model and Task 4 output. |
+| 6. Repeated index/check is byte-deterministic | Task 4 regression and Task 8 double run. |
+| 7. Version and archive/sync docs match runtime | Tasks 6-7. |
+| 8. Unit, integration, Schema, strict validation, and Git-diff gates all pass | Focused RED/GREEN steps in Tasks 1-6 and the complete Task 7 verification. |
+| 9. Source/tests are TypeScript and targets run compiled JavaScript without TS runtime | Tasks 1, 7, and 8 boundary tests. |
 
 ## Plan Self-Review Checklist
 
-- [x] All 11 design acceptance criteria map to a task and verification command.
+- [x] All retained design acceptance criteria map to a task and verification command.
 - [x] Every new production module has a focused RED/GREEN test cycle.
 - [x] Type names and function signatures are consistent across producer and consumer tasks.
 - [x] Source repository and installed-target command paths are distinct and executable.

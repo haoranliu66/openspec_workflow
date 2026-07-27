@@ -1,10 +1,13 @@
 # AI 全栈 OpenSpec 工作流实施计划
 
+> [!WARNING]
+> 本实施计划已经完成；其治理边界已由[2026-07-27 最终设计](../specs/2026-07-27-governance-boundary-language-design.md)取代。不得把以下历史任务当作新的执行指令。
+
 **目标：** 建立一个独立、零运行时依赖的 Git 仓库，可向其他项目安装并校验精简 AI 全栈 OpenSpec 工作流。
 
-**架构：** 仓库使用自身的 OpenSpec Schema 和治理索引。独立治理脚本负责当前规格发现、确定性索引生成和归档不可变检查；安装器以幂等、冲突安全的方式把版本化资产复制到目标项目。
+**架构：** 仓库使用自身的 OpenSpec Schema 和治理索引。独立治理脚本负责当前规格发现、确定性索引生成，以及对当前工作区可见归档变化的局部提示；安装器以幂等、冲突安全的方式把版本化资产复制到目标项目。归档按团队流程不得修改，但这不是跨提交或完整历史的程序证明。
 
-**技术栈：** Node.js 18+ CommonJS、OpenSpec Schema、Markdown、GitHub Actions。
+**技术栈：** Node.js `>=20.19.0` CommonJS、OpenSpec Schema、Markdown、GitHub Actions。
 
 ## 全局约束
 
@@ -13,14 +16,15 @@
 - 强制覆盖前创建可恢复备份。
 - 自动生成的 `SPEC.md` 只包含链接，不复制需求正文。
 - 不修改目标项目业务代码和已有 `AGENTS.md`。
-- Git 中已提交的归档不可变。
+- 已归档 change 按团队流程不得修改；该规则依靠团队评审与协作，不由 Schema、脚本或 CI 证明。
+- 团队应在启动 product change 前完成并确认共享 BR/PRD；该外层流程不进入 Schema 或 CI 校验。
 
 ## 任务 1：治理运行时
 
 **文件：** `scripts/openspec-governance.js`、`tests/governance.test.js`
 
 - [x] 为当前规格、归档、活动 change 发现和确定性输出编写测试。
-- [x] 为过期索引、缺失目录和归档篡改编写测试。
+- [x] 为过期索引、缺失目录和当前工作区可见的归档变化提示编写测试。
 - [x] 实现治理运行时与 CLI 接口。
 - [x] 运行测试并确认通过。
 
@@ -41,11 +45,11 @@
 - [x] 记录安装、生命周期、恢复、升级和 AI 上下文顺序。
 - [x] 使用 OpenSpec 校验两套 Schema。
 
-## 任务 4：打包、示例、CI 与 Git 基线
+## 任务 4：打包、示例、CI 与仓库检查
 
 **文件：** `package.json`、`.github/workflows/validate.yml`、`examples/`、`SPEC.md`
 
 - [x] 提供 `test`、`index`、`check`、`validate:schemas` 和 `verify` 命令。
 - [x] 在临时目标执行安装和治理脚本。
-- [x] 验证测试、Schema、索引确定性、归档检查和 `git diff --check`。
-- [x] 初始化 Git、提交基线并确认工作区干净。
+- [x] 验证测试、Schema、索引确定性、局部工作区提示和 `git diff --check`。
+- [x] 初始化 Git 并确认工作区干净。
