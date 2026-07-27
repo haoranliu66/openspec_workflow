@@ -38,21 +38,21 @@ node scripts/validate-changes.js
 
 ## 关闭 change
 
-正常关闭不要先 sync，让 OpenSpec archive 应用 delta：
+正常关闭不要先 sync，让标准 close wrapper 应用 delta：
 
 ```powershell
-openspec archive <change> --yes --json
-node scripts/openspec-governance.js index
-node scripts/openspec-governance.js check
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --target .
 ```
 
 如果已经执行 `/opsx:sync`，必须避免二次应用同一 delta：
 
 ```powershell
-openspec archive <change> --skip-specs --yes --json
-node scripts/openspec-governance.js index
-node scripts/openspec-governance.js check
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
+
+安装目标使用 `node scripts/validate-close.js <change>` 与 `node bin/workflow.js close <change> --target .`。只在已执行 `/opsx:sync` 时向 `close` 传入 `--skip-specs`。如果 archive 已成功而索引或治理检查失败，wrapper 会报告已归档状态；修复后单独运行 `workflow index` 和 `workflow check` 完成恢复。关闭校验只校验结构、引用与声明的 evidence artifact，不会执行 `closeout.json.command`。
 
 `feature` artifact ready 只表示前置 artifact 已具备、可以开始编写 FEATURE；FEATURE 中只有具备实现与验证证据的内容才能声明可交付。即便已经形成这样的交付声明，也需完成归档、历史重建和检查后 change 才关闭。
 

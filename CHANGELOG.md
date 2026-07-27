@@ -3,6 +3,8 @@
 ## Unreleased
 
 - 澄清共享 BR/PRD 与归档规则属于团队流程治理，不改变 `bugfix` 或 `product-change` 的 artifact graph，也不新增程序校验。
+- 新增单个活动 change 的 closeout validation：关闭前确认 tasks 全部完成、四项适用门禁及成功 evidence，并为 product-change 校验 FEATURE/evidence 与 Requirement/PRD 验收引用；bugfix 校验稳定 Requirement ID。
+- 新增 `workflow close` 标准收尾 wrapper，按“关闭校验 → 归档 → 重建索引 → 治理检查”执行；artifact graph 不变，运行时不新增依赖。
 
 ## 2.1.0 - 2026-07-23
 

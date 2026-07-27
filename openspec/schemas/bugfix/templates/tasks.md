@@ -1,5 +1,11 @@
 # 任务
 
+## Closeout evidence
+
+- [ ] 4.1 Complete every implementation and verification task, then record the factual security, migration, browser, and rollback applicability decisions in `closeout.json`.
+- [ ] 4.2 For every applicable gate, record passed matching evidence; for every inapplicable gate, record a reason and no evidence IDs.
+- [ ] 4.3 Keep a stable ID for every delta Requirement.
+
 ## 诊断
 
 - [ ] 1.1 确认根因和受影响 Requirement。

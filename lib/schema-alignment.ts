@@ -162,13 +162,34 @@ export function checkProductSchemaAlignment(root: string): ProductSchemaAlignmen
   }
 
   const tasks = templateContent(root, "tasks.md", violations);
-  const nativeTasks = /^## 1\. <!-- Task Group Name -->\r?\n\r?\n- \[ \] 1\.1 <!-- Task description -->\r?\n- \[ \] 1\.2 <!-- Task description -->\r?\n\r?\n## 2\. <!-- Task Group Name -->\r?\n\r?\n- \[ \] 2\.1 <!-- Task description -->\r?\n- \[ \] 2\.2 <!-- Task description -->\s*$/;
-  if (tasks !== undefined && !nativeTasks.test(tasks)) {
-    violations.push("tasks.md must use the native numbered checkbox template");
-  }
+  verifyTasksTemplate(tasks, violations);
 
   if (violations.length > 0) {
     throw new Error(`product-change native alignment failed:\n${violations.join("\n")}`);
   }
   return { warnings: [] };
+}
+
+function verifyTasksTemplate(content: string | undefined, violations: string[]): void {
+  if (content === undefined) return;
+
+  for (const taskId of ["1.1", "1.2", "2.1", "2.2"]) {
+    if (!new RegExp(`^- \\[ \\] ${taskId.replace(".", "\\.")}\\s+\\S`, "m").test(content)) {
+      violations.push(`tasks.md must retain core task ${taskId}`);
+    }
+  }
+
+  if (!/^## 3\. Closeout evidence\s*$/m.test(content)) {
+    violations.push("tasks.md must include the closeout evidence section");
+    return;
+  }
+
+  const gates = ["security", "migration", "browser", "rollback"];
+  gates.forEach((gate, index) => {
+    const taskNumber = `3.${index + 1}`;
+    const pattern = new RegExp(`^- \\[ \\] ${taskNumber.replace(".", "\\.")}\\s+.*\\b${gate}\\b`, "mi");
+    if (!pattern.test(content)) {
+      violations.push(`tasks.md must include a closeout gate task for ${gate}`);
+    }
+  });
 }

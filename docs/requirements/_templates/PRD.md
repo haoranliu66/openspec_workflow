@@ -1,5 +1,7 @@
 # PRD：产品需求
 
+> Acceptance IDs use the `PA-001` form and are unique within this file.
+
 ## 基本信息
 
 - **需求 ID**：REQ-000

@@ -52,21 +52,21 @@ proposal ─┬─> specs ──┐
 
 ## 5. 关闭与 sync 选择
 
-正常路径不要先 sync，让 archive 应用 delta：
+正常路径不要先 sync，让标准 close wrapper 应用 delta：
 
 ```powershell
-openspec archive <change> --yes --json
-node scripts/openspec-governance.js index
-node scripts/openspec-governance.js check
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --target .
 ```
 
 如果此前已经执行 `/opsx:sync`，归档必须跳过 specs，避免同一 delta 重复应用：
 
 ```powershell
-openspec archive <change> --skip-specs --yes --json
-node scripts/openspec-governance.js index
-node scripts/openspec-governance.js check
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
+
+`validate:changes` 枚举全部活动 change 执行 OpenSpec strict validation；`validate:close <change>` 只校验显式指定的单个关闭输入。关闭校验只证明 tasks 状态、ID 引用、项目内 evidence artifact 存在与声明的 gate evidence，不判定 PRD/Requirement 语义、证据充分性或 N/A 原因的合理性；`closeout.json.command` 仅记录、不执行。
 
 ## 6. AI 最小上下文协议
 

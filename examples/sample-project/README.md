@@ -39,7 +39,7 @@ project/
 
 `SPEC.md` 是最小导航，`openspec/change-history.json` 是详细确定性历史，二者都由 `node scripts/openspec-governance.js index` 生成。安装目标只运行 JavaScript，不需要 TypeScript。
 
-正常关闭使用 `openspec archive <change> --yes --json`；已经执行 `/opsx:sync` 时使用 `--skip-specs`。升级 2.0 不改写已有 archive，旧的活动 product change 应先迁移到原生 OpenSpec headings 和 artifact 结构。
+正常关闭先运行 `node scripts/validate-close.js <change>`，再运行 `node bin/workflow.js close <change> --target .`；已经执行 `/opsx:sync` 时才向 `close` 传入 `--skip-specs`。升级 2.0 不改写已有 archive，旧的活动 product change 应先迁移到原生 OpenSpec headings 和 artifact 结构。
 
 安装目标在 CI 中运行 `node scripts/validate-changes.js`，按文件系统一级目录逐项执行 `openspec validate <change> --strict`。已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 
@@ -54,3 +54,5 @@ node bin/workflow.js close <change> --target .
 ```
 
 The copied template is an input to complete with factual evidence and gate decisions; it is not ready to close as-is. Pass `--skip-specs` to `close` only after the change has already been synced with `/opsx:sync`.
+
+Closeout validation checks task state, structured references, project-local evidence artifacts, and declared gate evidence. It does not judge semantic correctness, evidence sufficiency, or N/A rationale, and it records rather than executes `closeout.json.command`. `validate:changes` remains the separate all-active-change OpenSpec strict-validation gate.

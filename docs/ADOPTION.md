@@ -74,4 +74,4 @@ git diff --check
 
 ## 关闭 change
 
-正常情况下直接执行 `openspec archive <change> --yes --json`，不要先 sync。若已经执行 `/opsx:sync`，改用 `openspec archive <change> --skip-specs --yes --json`，避免重复应用 delta；随后重建并检查两份生成文件。
+关闭单个活动 change 时，先执行 `node scripts/validate-close.js <change>`，再执行 `node bin/workflow.js close <change> --target .`。若已经执行 `/opsx:sync`，在 `close` 命令后加上 `--skip-specs`，避免重复应用 delta。该 wrapper 会完成归档、重建两份生成文件并执行治理检查。

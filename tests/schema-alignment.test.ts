@@ -116,10 +116,30 @@ try {
   fs.writeFileSync(tasksPath, "## 1. Custom\n\n- [ ] 1.1 Custom\n", "utf8");
   assert.throws(
     () => checkProductSchemaAlignment(templateRoot),
-    /tasks\.md must use the native numbered checkbox template/,
+    /tasks\.md must retain core task 1\.2/,
   );
 } finally {
   fs.rmSync(templateRoot, { recursive: true, force: true });
+}
+
+const closeoutTemplateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-closeout-"));
+try {
+  fs.cpSync(productSchemaRoot, closeoutTemplateRoot, { recursive: true });
+  const tasksPath = path.join(closeoutTemplateRoot, "templates", "tasks.md");
+  const tasks = fs.readFileSync(tasksPath, "utf8");
+  const withoutBrowserGate = tasks.replace(
+    /^- \[ \] 3\.3 .*browser.*\r?\n/m,
+    "",
+  );
+  assert.notStrictEqual(withoutBrowserGate, tasks);
+  fs.writeFileSync(tasksPath, withoutBrowserGate, "utf8");
+
+  assert.throws(
+    () => checkProductSchemaAlignment(closeoutTemplateRoot),
+    /tasks\.md must include a closeout gate task for browser/,
+  );
+} finally {
+  fs.rmSync(closeoutTemplateRoot, { recursive: true, force: true });
 }
 
 process.stdout.write("PASS validates native product-change schema alignment.\n");

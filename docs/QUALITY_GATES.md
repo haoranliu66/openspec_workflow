@@ -61,16 +61,20 @@ CI 在 Node.js 20.19 和 22 上检查 TypeScript 源边界、测试、两个确�
 未提前 sync：
 
 ```powershell
-openspec archive <change> --yes --json
-node scripts/openspec-governance.js index
-node scripts/openspec-governance.js check
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --target .
 git diff --check
 ```
 
-已经执行 `/opsx:sync` 时，将 archive 命令改为：
+已经执行 `/opsx:sync` 时，将 close 命令改为：
 
 ```powershell
-openspec archive <change> --skip-specs --yes --json
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
+
+## Closeout validation boundary
+
+Before closeout, every real task checkbox must be complete and the security, migration, browser, and rollback matrix must be present. Applicable gates require passed matching evidence; inapplicable gates require a reason and no evidence IDs. Product changes also require FEATURE/evidence and Requirement/PRD acceptance references; bugfixes require stable delta Requirement IDs. The program establishes structure, references, project-local artifact existence, and declared evidence only. It does not establish semantic correctness, evidence sufficiency, or a reasonable N/A rationale, and it never executes `closeout.json.command`. `validate:changes` remains separate from the one-change `validate:close <change>` gate.
 
 活动 change strict validation 已是 2.1.0 程序门禁。已归档 change 的内容按团队流程不得修改；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。

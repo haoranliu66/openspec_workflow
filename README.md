@@ -44,6 +44,7 @@ openspec instructions proposal --change add-example
 npm run index
 npm run check
 npm run validate:changes
+npm run validate:close -- <change>
 npm run verify
 
 # 在安装目标中重建历史并校验
@@ -51,22 +52,26 @@ node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 node scripts/validate-schemas.js
 node scripts/validate-changes.js
+node scripts/validate-close.js <change>
+node bin/workflow.js close <change> --target .
 ```
 
 ## 正常关闭 change
 
-没有提前执行 `/opsx:sync` 时，让 archive 完成规格同步：
+没有提前执行 `/opsx:sync` 时，让标准 close wrapper 完成规格同步：
 
 ```powershell
-openspec archive <change> --yes --json
-node scripts/openspec-governance.js index
-node scripts/openspec-governance.js check
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --target .
 ```
+
+Closeout validation proves only task checkbox state, ID references, project-local evidence artifact existence, and declared gate evidence. It does not prove PRD/Requirement semantic alignment, evidence sufficiency, or the reasonableness of an inapplicable decision; `closeout.json.command` is recorded and never executed. `validate:changes` remains the all-active-change OpenSpec strict gate, while `validate:close <change>` validates one explicitly named closeout.
 
 如果已经执行过 `/opsx:sync`，归档时必须跳过再次同步，避免同一 delta 重复应用：
 
 ```powershell
-openspec archive <change> --skip-specs --yes --json
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
 
 ## 核心约束与迁移边界

@@ -19,12 +19,13 @@ rules:
     - Use the native Why, What Changes, Capabilities, and Impact sections.
   specs:
     - Use behavior-first SHALL/MUST requirements and precise WHEN/THEN scenarios.
-    - Trace PRD acceptance IDs and historical changes without modifying archives.
+    - Give every ADDED, MODIFIED, REMOVED, or RENAMED delta Requirement a stable ID; product-change closeout maps each such ID exactly once to one or more shared PRD acceptance IDs.
+    - Trace historical changes without modifying archives.
   design:
     - design.md is the only technical design; trace decisions to requirement IDs.
   tasks:
     - Order numbered checkbox work by dependency and record independently verifiable evidence.
-    - Add applicable validation, security, data, and integration quality-gate tasks here rather than changing the native template.
-    - Record delivery evidence, specification synchronization, and FEATURE updates here rather than changing the native template.
+    - Before closeout, complete every real checkbox and record the security, migration, browser, and rollback applicability matrix with declared evidence in closeout.json.
+    - Add applicable validation and delivery-evidence tasks here; closeout validation does not execute recorded commands or judge evidence sufficiency.
   feature:
-    - Record only delivered behavior backed by evidence, then synchronize and archive the change.
+    - For product-change, record each local delivered conclusion in the structured result/evidence table and synchronize its result IDs to the shared FEATURE ledger.

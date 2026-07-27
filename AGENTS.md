@@ -32,8 +32,9 @@
 - 历史修订由新的 delta change 表达；2.0 升级不改写已有 archive 目录。
 - 实现证据不存在时，不在 FEATURE 中宣称 ready；FEATURE ready 也不等于 change 已完成关闭。
 - 按改动面选择质量门禁，并在 tasks 或 feature 中记录命令和结果。
-- 未执行 `/opsx:sync` 时用 `openspec archive <change> --yes --json`；已经 sync 时改用 `--skip-specs`，避免 delta 重复应用。
-- 归档后重建 `SPEC.md` 与 `openspec/change-history.json`，再执行治理检查。
+- 关闭前对单个活动 change 运行 `npm run validate:close -- <change>`；使用 `node dist/bin/workflow.js close <change> --target .` 完成校验、归档、重建索引和治理检查。安装目标对应使用 `node scripts/validate-close.js <change>` 和 `node bin/workflow.js close <change> --target .`；已经 sync 时才向 `close` 传入 `--skip-specs`。
+- 程序关闭门禁只强制：所有 tasks 完成、四项适用门禁及成功 evidence、product-change 的 FEATURE/evidence 引用和 Requirement/PRD 验收引用，以及 bugfix 的稳定 Requirement ID。它们只证明结构、引用、文件存在和声明证据，不证明语义正确、证据充分或 N/A 理由合理；`closeout.json.command` 只记录，不执行。
+- `validate:changes` 与 `validate:close <change>` 是不同门禁：前者枚举全部活动 change 做 OpenSpec strict validation，后者校验显式指定的单个关闭输入。
 - 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项执行 `openspec validate <change> --strict`。
 - 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 
