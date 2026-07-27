@@ -12,7 +12,7 @@
     "build": "npm run clean && tsc -b",
     "prepare": "npm run build",
     "prepack": "npm run build",
-    "test:compiled": "node dist/tests/typescript-layout.test.js && node dist/tests/project-root.test.js && node dist/tests/openspec-cli.test.js && node dist/tests/governance.test.js && node dist/tests/installer.test.js && node dist/tests/openspec-integration.test.js && node dist/tests/validate-schemas.test.js && node dist/tests/validate-changes.test.js && node dist/tests/schema-alignment.test.js && node dist/tests/change-history.test.js",
+    "test:compiled": "node dist/tests/typescript-layout.test.js && node dist/tests/project-root.test.js && node dist/tests/openspec-cli.test.js && node dist/tests/closeout-contract.test.js && node dist/tests/governance.test.js && node dist/tests/installer.test.js && node dist/tests/openspec-integration.test.js && node dist/tests/validate-schemas.test.js && node dist/tests/validate-changes.test.js && node dist/tests/schema-alignment.test.js && node dist/tests/change-history.test.js",
     "test": "npm run build && npm run test:compiled",
     "index:compiled": "node dist/scripts/openspec-governance.js index",
     "index": "npm run build && npm run index:compiled",
