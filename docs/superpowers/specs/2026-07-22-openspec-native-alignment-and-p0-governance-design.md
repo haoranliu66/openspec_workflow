@@ -1,4 +1,4 @@
-# OpenSpec 原生对齐与 P0 治理优化设计
+# OpenSpec 原生对齐与治理边界优化设计
 
 ## 1. 背景
 
@@ -7,7 +7,7 @@
 现有方向是合理的，但实现中存在两类偏差：
 
 1. `product-change` 重写了 OpenSpec 原生 proposal、design、tasks 的职责与依赖关系，把原生可迭代的 artifact graph 变成了线性阶段。
-2. 归档不可变、活动 change 严格校验和历史导航没有形成 CI 可强制的完整闭环。
+2. 活动 change 严格校验和历史导航尚未形成完整的程序化闭环；归档不可变仍需作为团队流程治理规则明确执行。
 
 本设计以 OpenSpec v1.5.0 为固定兼容基线。上游原生依据包括：
 
@@ -27,7 +27,7 @@ OpenSpec v1.5.0 的运行时要求是 Node.js `>=20.19.0`。本工作流的文�
 - 让 `product-change` 的 proposal、specs、design、tasks、apply 与 OpenSpec v1.5.0 原生 `spec-driven` 子图兼容。
 - 让 AI 在开始任务时准确发现活动 change、受影响 capability 和当前规格。
 - 让 AI 在需要回归、冲突分析或设计追溯时，能够机械定位历史 change 实际新增、修改、删除或重命名过的 Requirement。
-- 让 CI 真正阻止历史归档篡改，并严格校验所有活动 change 的 delta specs。
+- 严格校验所有活动 change 的 delta specs，并让索引与历史导航可被确定性检查。
 - 将工作流仓库的可执行源码与测试统一为 TypeScript，同时保持安装目标的运行时零 TypeScript 依赖。
 
 ### 2.2 非目标
@@ -45,7 +45,7 @@ OpenSpec v1.5.0 的运行时要求是 Node.js `>=20.19.0`。本工作流的文�
 2. **依赖是能力解锁，不是瀑布阶段**：design 与 specs 在 proposal 后并行可用，artifact 可以在实现过程中反复修订。
 3. **当前事实与历史事实分离**：`openspec/specs/` 仍是当前行为事实来源；archive 与生成式历史索引负责演进追溯。
 4. **机器事实优先**：change 影响范围从目录、delta section 和 Requirement 标题机械提取，不依赖人工维护完整历史链。
-5. **失败关闭**：无法解析 Git 基线、OpenSpec 校验失败或索引漂移时，CI 不得静默通过。
+5. **失败关闭**：OpenSpec 校验失败或索引漂移等真实程序门禁失败时，CI 不得静默通过。
 6. **最小默认上下文**：`SPEC.md` 保持精简，详细历史放入独立的结构化索引，AI 仅在需要时读取。
 
 ## 4. Product Change Artifact 架构
@@ -76,7 +76,7 @@ proposal
 | `feature` | `[tasks]` | 外层交付记录的生成就绪条件 |
 | `apply` | `[tasks]` | OpenSpec 原生实施入口，跟踪 `tasks.md` |
 
-BR/PRD 的业务顺序由工作流说明与外层治理约束，不通过修改 proposal 的原生 `requires` 实现。这样既保留产品治理，也不破坏 OpenSpec 的 schema-aware instructions、status 与 apply 语义。
+团队应在启动 product change 前完成并确认共享 BR/PRD。该业务顺序由工作流说明与外层治理约束执行，不通过 `proposal.requires`、Schema、脚本或 CI 强制；这样既保留产品治理，也不破坏 OpenSpec 的 schema-aware instructions、status 与 apply 语义。
 
 ### 4.2 原生核心不变量
 
@@ -179,43 +179,15 @@ Capability 表继续包含 canonical spec、首次归档、最新归档和活动
 - archive 首先按 `YYYY-MM-DD`，同日按完整 archive 目录名排序；
 - JSON 使用两空格缩进并以单个 LF 结尾。
 
-## 6. P0：归档不可变
+## 6. 流程治理：归档不可变
 
-### 6.1 检查范围
+已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；
+本方案不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制
+证明归档不可变。
 
-归档不可变由两层检查共同完成：
-
-1. **提交区间**：比较 CI 基线提交与 `HEAD`，发现已提交的 archive 变化。
-2. **当前工作区**：比较 `HEAD` 与 index/working tree，并包含未跟踪文件。
-
-治理 CLI 新增显式参数：
-
-```text
-npm run check -- --archive-base <git-ref> # 工作流源码仓库
-node scripts/openspec-governance.js check --archive-base <git-ref> # 已安装的目标项目
-ai-fullstack-workflow check --target <project> --archive-base <git-ref> # package CLI
-```
-
-未传基线时仍执行本地工作区检查；CI 必须传入基线。传入的 ref 不存在、Git 不可用或无法读取基线树时失败关闭。
-
-### 6.2 允许与拒绝规则
-
-对于基线提交中已经存在的 `openspec/changes/archive/<archive>/`：
-
-- 新增文件：拒绝；
-- 修改文件：拒绝；
-- 删除文件：拒绝；
-- 重命名或移动：拒绝；
-- 未跟踪文件：拒绝。
-
-只有当顶层 archive 目录在基线中完全不存在时，才允许该新目录下出现新增文件。不能通过向旧归档添加新文件绕过不可变约束。
-
-### 6.3 GitHub Actions 基线
-
-- `actions/checkout` 使用 `fetch-depth: 0`。
-- pull request 使用 `github.event.pull_request.base.sha`。
-- push 使用 `github.event.before`。当该值为全零 SHA 时，优先使用 `HEAD` 与远端默认分支的 merge-base；仓库根提交没有可用父提交或默认分支时使用 Git empty tree 作为显式基线。
-- CI 仍运行本地工作区检查，以发现生成文件漂移和未提交污染。
+治理命令可以如实报告当前工作区中它能够发现的变化，但该局部检查不是跨提交、
+跨分支或完整 Git 历史的不可变性证明。无法读取 Git 时，不得把检查结果描述为
+已经证明归档不可变。
 
 ## 7. P0：OpenSpec 严格校验与原生漂移守卫
 
@@ -310,7 +282,7 @@ openspec archive <change> --skip-specs --yes --json
 
 ## 10. 错误处理
 
-- Git 不存在、HEAD 不存在或显式基线不可解析：治理检查失败并给出可执行修复提示。
+- Git 不可读取时，治理命令只报告其无法进行的局部检查；不得将该结果描述为已证明归档不可变。
 - 活动 change 缺少 `.openspec.yaml` 或 schema 无法识别：历史索引写 `unknown`，治理检查失败。历史 archive 缺失元数据时保留 `unknown` 并报告非阻断警告，以兼容既有只读归档。
 - delta spec 无法解析：index 不伪造 Requirement，治理检查失败并指出文件。
 - OpenSpec JSON 命令退出非零：保留 stderr，CI 失败；不得把实验性提示与 stdout 合并后再解析 JSON。
@@ -327,17 +299,12 @@ openspec archive <change> --skip-specs --yes --json
 - delta operation 与 Requirement ID/名称提取。
 - RENAMED FROM/TO 提取。
 - 历史 JSON 和 SPEC 确定性。
-- 旧归档中的 A/M/D/R/未跟踪文件全部拒绝。
-- 新顶层 archive 目录允许新增。
-- 无效或缺失 Git 基线失败关闭。
 - Windows/Unix OpenSpec 调用参数。
 - TypeScript 编译配置、严格类型边界和编译产物到安装路径的映射。
 - 所有新增生产函数遵循测试先行，测试源码同样使用 TypeScript。
 
 ### 11.2 集成测试
 
-- 在临时 Git 仓库创建旧归档并提交；后续提交修改旧归档时，使用 base ref 的 check 必须失败。
-- 新归档目录相对 base 仅包含新增文件时必须通过。
 - 使用真实 OpenSpec 1.5.0 创建 product-change fixture，验证 artifact readiness 与 strict validation。
 - 安装到临时目标后执行 index、history、check 和 strict validation。
 - 从 TypeScript 源码构建 CLI 后安装到临时目标，确认目标仅靠 Node.js 即可执行编译后的治理脚本。
@@ -357,11 +324,10 @@ openspec archive <change> --skip-specs --yes --json
 1. product-change 原生核心 graph 与 v1.5.0 一致。
 2. proposal、design、tasks 保留原生章节和跟踪语义。
 3. 所有活动 delta changes 严格校验进入 CI。
-4. PR 或 push 中修改旧 archive 的任意路径都会失败。
-5. 仅新增完整 archive 顶层目录可以通过。
-6. `SPEC.md` 能发现尚无 delta spec 的活动 change。
-7. `openspec/change-history.json` 能准确列出 change、capability、operation 和 Requirement。
-8. index/check 连续运行字节一致。
-9. Node、OpenSpec 版本、archive/sync 文档与实际行为一致。
-10. 单元、集成、Schema、strict validation、Git diff 检查全部通过。
-11. 仓库可执行源码与测试全部为 TypeScript，CLI 和安装目标使用编译后的 JavaScript 且无 TypeScript 运行时依赖。
+4. 已归档 change 的内容按团队流程不得修改，且不被描述为由程序或 CI 强制证明。
+5. `SPEC.md` 能发现尚无 delta spec 的活动 change。
+6. `openspec/change-history.json` 能准确列出 change、capability、operation 和 Requirement。
+7. index/check 连续运行字节一致。
+8. Node、OpenSpec 版本、archive/sync 文档与实际行为一致。
+9. 单元、集成、Schema、strict validation、Git diff 检查全部通过。
+10. 仓库可执行源码与测试全部为 TypeScript，CLI 和安装目标使用编译后的 JavaScript 且无 TypeScript 运行时依赖。

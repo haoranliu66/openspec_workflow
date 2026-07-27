@@ -15,7 +15,7 @@
 openspec validate <change> --strict
 ```
 
-归档不可变继续作为流程约束和文档政策存在。本改动不新增任何归档不可变程序、Git 基线比较或 CI full-history 要求。
+归档不可变和启动 product change 前完成并确认共享 BR/PRD，均继续作为团队应遵守的流程治理规则。本改动不将二者转化为 Schema、脚本或 CI 门禁；其中归档不可变不新增任何程序、Git 基线比较或 CI full-history 要求。
 
 ## 2. 目标与非目标
 
@@ -31,8 +31,9 @@ openspec validate <change> --strict
 ### 2.2 非目标
 
 - 不实现 archive 内容哈希、Git baseRef、merge-base 或跨分支历史比较。
-- 不创建 `archive-integrity` 模块，不增加 `--archive-base` CLI 行为。
+- 不创建 `archive-integrity` 模块，不增加任何 archive 基线 CLI 行为。
 - 不修改、移动或重写任何现有 archive。
+- 不将归档不可变或 product change 前置 BR/PRD 转化为 Schema、脚本或 CI 门禁；两者由团队流程治理执行。
 - 不使用 `openspec validate --changes` 聚合命令替代逐项校验。
 - 不校验 proposal、design、tasks 的业务质量；本功能只执行 OpenSpec CLI 的 strict change validation。
 
@@ -150,7 +151,7 @@ change 校验的参数数组必须精确为：
 - `package.json` 与 `package-lock.json` 升级到 2.1.0。
 - `CHANGELOG.md` 新增 2.1.0 条目。
 - README、AGENTS、FULLSTACK_WORKFLOW、QUALITY_GATES、ADOPTION、OPERATIONS 和示例项目文档说明逐项 strict validation 命令。
-- 文档必须明确：活动 change strict validation 已启用；归档不可变仍仅是流程政策，没有新增程序化强制。
+- 文档必须明确：活动 change strict validation 已启用；归档不可变和 product change 前置 BR/PRD 均仍是团队流程治理规则，没有新增 Schema、脚本或 CI 强制。
 
 ## 8. 验收标准
 

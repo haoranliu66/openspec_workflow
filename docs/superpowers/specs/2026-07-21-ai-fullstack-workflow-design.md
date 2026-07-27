@@ -7,17 +7,19 @@
 ## 核心原则
 
 1. `openspec/specs/<capability>/spec.md` 是当前行为的唯一事实来源。
-2. change 只保存本次增量；archive 保存不可变历史。
+2. change 只保存本次增量；archive 保存按团队流程不可修改的历史。
 3. 根 `SPEC.md` 只做导航，不复制需求正文。
 4. BR/PRD 只保留会影响决策、范围和验收的信息。
 5. 精确 SHALL/MUST 与 WHEN/THEN 只存在于 spec。
 6. AI 默认加载最小上下文，只有发生冲突或回归时才读取历史。
-7. 自动化必须无运行时依赖、确定性、幂等，并对覆盖操作采取失败关闭策略。
+7. 自动化必须无运行时依赖、确定性、幂等；对安装冲突、覆盖操作等真实程序门禁采取失败关闭策略。
 
 ## 两条交付路径
 
 - `bugfix`：`proposal -> specs -> tasks -> apply`，用于行为已经明确、没有新增角色/流程/接口/业务规则的小 Bug。
 - `product-change`：`BR -> PRD -> proposal -> specs -> design(TD) -> tasks -> apply -> feature`，用于新功能、管理台、跨角色流程、接口/数据契约和业务规则。
+
+团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于人工流程治理，不进入 OpenSpec Schema 或 `requires`，也不由脚本或 CI 校验完成状态。
 
 产品交付完成后执行 `verify -> feature -> sync/archive -> index -> check`。CLI archive 同时完成 delta 合并与归档，不与已经执行的 CLI sync 重复使用。
 
@@ -62,7 +64,7 @@ node bin/workflow.js check --target <project>
 - Node.js 18+，运行时零第三方依赖。
 - 生成结果不含时间戳，重复执行字节一致。
 - 安装冲突失败关闭；强制覆盖前创建备份。
-- `check` 同时检查索引漂移、归档修改和必要目录。
+- `check` 同时检查索引漂移和必要目录；对当前工作区中可见的归档修改仅作局部提示，不将其描述为跨提交、跨分支或完整历史的不可变性证明。
 - CI 在 Node 18/20 上执行测试，并用固定 OpenSpec 1.5.0 校验 Schema。
 - 升级通过 Git tag 和 CHANGELOG 管理；安装器幂等重放。
 
@@ -76,3 +78,9 @@ node bin/workflow.js check --target <project>
 - 不把所有历史文档自动注入 AI 上下文。
 - 不发布中心化 SaaS 或依赖网络服务。
 - 不自动改写已有项目的业务代码、AGENTS.md 或冲突配置。
+
+## 流程治理边界
+
+已归档 change 的内容按团队流程不得修改，依靠团队评审与协作执行。本工作流不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变；无法读取 Git 时，局部检查不得被描述为已经证明归档不可变。
+
+安装器幂等、生成结果确定性、安装冲突失败关闭等是已实现或待实现的程序能力；归档不可变与 product change 前完成并确认共享 BR/PRD 则是团队应遵守的人工流程规则。
