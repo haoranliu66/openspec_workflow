@@ -7,7 +7,9 @@
 | 变更类型 | Schema | 流程 |
 |---|---|---|
 | 小 Bug，预期行为已明确，无新业务规则或接口 | `bugfix` | `proposal -> specs -> tasks -> apply` |
-| 新功能、管理台、跨角色流程、接口或业务规则调整 | `product-change` | `BR/PRD（外层治理） -> proposal -> {specs ∥ design} -> tasks -> apply -> feature` |
+| 新功能、管理台、跨角色流程、接口或业务规则调整 | `product-change` | 团队流程：先完成并确认共享 BR/PRD；OpenSpec graph：`proposal -> {specs ∥ design} -> tasks -> apply -> feature` |
+
+团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于 change 外的流程治理，不进入 OpenSpec 原生 artifact graph，也不由 Schema、脚本或 CI 校验；`proposal` 仍是原生 graph 的独立 root。
 
 产品 change 中，`proposal` 完成后同时解锁 `specs` 和 `design`；`tasks` 必须等待二者完成，`apply` 以 `tasks.md` 为进度事实。`feature` artifact ready 只表示前置 artifact 已具备、可以开始编写 FEATURE；只有具备实现与验证证据的内容才能在 FEATURE 中声明可交付，而且这仍不表示关闭流程已经完成。
 
@@ -75,7 +77,7 @@ openspec archive <change> --skip-specs --yes --json
 - `design.md` 是唯一 TD；FEATURE 只记录已验证的 readiness、证据、运营要点和限制。
 - 升级 2.0 不改写已有 archive 目录；继续活动 product change 前，应把 proposal/design/tasks 与 delta spec 标题迁移到原生 OpenSpec 结构。
 - CI 与 `npm run verify` 会枚举 `openspec/changes/` 下除 `archive`、隐藏目录和非目录项之外的所有一级目录，并逐项执行 `openspec validate <change> --strict`；任一失败都会使门禁失败。
-- 归档不可变仍是流程政策；2.1.0 不增加 base ref、full-history、hash 或其他额外程序强制。
+- 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 
 完整规则见[全栈工作流](docs/FULLSTACK_WORKFLOW.md)、[质量门禁](docs/QUALITY_GATES.md)、[接入指南](docs/ADOPTION.md)和[维护手册](docs/OPERATIONS.md)。
 

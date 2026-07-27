@@ -30,7 +30,7 @@
 
 出现任一情况即使用：新功能；管理台；跨角色或跨模块流程；接口、数据或权限变化；新增业务规则；需要产品验证或技术方案。
 
-BR/PRD 属于外层治理。change 内严格使用原生 OpenSpec 解锁关系：
+团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于 change 外的流程治理，不进入 OpenSpec 原生 artifact graph，也不由 Schema、脚本或 CI 校验；`proposal` 仍是原生 graph 的独立 root。change 内严格使用原生 OpenSpec 解锁关系：
 
 ```text
 proposal ─┬─> specs ──┐
@@ -42,7 +42,7 @@ proposal ─┬─> specs ──┐
 ## 4. 标准执行循环
 
 1. **研究**：读取根 `SPEC.md`、受影响当前规格、相关活动 changes 和代码，验证业务证据与现状。
-2. **定义产品**：产品变更先维护共享 BR/PRD，再创建可独立交付的 change。
+2. **定义产品**：团队先完成并确认共享 BR/PRD，再创建可独立交付的 change；这是团队流程治理，不是 OpenSpec Schema 依赖。
 3. **提案**：`proposal.md` 只表达 Why、What Changes、Capabilities 与 Impact。
 4. **并行定义**：delta specs 写 SHALL/MUST 与 WHEN/THEN；`design.md` 记录上下文、目标/非目标、决策、风险、迁移与开放问题。
 5. **计划实现**：二者完成后生成 `tasks.md`；每项都能以代码、测试或运行证据关闭。
@@ -87,7 +87,7 @@ AI 开始任务时依次读取：
 - 继续旧的活动 product change 前，先把 proposal/design/tasks 与 delta spec headings 迁移到原生 OpenSpec 模板。
 - 历史错误通过新的 correction change 表达，避免把当前修订伪装成过去事实。
 - CI 和本地 `verify` 从文件系统枚举所有活动 change，并逐项执行 `openspec validate <change> --strict`；损坏或非法命名的目录不能被静默遗漏。
-- 归档不可变继续作为流程政策；本版本不增加基于 base ref、hash 或 full-history 的程序化强制。
+- 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 
 ## 8. 完成定义
 

@@ -20,7 +20,7 @@ artifacts:
       每个受影响 capability 创建一份 delta spec。按需使用 ADDED、MODIFIED、REMOVED 或
       RENAMED；MODIFIED 必须包含修改后的完整 Requirement。每项 Requirement 使用 SHALL/MUST，
       并至少包含一个四级标题 Scenario 及精确 WHEN/THEN。保持 Requirement ID 稳定，链接当前
-      canonical spec，并向后链接相关历史 change。禁止修改归档以增加正向链接。
+      canonical spec，并向后链接相关历史 change。按团队流程不得修改归档以增加正向链接；该团队流程规则不由 Schema、脚本或 CI 强制。
     requires:
       - proposal
 

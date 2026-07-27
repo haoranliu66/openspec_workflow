@@ -1,5 +1,9 @@
 # 变更日志
 
+## Unreleased
+
+- 澄清共享 BR/PRD 与归档规则属于团队流程治理，不改变 `bugfix` 或 `product-change` 的 artifact graph，也不新增程序校验。
+
 ## 2.1.0 - 2026-07-23
 
 - 新增活动 change 文件系统枚举器，按英文名称稳定排序，并逐项执行精确命令 `openspec validate <change> --strict`。

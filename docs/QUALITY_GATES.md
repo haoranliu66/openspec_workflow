@@ -1,6 +1,6 @@
 # 全栈质量门禁
 
-门禁按改动面选择，不要求每个 change 执行无关工具。`tasks.md` 必须写明选择了哪些门禁、命令和结果；跳过高相关门禁必须说明原因。
+只有命令或 CI 实际执行的检查才叫程序门禁。共享 BR/PRD 的完成顺序和已归档 change 不得修改属于团队流程治理规则，依靠团队评审与协作执行；它们不由 Schema、脚本或 CI 强制。程序门禁按改动面选择，不要求每个 change 执行无关工具。`tasks.md` 必须写明选择了哪些门禁、命令和结果；跳过高相关门禁必须说明原因。
 
 ## 所有变更
 
@@ -73,4 +73,4 @@ git diff --check
 openspec archive <change> --skip-specs --yes --json
 ```
 
-活动 change strict validation 已是 2.1.0 门禁。归档不可变仍是流程政策，本版本不新增跨 base ref、full-history、hash 或其他程序化强制。
+活动 change strict validation 已是 2.1.0 程序门禁。已归档 change 的内容按团队流程不得修改；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
