@@ -70,7 +70,7 @@ node scripts/openspec-governance.js check
 git diff --check
 ```
 
-`SPEC.md` 是最小导航，`openspec/change-history.json` 是详细机器历史；活动 change 在尚无 specs 时也会出现在历史中。`node scripts/validate-changes.js` 从文件系统枚举所有活动 change 目录并逐项执行 `openspec validate <change> --strict`。归档不可变仍是流程政策；2.1.0 不要添加 full-history checkout、baseRef 配置或 hash 校验。
+`SPEC.md` 是最小导航，`openspec/change-history.json` 是详细机器历史；活动 change 在尚无 specs 时也会出现在历史中。`node scripts/validate-changes.js` 从文件系统枚举所有活动 change 目录并逐项执行 `openspec validate <change> --strict`。归档不可变仍是流程政策；2.1.0 不要求 full-history checkout、baseRef 配置或 hash 校验。
 
 ## 关闭 change
 
