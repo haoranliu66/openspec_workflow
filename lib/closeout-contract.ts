@@ -221,14 +221,17 @@ function validateReferenceIds(value: unknown, path: string, sourcePath: string, 
     addDiagnostic(diagnostics, sourcePath, `${path}: must be an array`);
     return;
   }
+  if (!evidenceIds && value.length === 0) {
+    addDiagnostic(diagnostics, sourcePath, `${path}: must be non-empty`);
+  }
   const references = new Set<string>();
   value.forEach((reference, index) => {
     const referencePath = `${path}[${index}]`;
     const valid = evidenceIds
       ? typeof reference === "string" && EVIDENCE_ID.test(reference)
-      : typeof reference === "string" && reference.trim().length > 0;
+      : typeof reference === "string" && REQUIREMENT_ID.test(reference);
     if (!valid) {
-      addDiagnostic(diagnostics, sourcePath, `${referencePath}: must be a valid ${evidenceIds ? "evidence ID" : "non-empty string"}`);
+      addDiagnostic(diagnostics, sourcePath, `${referencePath}: must be a valid ${evidenceIds ? "evidence ID" : "requirement ID"}`);
       return;
     }
     if (references.has(reference)) {

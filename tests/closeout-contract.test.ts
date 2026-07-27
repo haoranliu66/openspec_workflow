@@ -110,6 +110,16 @@ assertInvalid({ ...validBugfix, prd: validProduct.prd }, "bugfix");
   assertInvalid(evidence);
 }
 
+// Break caught: allowing a product requirement without at least one valid acceptance ID.
+{
+  const emptyAcceptanceIds = cloneProduct();
+  emptyAcceptanceIds.requirements[0].acceptanceIds = [];
+  assertInvalid(emptyAcceptanceIds);
+  const invalidAcceptanceId = cloneProduct();
+  invalidAcceptanceId.requirements[0].acceptanceIds = ["not-an-id"];
+  assertInvalid(invalidAcceptanceId);
+}
+
 // Break caught: permitting ambiguous duplicate identities in independent trace collections.
 for (const collection of ["requirements", "featureResults", "evidence"] as const) {
   const value = cloneProduct();
