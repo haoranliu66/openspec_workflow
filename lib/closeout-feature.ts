@@ -69,28 +69,30 @@ export function parseSharedFeatureRows(
 
   const rows = table.rows.filter((row) => row.cells[0] === changeId);
   const diagnostics: CloseoutDiagnostic[] = [];
-  if (rows.length !== 1) {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `expected exactly one ledger row for change: ${changeId}`));
+  if (rows.length === 0) {
+    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `missing ledger row for change: ${changeId}`));
     return { resultIds: [], diagnostics };
   }
 
-  const row = rows[0];
-  if (row.cells[4] !== "ready") {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `ledger status must be ready at line ${row.line}`));
-  }
-  const resultIds = splitIds(row.cells[1]);
-  if (resultIds.length === 0) {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `ledger result IDs are missing at line ${row.line}`));
-  }
+  const resultIds: string[] = [];
   const seen = new Set<string>();
-  for (const resultId of resultIds) {
-    if (!FEATURE_RESULT_ID.test(resultId)) {
-      diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `invalid ledger result ID at line ${row.line}`));
+  for (const row of rows) {
+    if (row.cells[4] !== "ready") {
+      diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `ledger status must be ready at line ${row.line}`));
     }
-    if (seen.has(resultId)) {
-      diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `duplicate ledger result ID at line ${row.line}`));
+    const rowResultIds = splitIds(row.cells[1]);
+    if (rowResultIds.length === 0) {
+      diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `ledger result IDs are missing at line ${row.line}`));
     }
-    seen.add(resultId);
+    for (const resultId of rowResultIds) {
+      if (!FEATURE_RESULT_ID.test(resultId)) {
+        diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `invalid ledger result ID at line ${row.line}`));
+      }
+      if (!seen.has(resultId)) {
+        seen.add(resultId);
+        resultIds.push(resultId);
+      }
+    }
   }
   return { resultIds, diagnostics };
 }
@@ -116,8 +118,8 @@ export function validateProductFeatureTrace(
   }
   const shared = parseSharedFeatureRows(fs.readFileSync(sharedPath, "utf8"), sharedPath, changeId);
   diagnostics.push(...shared.diagnostics);
-  if (!sameSet(new Set(shared.resultIds), new Set(localResults.keys()))) {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sharedPath, "ledger result IDs do not match local FEATURE results"));
+  if (!covers(new Set(shared.resultIds), new Set(localResults.keys()))) {
+    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sharedPath, "ledger result IDs do not cover local FEATURE results"));
   }
   return diagnostics;
 }
@@ -199,6 +201,10 @@ function isWithin(root: string, target: string): boolean {
 
 function sameSet(left: ReadonlySet<string>, right: ReadonlySet<string>): boolean {
   return left.size === right.size && [...left].every((value) => right.has(value));
+}
+
+function covers(available: ReadonlySet<string>, required: ReadonlySet<string>): boolean {
+  return [...required].every((value) => available.has(value));
 }
 
 function featureDiagnostic(entry: CloseoutDiagnostic): CloseoutDiagnostic {

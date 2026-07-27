@@ -116,18 +116,43 @@ try {
     assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", document), "SHARED_FEATURE_INVALID"));
   }
 
-  // Break caught: the current change needs one ready ledger row with the exact local result IDs.
+  // Break caught: the current change needs at least one ready ledger row that covers every local result.
   for (const rows of [
     "| other-change | invalid | old | 1.0.0 | ready |\n",
-    "| add-login | FR-002 | login | 2.2.0 | ready |\n",
     "| add-login | FR-001 | login | 2.2.0 | pending |\n",
-    "| add-login | FR-001 | login | 2.2.0 | ready |\n| add-login | FR-001 | duplicate | 2.2.1 | ready |\n",
   ]) {
     write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(rows));
     assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), "SHARED_FEATURE_INVALID"));
   }
 
+  // Break caught: one change may use multiple ledger rows; their result IDs are merged and need only cover the local results.
+  {
+    const document = closeout();
+    document.featureResults = [
+      { id: "FR-001", evidenceIds: ["EV-E2E-001", "EV-TEST-001"] },
+      { id: "FR-002", evidenceIds: ["EV-E2E-001"] },
+    ];
+    write(root, "openspec/changes/add-login/feature.md", feature(
+      "| FR-001 | 用户可以完成登录 | EV-E2E-001, EV-TEST-001 |\n| FR-002 | 用户可以登出 | EV-E2E-001 |\n",
+    ));
+    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
+      "| add-login | FR-001 | 登录 | 2.2.0 | ready |\n| add-login | FR-002 | 登出 | 2.2.0 | ready |\n",
+    ));
+    assert.deepStrictEqual(validateProductFeatureTrace(root, changeRoot, "add-login", document), []);
+
+    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
+      "| add-login | FR-001, FR-EXTRA | 登录 | 2.2.0 | ready |\n| add-login | FR-002 | 登出 | 2.2.0 | ready |\n",
+    ));
+    assert.deepStrictEqual(validateProductFeatureTrace(root, changeRoot, "add-login", document), []);
+
+    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
+      "| add-login | FR-001 | 登录 | 2.2.0 | ready |\n",
+    ));
+    assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", document), "SHARED_FEATURE_INVALID"));
+  }
+
   // Break caught: malformed historical rows are outside this change's ledger scope.
+  write(root, "openspec/changes/add-login/feature.md", feature());
   write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
     "| other-change | invalid | old | 1.0.0 | unknown |\n| add-login | FR-001 | login | 2.2.0 | ready |\n",
   ));
