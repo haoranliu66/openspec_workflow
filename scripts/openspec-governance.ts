@@ -213,7 +213,7 @@ export function renderIndex(root: string, model?: ChangeHistory): string {
     "2. 只读取 `openspec/specs/` 下受影响的当前规格。",
     "3. 读取修改相同 capabilities 的活动 changes。",
     "4. 仅在处理回归、冲突或设计依据时读取历史归档。",
-    "5. BR/PRD 定义目标与范围；可执行行为只存在于 specs。",
+    "5. BR/PRD 定义目标与范围；其前置完成属于团队流程治理，不是 OpenSpec artifact graph 或程序门禁。",
     "",
     "## 活动 Change",
     "",
@@ -233,7 +233,7 @@ export function renderIndex(root: string, model?: ChangeHistory): string {
     "",
     "`apply -> verify -> feature -> sync/archive -> index -> check`",
     "",
-    "归档不可修改。新 delta 可以向后链接历史 changes；旧归档永不增加正向链接。",
+    "归档内容按团队流程不得修改；该规则不由程序或 CI 强制证明。新 delta 可以向后链接历史 changes；旧归档不增加正向链接。",
     "",
   ].join("\n");
 }

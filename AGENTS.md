@@ -12,7 +12,7 @@
 
 - 只有 Bug 边界明确、预期行为已确认，且不改变流程、角色、接口或业务规则时，才使用 `bugfix`。
 - 新功能、管理台、跨角色流程、接口调整或业务规则调整使用 `product-change`。
-- product change 的 BR/PRD 是外层治理。change 内 `proposal` 完成后，`specs` 与 `design` 并行解锁；`tasks` 等待二者，`apply` 跟踪 `tasks.md`。
+- 团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于 change 外的流程治理，不进入 OpenSpec 原生 artifact graph，也不由 Schema、脚本或 CI 校验；`proposal` 仍是原生 graph 的独立 root。change 内 `proposal` 完成后，`specs` 与 `design` 并行解锁；`tasks` 等待二者，`apply` 跟踪 `tasks.md`。
 - 调研发现范围扩大时，从 bugfix 升级为 product change。
 
 ## 事实来源
@@ -24,7 +24,9 @@
 - 实现状态：源代码、`tasks.md` 和验证证据。
 - 导航与历史：生成的 `SPEC.md` 与 `openspec/change-history.json`，不得手工编辑。
 
-## 强制规则
+## 流程治理规则与程序门禁
+
+流程治理规则依靠团队评审与协作执行；程序门禁仅指 Schema、脚本或 CI 实际校验的检查。二者都应遵守，但执行方式不同。
 
 - 可执行验收场景只写在 specs 中。
 - 历史修订由新的 delta change 表达；2.0 升级不改写已有 archive 目录。
@@ -33,7 +35,7 @@
 - 未执行 `/opsx:sync` 时用 `openspec archive <change> --yes --json`；已经 sync 时改用 `--skip-specs`，避免 delta 重复应用。
 - 归档后重建 `SPEC.md` 与 `openspec/change-history.json`，再执行治理检查。
 - 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项执行 `openspec validate <change> --strict`。
-- 归档不可变仍是流程约束；2.1.0 不提供 base-ref、hash 或 full-history 程序化强制，不得宣称已经提供。
+- 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 
 ## 工具边界
 

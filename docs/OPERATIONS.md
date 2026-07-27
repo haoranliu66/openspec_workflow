@@ -26,7 +26,7 @@ node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 ```
 
-当前治理检查验证必要目录、两份生成文件是否过期、历史解析诊断，并对工作区相对当前 HEAD 的 archive 修改/删除提供局部保护。它不是跨分支 base ref 的归档不可变性证明；本版本不新增 full-history、baseRef 或 hash 强制。
+当前 `check` 仅检查必要目录、两份生成文件是否过期、历史解析诊断，以及工作区相对当前 HEAD 的 archive 修改/删除。它不检查跨分支历史、base ref 或 hash，不能证明归档不可变。已归档 change 的内容按团队流程不得修改；该规则依靠团队评审与协作执行，不由 Schema、脚本或 CI 强制。
 
 ## 活动 change 严格校验
 
@@ -34,7 +34,7 @@ node scripts/openspec-governance.js check
 node scripts/validate-changes.js
 ```
 
-该命令读取 `openspec/changes/` 的一级目录，排除 `archive`、隐藏目录和非目录项，按英文名称排序，并逐项执行 `openspec validate <change> --strict`。单项失败不会阻止后续诊断，全部处理后统一失败。归档不可变没有新增 base ref、full-history 或 hash 强制。
+该命令读取 `openspec/changes/` 的一级目录，排除 `archive`、隐藏目录和非目录项，按英文名称排序，并逐项执行 `openspec validate <change> --strict`。单项失败不会阻止后续诊断，全部处理后统一失败。它只验证活动 change，不执行归档不可变性证明。
 
 ## 关闭 change
 

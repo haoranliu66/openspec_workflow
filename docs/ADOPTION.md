@@ -41,7 +41,7 @@ openspec new change fix-login --schema bugfix
 openspec new change add-operations-console --schema product-change
 ```
 
-产品 change 的 BR/PRD 是外层治理；`proposal` 后 `specs` 与 `design` 并行，`tasks` 等待二者，`apply` 跟踪 `tasks.md`。继续升级前已存在的活动 product change 时，应先把 proposal/design/tasks 与 delta spec headings 迁移到原生 OpenSpec 结构。
+团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于 change 外的流程治理，不进入 OpenSpec 原生 artifact graph，也不由 Schema、脚本或 CI 校验；`proposal` 仍是原生 graph 的独立 root。`proposal` 后 `specs` 与 `design` 并行，`tasks` 等待二者，`apply` 跟踪 `tasks.md`。继续升级前已存在的活动 product change 时，应先把 proposal/design/tasks 与 delta spec headings 迁移到原生 OpenSpec 结构。
 
 ## 建立共享需求包
 
@@ -55,7 +55,7 @@ docs/requirements/REQ-001-example/
   FEATURE.md
 ```
 
-先批准 BR/PRD，再按可独立交付的切片创建一个或多个 changes。`feature` artifact ready 只表示可以开始编写 FEATURE；FEATURE 中的可交付声明必须有实现与验证证据支持，而且仍不代表关闭已经完成。
+团队应在启动 product change 前完成并确认共享 BR/PRD，再按可独立交付的切片创建一个或多个 changes。该顺序是团队流程治理，而非 Schema、脚本或 CI 门禁。`feature` artifact ready 只表示可以开始编写 FEATURE；FEATURE 中的可交付声明必须有实现与验证证据支持，而且仍不代表关闭已经完成。
 
 ## 接入 CI
 
@@ -70,7 +70,7 @@ node scripts/openspec-governance.js check
 git diff --check
 ```
 
-`SPEC.md` 是最小导航，`openspec/change-history.json` 是详细机器历史；活动 change 在尚无 specs 时也会出现在历史中。`node scripts/validate-changes.js` 从文件系统枚举所有活动 change 目录并逐项执行 `openspec validate <change> --strict`。归档不可变仍是流程政策；2.1.0 不要求 full-history checkout、baseRef 配置或 hash 校验。
+`SPEC.md` 是最小导航，`openspec/change-history.json` 是详细机器历史；活动 change 在尚无 specs 时也会出现在历史中。`node scripts/validate-changes.js` 从文件系统枚举所有活动 change 目录并逐项执行 `openspec validate <change> --strict`。已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 
 ## 关闭 change
 
