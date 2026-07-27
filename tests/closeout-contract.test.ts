@@ -54,6 +54,7 @@ assert.deepStrictEqual(parse(validBugfix, "bugfix").diagnostics, []);
 assertInvalidJson();
 function assertInvalidJson() {
   const result = parseCloseoutJson("{", "product-change", "closeout.json");
+  assert.ok(result.diagnostics.length > 0);
   assert.ok(result.diagnostics.every(
     (diagnostic: { code: string; path: string }) => diagnostic.code === "CLOSEOUT_INVALID" && diagnostic.path === "closeout.json",
   ));
