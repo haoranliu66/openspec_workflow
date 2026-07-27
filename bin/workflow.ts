@@ -54,11 +54,11 @@ export function parseArguments(args: string[]): CliOptions {
     } else if (argument === "--target") {
       index += 1;
       if (index >= args.length || args[index].startsWith("--")) {
-        throw new Error("--target requires a path");
+        throw new Error("--target 必须提供路径");
       }
       options.target = path.resolve(args[index]);
     } else if (argument.startsWith("--")) {
-      throw new Error(`Unknown argument: ${argument}`);
+      throw new Error(`未知参数：${argument}`);
     } else {
       positional.push(argument);
     }
@@ -84,9 +84,9 @@ export function parseArguments(args: string[]): CliOptions {
 
 export function printHelp(): void {
   process.stdout.write([
-    "AI Fullstack OpenSpec workflow",
+    "AI 全栈 OpenSpec 工作流",
     "",
-    "Commands:",
+    "命令：",
     "  workflow install --target <project> [--force]",
     "  workflow index --target <project>",
     "  workflow check --target <project>",
@@ -108,18 +108,18 @@ export function runWorkflow(
   }
   if (options.command === "install") {
     const result = dependencies.install(sourceRoot, options.target, { force: options.force });
-    process.stdout.write(`Workflow installed to ${options.target}\n`);
-    process.stdout.write(`Copied: ${result.copied.length}; skipped: ${result.skipped.length}; backed up: ${result.backedUp.length}\n`);
+    process.stdout.write(`工作流已安装到 ${options.target}\n`);
+    process.stdout.write(`已复制：${result.copied.length}；已跳过：${result.skipped.length}；已备份：${result.backedUp.length}\n`);
     return;
   }
   if (options.command === "index") {
     dependencies.index(options.target);
-    process.stdout.write(`Updated ${path.join(options.target, "SPEC.md")}\n`);
+    process.stdout.write(`已更新 ${path.join(options.target, "SPEC.md")}\n`);
     return;
   }
   if (options.command === "check") {
     dependencies.check(options.target);
-    process.stdout.write("Workflow governance check passed.\n");
+    process.stdout.write("AI 工作流治理检查通过。\n");
     return;
   }
   if (options.command === "validate:close") {
@@ -139,7 +139,7 @@ export function runWorkflow(
     process.stdout.write(`Closed ${result.changeId}.\n`);
     return;
   }
-  throw new Error(`Unknown command: ${options.command}`);
+  throw new Error(`未知命令：${options.command}`);
 }
 
 function main(): void {

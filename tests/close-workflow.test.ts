@@ -46,7 +46,10 @@ function passingDependencies(calls: string[]) {
         diagnostics: [{ code: "TASKS_INVALID", path: "tasks.md", message: "incomplete" }],
       }),
     }),
-    (error: unknown) => error instanceof CloseWorkflowError && error.archived === false,
+    // Break caught: flattening validation failure to a generic close error hides the failed gate from operators.
+    (error: unknown) => error instanceof CloseWorkflowError
+      && error.archived === false
+      && /TASKS_INVALID/.test(error.message),
   );
   assert.deepStrictEqual(calls, []);
 }

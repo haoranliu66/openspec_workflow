@@ -52,6 +52,19 @@ runWorkflow(["validate:close", "add-login", "--target", root], {
 });
 assert.deepStrictEqual(calls, ["validate:add-login"]);
 
+runWorkflow(["close", "add-login", "--skip-specs", "--target", root], {
+  install: () => ({ copied: [], skipped: [], backedUp: [], conflicts: [] }),
+  index: () => [],
+  check: () => [],
+  validateClose: (_target, changeId) => ({ changeId, schema: "bugfix", diagnostics: [] }),
+  close: (_target, changeId, options) => {
+    calls.push(`close:${changeId}:${options.skipSpecs}`);
+    return { changeId, archived: true };
+  },
+});
+// Break caught: dropping --skip-specs during CLI dispatch would archive with the wrong OpenSpec mode.
+assert.deepStrictEqual(calls, ["validate:add-login", "close:add-login:true"]);
+
 const help = childProcess.execFileSync(process.execPath, [
   "-e",
   `const workflow = require(${JSON.stringify(path.join(__dirname, "..", "bin", "workflow.js"))}); process.stdout.write(typeof workflow.runWorkflow);`,

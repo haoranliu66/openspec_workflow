@@ -1,7 +1,5 @@
-import {
-  type CloseoutValidationResult,
-  validateCloseChange,
-} from "./closeout-validation";
+import { type CloseoutDiagnostic } from "./closeout-contract";
+import { type CloseoutValidationResult, validateCloseChange } from "./closeout-validation";
 import { runOpenSpec } from "./openspec-cli";
 import { checkProject, writeIndex } from "../scripts/openspec-governance";
 
@@ -19,11 +17,13 @@ export interface CloseWorkflowResult {
 
 export class CloseWorkflowError extends Error {
   readonly archived: boolean;
+  readonly diagnostics: readonly CloseoutDiagnostic[];
 
-  constructor(message: string, archived: boolean) {
+  constructor(message: string, archived: boolean, diagnostics: readonly CloseoutDiagnostic[] = []) {
     super(message);
     this.name = "CloseWorkflowError";
     this.archived = archived;
+    this.diagnostics = diagnostics;
   }
 }
 
@@ -45,8 +45,9 @@ export function closeChange(
   const validation = dependencies.validate(projectRoot, changeId);
   if (validation.diagnostics.length > 0) {
     throw new CloseWorkflowError(
-      `Closeout validation failed for ${changeId}; archive was not attempted.`,
+      `Closeout validation failed for ${changeId}; archive was not attempted.\n${formatDiagnostics(validation.diagnostics)}`,
       false,
+      validation.diagnostics,
     );
   }
 
@@ -73,4 +74,8 @@ export function closeChange(
   }
 
   return { changeId, archived: true };
+}
+
+function formatDiagnostics(diagnostics: readonly CloseoutDiagnostic[]): string {
+  return diagnostics.map((diagnostic) => `${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`).join("\n");
 }
