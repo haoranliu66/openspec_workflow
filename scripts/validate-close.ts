@@ -12,11 +12,13 @@ export function main(
   args = process.argv.slice(2),
   projectRoot = resolveProjectRoot(__dirname),
   write: LineWriter = (line) => process.stdout.write(`${line}\n`),
+  writeError: LineWriter = (line) => process.stderr.write(`${line}\n`),
+  validate: typeof validateCloseChange = validateCloseChange,
 ): void {
   const { changeId } = parseValidateCloseArguments(args);
-  const result = validateCloseChange(projectRoot, changeId);
+  const result = validate(projectRoot, changeId);
   if (result.diagnostics.length > 0) {
-    result.diagnostics.forEach((entry) => write(`${entry.code} ${entry.path}: ${entry.message}`));
+    result.diagnostics.forEach((entry) => writeError(`${entry.code} ${entry.path}: ${entry.message}`));
     process.exitCode = 1;
     return;
   }

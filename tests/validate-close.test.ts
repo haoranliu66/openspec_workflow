@@ -36,6 +36,39 @@ try {
   assert.deepStrictEqual(calls, [`add-login@${root}`]);
   assert.deepStrictEqual(result.diagnostics, []);
 
+  // Break caught: a successful closeout summary must use the success writer, not stderr.
+  const successLines: string[] = [];
+  const successErrors: string[] = [];
+  main(
+    ["add-login"],
+    root,
+    (line) => successLines.push(line),
+    (line) => successErrors.push(line),
+    () => ({ changeId: "add-login", schema: "bugfix", diagnostics: [] }),
+  );
+  assert.ok(successLines.some((line) => line.includes("add-login")));
+  assert.deepStrictEqual(successErrors, []);
+
+  // Break caught: closeout diagnostics must use the error writer so command callers receive them on stderr.
+  const diagnosticLines: string[] = [];
+  const diagnosticErrors: string[] = [];
+  const previousExitCode = process.exitCode;
+  try {
+    process.exitCode = undefined;
+    main(
+      ["missing-change"],
+      root,
+      (line) => diagnosticLines.push(line),
+      (line) => diagnosticErrors.push(line),
+    );
+    assert.deepStrictEqual(diagnosticLines, []);
+    assert.ok(diagnosticErrors.some((line) => line.includes("CHANGE_NOT_ACTIVE")));
+    assert.ok(diagnosticErrors.some((line) => line.includes(path.join(root, "openspec", "changes", "missing-change"))));
+    assert.strictEqual(process.exitCode, 1);
+  } finally {
+    process.exitCode = previousExitCode;
+  }
+
   // Break caught: a strict failure stops closeout validation before missing content can obscure it.
   fs.rmSync(path.join(changeRoot, "closeout.json"));
   assert.throws(
