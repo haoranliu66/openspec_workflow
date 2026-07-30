@@ -364,8 +364,8 @@ product change 的最小结构如下。字段值必须替换为当前 change 的
 
 完整模板：
 
-- [product-change closeout 模板](docs/closeout-templates/product-change.json)
-- [bugfix closeout 模板](docs/closeout-templates/bugfix.json)
+- [product-change closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/product-change.json)
+- [bugfix closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/bugfix.json)
 
 ## 关闭单个 change
 
@@ -689,13 +689,13 @@ git diff --check
 
 ### 深入阅读
 
-- [完整工作流](docs/FULLSTACK_WORKFLOW.md)
-- [质量门禁](docs/QUALITY_GATES.md)
-- [接入指南](docs/ADOPTION.md)
-- [维护手册](docs/OPERATIONS.md)
-- [product-change closeout 模板](docs/closeout-templates/product-change.json)
-- [bugfix closeout 模板](docs/closeout-templates/bugfix.json)
-- [变更日志](CHANGELOG.md)
-- [许可证](LICENSE)
+- [完整工作流](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md)
+- [质量门禁](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/QUALITY_GATES.md)
+- [接入指南](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/ADOPTION.md)
+- [维护手册](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/OPERATIONS.md)
+- [product-change closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/product-change.json)
+- [bugfix closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/bugfix.json)
+- [变更日志](https://github.com/haoranliu66/openspec_workflow/blob/main/CHANGELOG.md)
+- [许可证](https://github.com/haoranliu66/openspec_workflow/blob/main/LICENSE)
 
 本项目采用 MIT License。
