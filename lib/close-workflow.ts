@@ -5,6 +5,7 @@ import { checkProject, writeIndex } from "../scripts/openspec-governance";
 
 export interface CloseWorkflowDependencies {
   validate: (root: string, changeId: string) => CloseoutValidationResult;
+  warn: (diagnostic: CloseoutDiagnostic) => void;
   archive: (root: string, args: readonly string[]) => void;
   index: (root: string) => void;
   check: (root: string) => void;
@@ -29,6 +30,9 @@ export class CloseWorkflowError extends Error {
 
 const defaultDependencies: CloseWorkflowDependencies = {
   validate: validateCloseChange,
+  warn: (entry) => {
+    process.stderr.write(`WARNING ${entry.code} ${entry.path}: ${entry.message}\n`);
+  },
   archive: (root, args) => {
     runOpenSpec(args, { cwd: root, stdio: "inherit" });
   },
@@ -43,6 +47,7 @@ export function closeChange(
   dependencies: CloseWorkflowDependencies = defaultDependencies,
 ): CloseWorkflowResult {
   const validation = dependencies.validate(projectRoot, changeId);
+  validation.warnings.forEach((entry) => dependencies.warn(entry));
   if (validation.diagnostics.length > 0) {
     throw new CloseWorkflowError(
       `Closeout validation failed for ${changeId}; archive was not attempted.\n${formatDiagnostics(validation.diagnostics)}`,

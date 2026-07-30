@@ -102,10 +102,15 @@ try {
     changeId: "add-login",
     schema: "product-change",
     diagnostics: [],
+    warnings: [],
   });
   write(root, "openspec/changes/add-login/tasks.md", "- [ ] unfinished\n");
-  const ordered = validateCloseoutContent(root, "add-login").diagnostics;
-  assert.deepStrictEqual(ordered.map((entry) => entry.code), ["TASKS_INVALID"]);
+  const productWarning = validateCloseoutContent(root, "add-login");
+  assert.deepStrictEqual(productWarning.diagnostics, []);
+  assert.deepStrictEqual(
+    productWarning.warnings.map((entry) => entry.code),
+    ["TASKS_INCOMPLETE"],
+  );
   write(root, "openspec/changes/add-login/tasks.md", "- [x] complete\n");
 
   // Break caught: independent content failures retain contract, P0, trace, and FEATURE phase ordering.
@@ -122,9 +127,14 @@ try {
   write(root, "openspec/changes/add-login/tasks.md", "- [ ] unfinished\n");
   write(root, "openspec/changes/add-login/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: Login\n");
   write(root, "openspec/changes/add-login/closeout.json", `${JSON.stringify(invalidProduct)}\n`);
+  const invalidProductResult = validateCloseoutContent(root, "add-login");
   assert.deepStrictEqual(
-    validateCloseoutContent(root, "add-login").diagnostics.map((entry) => entry.code),
-    ["TASKS_INVALID", "EVIDENCE_INVALID", "GATE_INVALID", "REQUIREMENT_INVALID", "PRD_TRACE_INVALID", "PRD_TRACE_INVALID", "FEATURE_TRACE_INVALID", "FEATURE_TRACE_INVALID"],
+    invalidProductResult.diagnostics.map((entry) => entry.code),
+    ["EVIDENCE_INVALID", "GATE_INVALID", "REQUIREMENT_INVALID", "PRD_TRACE_INVALID", "PRD_TRACE_INVALID", "FEATURE_TRACE_INVALID", "FEATURE_TRACE_INVALID"],
+  );
+  assert.deepStrictEqual(
+    invalidProductResult.warnings.map((entry) => entry.code),
+    ["TASKS_INCOMPLETE"],
   );
   write(root, "openspec/changes/add-login/tasks.md", "- [x] complete\n");
   write(root, "openspec/changes/add-login/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: AUTH-001 Login\n");
@@ -135,7 +145,23 @@ try {
     changeId: "fix-login",
     schema: "bugfix",
     diagnostics: [],
+    warnings: [],
   });
+  write(root, "openspec/changes/fix-login/tasks.md", "- [~] deferred\n");
+  const bugfixWarning = validateCloseoutContent(root, "fix-login");
+  assert.deepStrictEqual(bugfixWarning.diagnostics, []);
+  assert.deepStrictEqual(
+    bugfixWarning.warnings.map((entry) => entry.code),
+    ["TASKS_INCOMPLETE"],
+  );
+  fs.rmSync(path.join(root, "openspec", "changes", "fix-login", "tasks.md"));
+  const missingTasks = validateCloseoutContent(root, "fix-login");
+  assert.deepStrictEqual(
+    missingTasks.diagnostics.map((entry) => entry.code),
+    ["TASKS_INVALID"],
+  );
+  assert.deepStrictEqual(missingTasks.warnings, []);
+  write(root, "openspec/changes/fix-login/tasks.md", "- [x] complete\n");
   write(root, "openspec/changes/fix-login/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: Login\n");
   const bugfixDiagnostics = validateCloseoutContent(root, "fix-login").diagnostics;
   assert.ok(hasCode(bugfixDiagnostics, "REQUIREMENT_INVALID"));

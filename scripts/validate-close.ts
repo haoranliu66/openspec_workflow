@@ -17,6 +17,9 @@ export function main(
 ): void {
   const { changeId } = parseValidateCloseArguments(args);
   const result = validate(projectRoot, changeId);
+  result.warnings.forEach((entry) => {
+    writeError(`WARNING ${entry.code} ${entry.path}: ${entry.message}`);
+  });
   if (result.diagnostics.length > 0) {
     result.diagnostics.forEach((entry) => writeError(`${entry.code} ${entry.path}: ${entry.message}`));
     process.exitCode = 1;

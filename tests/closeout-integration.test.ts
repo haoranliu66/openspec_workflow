@@ -126,10 +126,22 @@ try {
   let result = run(product, ["validate:close", "add-login"]);
   assert.strictEqual(result.status, 0, output(result));
 
-  // Break caught: an unchecked closeout task must prevent both validation and archive.
+  // Break caught: an unchecked closeout task must remain visible without blocking single-change validation.
   const tasks = path.join(product, "openspec", "changes", "add-login", "tasks.md");
   fs.writeFileSync(tasks, "- [ ] 1.1 Implement login\n", "utf8");
-  result = run(product, ["close", "add-login"]);
+  result = run(product, ["validate:close", "add-login"]);
+  assert.strictEqual(result.status, 0, output(result));
+  assert.match(output(result), /TASKS_INCOMPLETE/);
+  assert.ok(fs.existsSync(path.join(product, "openspec", "changes", "add-login")));
+
+  // Break caught: a malformed or missing tasks file must remain a blocking closeout input error.
+  fs.writeFileSync(tasks, "No real checkbox\n", "utf8");
+  result = run(product, ["validate:close", "add-login"]);
+  assert.notStrictEqual(result.status, 0, output(result));
+  assert.match(output(result), /TASKS_INVALID/);
+  assert.ok(!archiveNames(product).some((name) => name.includes("add-login")));
+  fs.rmSync(tasks);
+  result = run(product, ["validate:close", "add-login"]);
   assert.notStrictEqual(result.status, 0, output(result));
   assert.match(output(result), /TASKS_INVALID/);
   assert.ok(!archiveNames(product).some((name) => name.includes("add-login")));
@@ -151,9 +163,11 @@ try {
   assert.match(output(result), /EVIDENCE_INVALID/);
   fs.writeFileSync(productCloseout, validCloseout, "utf8");
 
-  // Break caught: close must validate, archive, rebuild generated indices, and finish governance without touching the source repository.
+  // Break caught: warning-only close must report before archiving, then rebuild generated indices and finish governance.
+  fs.writeFileSync(tasks, "- [~] 1.1 Implementation deferred by user decision\n", "utf8");
   result = run(product, ["close", "add-login", "--skip-specs"]);
   assert.strictEqual(result.status, 0, output(result));
+  assert.match(output(result), /TASKS_INCOMPLETE/);
   assert.ok(archiveNames(product).some((name) => name.includes("add-login")));
   assert.ok(!fs.existsSync(path.join(product, "openspec", "specs", "auth", "spec.md")));
   assert.match(fs.readFileSync(path.join(product, "SPEC.md"), "utf8"), /暂无活动 Change/);

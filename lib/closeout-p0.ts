@@ -7,8 +7,14 @@ import { stripFencedCode } from "./structured-markdown";
 const GATE_NAMES: readonly GateName[] = ["security", "migration", "browser", "rollback"];
 const CHECKBOX = /^\s*[-*+]\s+\[([^\]]*)\]\s+\S/;
 
-export function validateTasksMarkdown(content: string, sourcePath: string): CloseoutDiagnostic[] {
+export interface TaskValidationResult {
+  diagnostics: CloseoutDiagnostic[];
+  warnings: CloseoutDiagnostic[];
+}
+
+export function validateTasksMarkdown(content: string, sourcePath: string): TaskValidationResult {
   const diagnostics: CloseoutDiagnostic[] = [];
+  const warnings: CloseoutDiagnostic[] = [];
   let found = false;
 
   stripFencedCode(content).split("\n").forEach((line, index) => {
@@ -18,14 +24,14 @@ export function validateTasksMarkdown(content: string, sourcePath: string): Clos
     }
     found = true;
     if (match[1].toLowerCase() !== "x") {
-      diagnostics.push(diagnostic("TASKS_INVALID", sourcePath, `unfinished task at line ${index + 1}`));
+      warnings.push(diagnostic("TASKS_INCOMPLETE", sourcePath, `unfinished task at line ${index + 1}`));
     }
   });
 
   if (!found) {
     diagnostics.push(diagnostic("TASKS_INVALID", sourcePath, "tasks must contain at least one checkbox"));
   }
-  return diagnostics;
+  return { diagnostics, warnings };
 }
 
 export function validateEvidenceAndGates(

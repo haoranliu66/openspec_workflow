@@ -8,7 +8,11 @@ import {
   parseCloseoutJson,
 } from "./closeout-contract";
 import { validateProductFeatureTrace } from "./closeout-feature";
-import { validateEvidenceAndGates, validateTasksMarkdown } from "./closeout-p0";
+import {
+  type TaskValidationResult,
+  validateEvidenceAndGates,
+  validateTasksMarkdown,
+} from "./closeout-p0";
 import { collectDeltaRequirementIds, validateProductRequirementTrace } from "./closeout-trace";
 import { runOpenSpec } from "./openspec-cli";
 
@@ -18,6 +22,7 @@ export interface CloseoutValidationResult {
   changeId: string;
   schema?: CloseoutSchema;
   diagnostics: CloseoutDiagnostic[];
+  warnings: CloseoutDiagnostic[];
 }
 
 export type StrictChangeRunner = (changeId: string, projectRoot: string) => void;
@@ -25,13 +30,13 @@ export type StrictChangeRunner = (changeId: string, projectRoot: string) => void
 export function validateCloseoutContent(projectRoot: string, changeId: string): CloseoutValidationResult {
   const active = activeChangeRoot(projectRoot, changeId);
   if (active === undefined) {
-    return result(changeId, [diagnostic("CHANGE_NOT_ACTIVE", path.join(projectRoot, "openspec", "changes", changeId), "change is not an active change directory")]);
+    return result(changeId, [diagnostic("CHANGE_NOT_ACTIVE", path.join(projectRoot, "openspec", "changes", changeId), "change is not an active change directory")], []);
   }
 
   const schemaPath = path.join(active, ".openspec.yaml");
   const schema = readSchema(schemaPath);
   if (schema === undefined) {
-    return result(changeId, [diagnostic("SCHEMA_UNSUPPORTED", schemaPath, "change schema must be product-change or bugfix")]);
+    return result(changeId, [diagnostic("SCHEMA_UNSUPPORTED", schemaPath, "change schema must be product-change or bugfix")], []);
   }
 
   const closeoutPath = path.join(active, "closeout.json");
@@ -39,15 +44,18 @@ export function validateCloseoutContent(projectRoot: string, changeId: string): 
   try {
     content = fs.readFileSync(closeoutPath, "utf8");
   } catch {
-    return result(changeId, [diagnostic("CLOSEOUT_MISSING", closeoutPath, "closeout document is missing or unreadable")], schema);
+    return result(changeId, [diagnostic("CLOSEOUT_MISSING", closeoutPath, "closeout document is missing or unreadable")], [], schema);
   }
   const parsed = parseCloseoutJson(content, schema, closeoutPath);
   if (parsed.document === undefined) {
-    return result(changeId, parsed.diagnostics, schema);
+    return result(changeId, parsed.diagnostics, [], schema);
   }
 
   const diagnostics: CloseoutDiagnostic[] = [];
-  diagnostics.push(...validateTasks(active));
+  const warnings: CloseoutDiagnostic[] = [];
+  const taskResult = validateTasks(active);
+  diagnostics.push(...taskResult.diagnostics);
+  warnings.push(...taskResult.warnings);
   diagnostics.push(...validateEvidenceAndGates(projectRoot, parsed.document, closeoutPath));
   if (schema === "product-change") {
     diagnostics.push(...validateProductRequirementTrace(projectRoot, active, parsed.document));
@@ -55,7 +63,7 @@ export function validateCloseoutContent(projectRoot: string, changeId: string): 
   } else {
     diagnostics.push(...collectDeltaRequirementIds(active).diagnostics);
   }
-  return result(changeId, diagnostics, schema);
+  return result(changeId, diagnostics, warnings, schema);
 }
 
 export function validateCloseChange(
@@ -104,12 +112,15 @@ function readSchema(schemaPath: string): CloseoutSchema | undefined {
   return match?.[1] === "product-change" || match?.[1] === "bugfix" ? match[1] : undefined;
 }
 
-function validateTasks(changeRoot: string): CloseoutDiagnostic[] {
+function validateTasks(changeRoot: string): TaskValidationResult {
   const tasksPath = path.join(changeRoot, "tasks.md");
   try {
     return validateTasksMarkdown(fs.readFileSync(tasksPath, "utf8"), tasksPath);
   } catch {
-    return [diagnostic("TASKS_INVALID", tasksPath, "tasks file is missing or unreadable")];
+    return {
+      diagnostics: [diagnostic("TASKS_INVALID", tasksPath, "tasks file is missing or unreadable")],
+      warnings: [],
+    };
   }
 }
 
@@ -121,8 +132,15 @@ function failureReason(error: unknown): string {
   return error instanceof Error && error.message.trim() !== "" ? error.message.split(/\r?\n/, 1)[0] : String(error);
 }
 
-function result(changeId: string, diagnostics: CloseoutDiagnostic[], schema?: CloseoutSchema): CloseoutValidationResult {
-  return schema === undefined ? { changeId, diagnostics } : { changeId, schema, diagnostics };
+function result(
+  changeId: string,
+  diagnostics: CloseoutDiagnostic[],
+  warnings: CloseoutDiagnostic[],
+  schema?: CloseoutSchema,
+): CloseoutValidationResult {
+  return schema === undefined
+    ? { changeId, diagnostics, warnings }
+    : { changeId, schema, diagnostics, warnings };
 }
 
 function diagnostic(code: string, sourcePath: string, message: string): CloseoutDiagnostic {

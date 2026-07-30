@@ -1,15 +1,25 @@
 import assert from "node:assert";
 
-import { closeChange, CloseWorkflowError } from "../lib/close-workflow";
+import {
+  closeChange,
+  type CloseWorkflowDependencies,
+  CloseWorkflowError,
+} from "../lib/close-workflow";
 
 const root = "/project";
 
-function passingDependencies(calls: string[]) {
+function passingDependencies(calls: string[]): CloseWorkflowDependencies {
   return {
     validate: () => {
       calls.push("validate");
-      return { changeId: "add-login", schema: "product-change" as const, diagnostics: [] };
+      return {
+        changeId: "add-login",
+        schema: "product-change" as const,
+        diagnostics: [],
+        warnings: [],
+      };
     },
+    warn: (entry: { code: string; path: string }) => calls.push(`warn:${entry.code}:${entry.path}`),
     archive: (_root: string, args: readonly string[]) => calls.push(`archive:${args.join(" ")}`),
     index: () => calls.push("index"),
     check: () => calls.push("check"),
@@ -31,6 +41,37 @@ function passingDependencies(calls: string[]) {
 
 {
   const calls: string[] = [];
+  const dependencies = passingDependencies(calls);
+  dependencies.validate = () => {
+    calls.push("validate");
+    return {
+      changeId: "add-login",
+      schema: "product-change",
+      diagnostics: [],
+      warnings: [{
+        code: "TASKS_INCOMPLETE",
+        path: "tasks.md",
+        message: "unfinished task at line 1",
+      }],
+    };
+  };
+
+  // Break caught: warning-only closeout must report the warning before attempting archive.
+  assert.deepStrictEqual(
+    closeChange(root, "add-login", { skipSpecs: false }, dependencies),
+    { changeId: "add-login", archived: true },
+  );
+  assert.deepStrictEqual(calls, [
+    "validate",
+    "warn:TASKS_INCOMPLETE:tasks.md",
+    "archive:archive add-login --yes --json",
+    "index",
+    "check",
+  ]);
+}
+
+{
+  const calls: string[] = [];
   closeChange(root, "add-login", { skipSpecs: true }, passingDependencies(calls));
   assert.strictEqual(calls[1], "archive:archive add-login --skip-specs --yes --json");
 }
@@ -40,18 +81,26 @@ function passingDependencies(calls: string[]) {
   assert.throws(
     () => closeChange(root, "add-login", { skipSpecs: false }, {
       ...passingDependencies(calls),
-      validate: () => ({
-        changeId: "add-login",
-        schema: "product-change" as const,
-        diagnostics: [{ code: "TASKS_INVALID", path: "tasks.md", message: "incomplete" }],
-      }),
+      validate: () => {
+        calls.push("validate");
+        return {
+          changeId: "add-login",
+          schema: "product-change" as const,
+          diagnostics: [{ code: "TASKS_INVALID", path: "tasks.md", message: "missing" }],
+          warnings: [{
+            code: "TASKS_INCOMPLETE",
+            path: "tasks.md",
+            message: "unfinished task at line 1",
+          }],
+        };
+      },
     }),
     // Break caught: flattening validation failure to a generic close error hides the failed gate from operators.
     (error: unknown) => error instanceof CloseWorkflowError
       && error.archived === false
       && /TASKS_INVALID/.test(error.message),
   );
-  assert.deepStrictEqual(calls, []);
+  assert.deepStrictEqual(calls, ["validate", "warn:TASKS_INCOMPLETE:tasks.md"]);
 }
 
 {

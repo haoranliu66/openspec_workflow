@@ -35,6 +35,7 @@ try {
   });
   assert.deepStrictEqual(calls, [`add-login@${root}`]);
   assert.deepStrictEqual(result.diagnostics, []);
+  assert.deepStrictEqual(result.warnings, []);
 
   // Break caught: a successful closeout summary must use the success writer, not stderr.
   const successLines: string[] = [];
@@ -44,10 +45,40 @@ try {
     root,
     (line) => successLines.push(line),
     (line) => successErrors.push(line),
-    () => ({ changeId: "add-login", schema: "bugfix", diagnostics: [] }),
+    () => ({ changeId: "add-login", schema: "bugfix", diagnostics: [], warnings: [] }),
   );
   assert.ok(successLines.some((line) => line.includes("add-login")));
   assert.deepStrictEqual(successErrors, []);
+
+  // Break caught: an incomplete-task warning must remain visible without changing a successful exit.
+  const warningOutput: string[] = [];
+  const warningSuccessOutput: string[] = [];
+  const previousWarningExitCode = process.exitCode;
+  try {
+    process.exitCode = undefined;
+    main(
+      ["add-login"],
+      root,
+      (line) => warningSuccessOutput.push(line),
+      (line) => warningOutput.push(line),
+      () => ({
+        changeId: "add-login",
+        schema: "bugfix",
+        diagnostics: [],
+        warnings: [{
+          code: "TASKS_INCOMPLETE",
+          path: "tasks.md",
+          message: "unfinished task at line 1",
+        }],
+      }),
+    );
+    assert.strictEqual(process.exitCode, undefined);
+    assert.ok(warningOutput.some((line) => line.includes("TASKS_INCOMPLETE")));
+    assert.ok(warningOutput.every((line) => line.startsWith("WARNING ")));
+    assert.ok(warningSuccessOutput.some((line) => line.includes("add-login")));
+  } finally {
+    process.exitCode = previousWarningExitCode;
+  }
 
   // Break caught: closeout diagnostics must use the error writer so command callers receive them on stderr.
   const diagnosticLines: string[] = [];

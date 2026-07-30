@@ -33,21 +33,34 @@ function closeout(artifact: string): CloseoutDocument {
   };
 }
 
-// Break caught: accepting unfinished task markers would permit a change to close early.
+// Break caught: completed task markers must not produce warnings or blocking diagnostics.
 assert.deepStrictEqual(
   validateTasksMarkdown("## Work\n\n- [x] done\n- [X] also done\n", "tasks.md"),
-  [],
+  { diagnostics: [], warnings: [] },
 );
+
+// Break caught: classifying unfinished task markers as malformed would block a user-confirmed close.
 for (const marker of ["[ ]", "[-]", "[~]"]) {
-  const diagnostics = validateTasksMarkdown(`- ${marker} blocked\n`, "tasks.md");
-  assert.ok(hasCode(diagnostics, "TASKS_INVALID", "tasks.md"));
+  const result = validateTasksMarkdown(`- ${marker} blocked\n`, "tasks.md");
+  assert.deepStrictEqual(result.diagnostics, []);
+  assert.deepStrictEqual(
+    result.warnings.map(({ code, path }) => ({ code, path })),
+    [{ code: "TASKS_INCOMPLETE", path: "tasks.md" }],
+  );
+  assert.match(result.warnings[0].message, /line 1/);
 }
-assert.ok(hasCode(validateTasksMarkdown("No checkbox\n", "tasks.md"), "TASKS_INVALID", "tasks.md"));
+
+// Break caught: a checkbox-free tasks file must not be mistaken for a valid warning-only task list.
+assert.ok(hasCode(
+  validateTasksMarkdown("No checkbox\n", "tasks.md").diagnostics,
+  "TASKS_INVALID",
+  "tasks.md",
+));
 
 // Break caught: example checkboxes in fenced code must not affect task completion.
 assert.deepStrictEqual(
   validateTasksMarkdown("```md\n- [ ] example\n```\n\n- [x] real\n", "tasks.md"),
-  [],
+  { diagnostics: [], warnings: [] },
 );
 assert.deepStrictEqual(
   stripFencedCode("one\n~~~\n- [ ] sample\n~~~\nthree\n").split("\n"),

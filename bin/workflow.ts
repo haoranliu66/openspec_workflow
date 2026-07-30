@@ -2,6 +2,7 @@
 import path from "node:path";
 
 import { closeChange } from "../lib/close-workflow";
+import type { CloseoutDiagnostic } from "../lib/closeout-contract";
 import { validateCloseChange } from "../lib/closeout-validation";
 import { installWorkflow } from "../lib/installer";
 import { checkProject, writeIndex } from "../scripts/openspec-governance";
@@ -20,7 +21,10 @@ export interface WorkflowDependencies {
   check: typeof checkProject;
   validateClose: typeof validateCloseChange;
   close: typeof closeChange;
+  warn: DiagnosticWriter;
 }
+
+export type DiagnosticWriter = (diagnostic: CloseoutDiagnostic) => void;
 
 const defaultDependencies: WorkflowDependencies = {
   install: installWorkflow,
@@ -28,6 +32,9 @@ const defaultDependencies: WorkflowDependencies = {
   check: checkProject,
   validateClose: validateCloseChange,
   close: closeChange,
+  warn: (entry) => {
+    process.stderr.write(`WARNING ${entry.code} ${entry.path}: ${entry.message}\n`);
+  },
 };
 
 const CHANGE_ID = /^[a-z0-9][a-z0-9-]*$/;
@@ -124,6 +131,7 @@ export function runWorkflow(
   }
   if (options.command === "validate:close") {
     const result = dependencies.validateClose(options.target, options.changeId!);
+    result.warnings.forEach((entry) => dependencies.warn(entry));
     if (result.diagnostics.length > 0) {
       result.diagnostics.forEach((entry) => {
         process.stderr.write(`${entry.code} ${entry.path}: ${entry.message}\n`);
