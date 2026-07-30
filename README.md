@@ -79,13 +79,9 @@
 ### PowerShell
 
 ```powershell
-$workflowRepo = "D:\path\to\ai-fullstack-openspec-workflow"
 $targetProject = "D:\path\to\your-project"
 
-Set-Location $workflowRepo
-npm ci
-npm run verify
-node dist\bin\workflow.js install --target $targetProject
+npm exec --yes --package="github:haoranliu66/openspec_workflow#main" -- ai-fullstack-workflow install --target $targetProject
 
 Set-Location $targetProject
 node scripts\validate-schemas.js
@@ -96,13 +92,9 @@ node scripts\openspec-governance.js check
 ### Bash
 
 ```bash
-workflow_repo="/path/to/ai-fullstack-openspec-workflow"
 target_project="/path/to/your-project"
 
-cd "$workflow_repo"
-npm ci
-npm run verify
-node dist/bin/workflow.js install --target "$target_project"
+npm exec --yes --package="github:haoranliu66/openspec_workflow#main" -- ai-fullstack-workflow install --target "$target_project"
 
 cd "$target_project"
 node scripts/validate-schemas.js
@@ -110,7 +102,7 @@ node scripts/openspec-governance.js index
 node scripts/openspec-governance.js check
 ```
 
-`npm run verify` 是工作流源仓库的完整验证入口。源仓库维护 TypeScript，`dist/` 是不跟踪的编译产物；安装到目标项目的是 emitted JavaScript，因此目标项目不需要 TypeScript 或 ts-node。目标环境仍需提供 OpenSpec `1.5.0` CLI。
+`npm exec` 会从 GitHub `main` 分支临时获取工作流包，并通过现有 `prepare` 构建后执行 `ai-fullstack-workflow`；无需预先克隆工作流仓库，也不会保留全局 CLI。目标项目接收的是 emitted JavaScript，因此不需要 TypeScript 或 ts-node。目标环境仍需提供 Git、npm 和 OpenSpec `1.5.0` CLI。
 
 安装器会创建必要目录、安装两个 schemas 与模板、复制治理/校验脚本和标准指南，并生成初始 `SPEC.md` 与 `openspec/change-history.json`。已有文件的冲突和升级策略见[安装器与升级](#安装器与升级)。
 
