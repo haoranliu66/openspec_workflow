@@ -163,6 +163,18 @@ try {
   assert.match(output(result), /EVIDENCE_INVALID/);
   fs.writeFileSync(productCloseout, validCloseout, "utf8");
 
+  // Break caught: incomplete-task warnings must not weaken an applicable gate's matching passed-evidence requirement.
+  const invalidGate = JSON.parse(validCloseout) as {
+    gates: { security: { evidenceIds: string[] } };
+  };
+  invalidGate.gates.security.evidenceIds = ["EV-TEST-001"];
+  fs.writeFileSync(productCloseout, `${JSON.stringify(invalidGate, null, 2)}\n`, "utf8");
+  result = run(product, ["validate:close", "add-login"]);
+  assert.notStrictEqual(result.status, 0, output(result));
+  assert.match(output(result), /GATE_INVALID/);
+  assert.ok(!archiveNames(product).some((name) => name.includes("add-login")));
+  fs.writeFileSync(productCloseout, validCloseout, "utf8");
+
   // Break caught: warning-only close must report before archiving, then rebuild generated indices and finish governance.
   fs.writeFileSync(tasks, "- [~] 1.1 Implementation deferred by user decision\n", "utf8");
   result = run(product, ["close", "add-login", "--skip-specs"]);
