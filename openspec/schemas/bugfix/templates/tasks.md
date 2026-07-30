@@ -2,7 +2,7 @@
 
 ## Closeout evidence
 
-- [ ] 4.1 Complete every implementation and verification task, then record the factual security, migration, browser, and rollback applicability decisions in `closeout.json`.
+- [ ] 4.1 Review every implementation and verification task, continue feasible work, and document the impact of any user-confirmed cancellation or deferral before closeout.
 - [ ] 4.2 For every applicable gate, record passed matching evidence; for every inapplicable gate, record a reason and no evidence IDs.
 - [ ] 4.3 Keep a stable ID for every delta Requirement.
 

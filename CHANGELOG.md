@@ -3,7 +3,9 @@
 ## Unreleased
 
 - 澄清共享 BR/PRD 与归档规则属于团队流程治理，不改变 `bugfix` 或 `product-change` 的 artifact graph，也不新增程序校验。
-- 新增单个活动 change 的 closeout validation：关闭前确认 tasks 全部完成、四项适用门禁及成功 evidence，并为 product-change 校验 FEATURE/evidence 与 Requirement/PRD 验收引用；bugfix 校验稳定 Requirement ID。
+- 单个活动 change 的 closeout validation 将未完成真实 task 从阻断错误调整为可见的 `TASKS_INCOMPLETE` 警告；缺失、不可读或没有真实 checkbox 的 `tasks.md` 仍阻断关闭。
+- 四项适用门禁及成功 evidence、product-change 的 FEATURE/evidence 与 Requirement/PRD 验收引用、bugfix 稳定 Requirement ID 和 OpenSpec strict validation 继续阻断关闭。
+- AI 对无法实现、取消或延期 task 的说明、交付声明修正及用户确认属于团队流程治理，不由程序或 CI 强制证明；artifact graph 与运行时依赖不变。
 - 新增 `workflow close` 标准收尾 wrapper，按“关闭校验 → 归档 → 重建索引 → 治理检查”执行；artifact graph 不变，运行时不新增依赖。
 
 ## 2.1.0 - 2026-07-23

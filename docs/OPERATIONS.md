@@ -52,7 +52,11 @@ npm run validate:close -- <change>
 node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
 
-安装目标使用 `node scripts/validate-close.js <change>` 与 `node bin/workflow.js close <change> --target .`。只在已执行 `/opsx:sync` 时向 `close` 传入 `--skip-specs`。如果 archive 已成功而索引或治理检查失败，wrapper 会报告已归档状态；修复后单独运行 `workflow index` 和 `workflow check` 完成恢复。关闭校验只校验结构、引用与声明的 evidence artifact，不会执行 `closeout.json.command`。
+安装目标使用 `node scripts/validate-close.js <change>` 与 `node bin/workflow.js close <change> --target .`。只在已执行 `/opsx:sync` 时向 `close` 传入 `--skip-specs`。如果 archive 已成功而索引或治理检查失败，wrapper 会报告已归档状态；修复后单独运行 `workflow index` 和 `workflow check` 完成恢复。
+
+未完成的真实 task checkbox 会在校验和归档前输出 `TASKS_INCOMPLETE` 警告，但不改变成功退出码，也不阻止归档。缺失、不可读或没有真实 checkbox 的 `tasks.md` 仍以 `TASKS_INVALID` 阻止关闭；其他 evidence、gate、PRD/FEATURE/Requirement 与 strict validation 错误也继续阻止关闭。关闭校验只校验结构、引用与声明的 evidence artifact，不会执行 `closeout.json.command`。
+
+AI 应继续完成可实现的 task。对于判断为无法实现、取消或延期的 task，必须先向用户说明原因、交付及 Requirement/FEATURE 影响和后续安排，修正不再真实的交付声明，并在运行 `workflow close` 前取得明确确认。该确认由团队流程治理，不由程序或 CI 强制证明。
 
 `feature` artifact ready 只表示前置 artifact 已具备、可以开始编写 FEATURE；FEATURE 中只有具备实现与验证证据的内容才能声明可交付。即便已经形成这样的交付声明，也需完成归档、历史重建和检查后 change 才关闭。
 

@@ -66,7 +66,11 @@ npm run validate:close -- <change>
 node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
 
-`validate:changes` 枚举全部活动 change 执行 OpenSpec strict validation；`validate:close <change>` 只校验显式指定的单个关闭输入。关闭校验只证明 tasks 状态、ID 引用、项目内 evidence artifact 存在与声明的 gate evidence，不判定 PRD/Requirement 语义、证据充分性或 N/A 原因的合理性；`closeout.json.command` 仅记录、不执行。
+`validate:changes` 枚举全部活动 change 执行 OpenSpec strict validation；`validate:close <change>` 只校验显式指定的单个关闭输入。未完成的真实 task checkbox 产生 `TASKS_INCOMPLETE` 警告但不阻止关闭；缺失、不可读或没有真实 checkbox 的 `tasks.md` 仍以 `TASKS_INVALID` 阻止关闭。
+
+AI 应优先继续完成仍可实现的 task。若判断某项 task 无法实现、取消或需要延期，必须说明原因、交付影响、对 Requirement/FEATURE 声明的影响和后续安排，在执行 `workflow close` 前取得用户明确确认，并先修正不再真实的交付声明。该确认属于团队流程治理，不由 Schema、脚本或 CI 强制证明。
+
+除 task 完成状态外，四项适用门禁及成功 evidence、product-change 的 FEATURE/evidence 与 Requirement/PRD 引用、bugfix 稳定 Requirement ID 和 OpenSpec strict validation 仍阻止关闭。程序只证明结构、引用、项目内 evidence artifact 存在与声明的 gate evidence，不判定 PRD/Requirement 语义、证据充分性或 N/A 原因的合理性；`closeout.json.command` 仅记录、不执行。
 
 ## 6. AI 最小上下文协议
 
@@ -91,4 +95,4 @@ AI 开始任务时依次读取：
 
 ## 8. 完成定义
 
-`feature` artifact ready 只允许开始编写 FEATURE；形成由实现与验证证据支持的可交付声明后，仍需完成适用测试、任务证据、OpenSpec 归档、`SPEC.md`/`change-history.json` 重建与当前非 P0 治理检查，change 才完成关闭。
+`feature` artifact ready 只允许开始编写 FEATURE；形成由实现与验证证据支持的可交付声明后，仍需完成适用测试、task 审查及必要的交付声明修正、OpenSpec 归档、`SPEC.md`/`change-history.json` 重建与当前非 P0 治理检查，change 才完成关闭。

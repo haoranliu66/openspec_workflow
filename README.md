@@ -65,7 +65,9 @@ npm run validate:close -- <change>
 node dist/bin/workflow.js close <change> --target .
 ```
 
-Closeout validation proves only task checkbox state, ID references, project-local evidence artifact existence, and declared gate evidence. It does not prove PRD/Requirement semantic alignment, evidence sufficiency, or the reasonableness of an inapplicable decision; `closeout.json.command` is recorded and never executed. `validate:changes` remains the all-active-change OpenSpec strict gate, while `validate:close <change>` validates one explicitly named closeout.
+An incomplete real task checkbox produces a visible `TASKS_INCOMPLETE` warning and does not block closeout. A missing, unreadable, or checkbox-free `tasks.md` remains a blocking `TASKS_INVALID` error. AI should continue every feasible task; before closing work it judges impossible, cancelled, or deferred, it must explain the reason, delivery and Requirement/FEATURE impact, and follow-up plan, then obtain explicit user confirmation and correct any inaccurate delivery claim. That confirmation is team process governance, not something Schema, scripts, or CI prove.
+
+Closeout validation otherwise proves only valid task input, ID references, project-local evidence artifact existence, and declared gate evidence. Applicable gates, product FEATURE/evidence and Requirement/PRD references, bugfix stable Requirement IDs, and OpenSpec strict validation remain blocking. The program does not prove semantic alignment, evidence sufficiency, or the reasonableness of an inapplicable decision; `closeout.json.command` is recorded and never executed. `validate:changes` remains the all-active-change OpenSpec strict gate, while `validate:close <change>` validates one explicitly named closeout.
 
 如果已经执行过 `/opsx:sync`，归档时必须跳过再次同步，避免同一 delta 重复应用：
 

@@ -75,3 +75,5 @@ git diff --check
 ## 关闭 change
 
 关闭单个活动 change 时，先执行 `node scripts/validate-close.js <change>`，再执行 `node bin/workflow.js close <change> --target .`。若已经执行 `/opsx:sync`，在 `close` 命令后加上 `--skip-specs`，避免重复应用 delta。该 wrapper 会完成归档、重建两份生成文件并执行治理检查。
+
+未完成的真实 task checkbox 只产生 `TASKS_INCOMPLETE` 警告；缺失、不可读或没有真实 checkbox 的 `tasks.md` 以及其他 closeout diagnostics 仍阻止关闭。AI 应优先继续可实现的 task；若判断某项无法实现、取消或延期，必须说明原因、交付及 Requirement/FEATURE 影响和后续安排，修正不再真实的交付声明，并在执行 `workflow close` 前取得用户明确确认。该确认是团队治理规则，不由 Schema、脚本或 CI 强制证明。

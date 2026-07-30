@@ -14,4 +14,5 @@
 - [ ] 3.2 Record the migration applicability decision and its required closeout evidence.
 - [ ] 3.3 Record the browser applicability decision and its required closeout evidence.
 - [ ] 3.4 Record the rollback applicability decision and its required closeout evidence.
-- [ ] 3.5 Record stable delta Requirement IDs, PRD acceptance mappings, local FEATURE result/evidence IDs, and the shared FEATURE ledger row required for closeout.
+- [ ] 3.5 Review incomplete tasks, continue all feasible work, and record any user-confirmed cancellation or deferral together with its delivery impact before closeout.
+- [ ] 3.6 Record stable delta Requirement IDs, PRD acceptance mappings, local FEATURE result/evidence IDs, and the shared FEATURE ledger row required for closeout.

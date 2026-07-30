@@ -25,7 +25,8 @@ rules:
     - design.md is the only technical design; trace decisions to requirement IDs.
   tasks:
     - Order numbered checkbox work by dependency and record independently verifiable evidence.
-    - Before closeout, complete every real checkbox and record the security, migration, browser, and rollback applicability matrix with declared evidence in closeout.json.
+    - Before closeout, review every real checkbox. Incomplete tasks produce warnings rather than blocking close; AI must explain delivery impact and obtain user confirmation before closing work it judges impossible, cancelled, or deferred. This confirmation is team governance and is not enforced by Schema, scripts, or CI.
+    - A missing, unreadable, or checkbox-free tasks.md remains invalid. Record the security, migration, browser, and rollback applicability matrix with declared evidence in closeout.json.
     - Add applicable validation and delivery-evidence tasks here; closeout validation does not execute recorded commands or judge evidence sufficiency.
   feature:
     - For product-change, record each local delivered conclusion in the structured result/evidence table and synchronize its result IDs to the shared FEATURE ledger.

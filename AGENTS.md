@@ -33,7 +33,9 @@
 - 实现证据不存在时，不在 FEATURE 中宣称 ready；FEATURE ready 也不等于 change 已完成关闭。
 - 按改动面选择质量门禁，并在 tasks 或 feature 中记录命令和结果。
 - 关闭前对单个活动 change 运行 `npm run validate:close -- <change>`；使用 `node dist/bin/workflow.js close <change> --target .` 完成校验、归档、重建索引和治理检查。安装目标对应使用 `node scripts/validate-close.js <change>` 和 `node bin/workflow.js close <change> --target .`；已经 sync 时才向 `close` 传入 `--skip-specs`。
-- 程序关闭门禁只强制：所有 tasks 完成、四项适用门禁及成功 evidence、product-change 的 FEATURE/evidence 引用和 Requirement/PRD 验收引用，以及 bugfix 的稳定 Requirement ID。它们只证明结构、引用、文件存在和声明证据，不证明语义正确、证据充分或 N/A 理由合理；`closeout.json.command` 只记录，不执行。
+- 未完成的真实 task checkbox 在关闭校验中产生 `TASKS_INCOMPLETE` 警告，但不阻止关闭。缺失、不可读或没有真实 checkbox 的 `tasks.md` 仍以 `TASKS_INVALID` 阻止关闭。
+- AI 应优先继续完成仍可实现的 task。若判断某项 task 无法实现、取消或需要延期，必须向用户说明原因、交付影响、对 Requirement/FEATURE 声明的影响和后续安排，并在执行 `workflow close` 前取得用户明确确认；如未完成项使既有交付声明不再真实，必须先修正相关声明。该确认属于团队流程治理，不由 Schema、脚本或 CI 强制证明。
+- 程序关闭门禁仍强制：`tasks.md` 输入有效、四项适用门禁及成功 evidence、product-change 的 FEATURE/evidence 引用和 Requirement/PRD 验收引用，以及 bugfix 的稳定 Requirement ID。它们只证明结构、引用、文件存在和声明证据，不证明语义正确、证据充分或 N/A 理由合理；`closeout.json.command` 只记录，不执行。
 - `validate:changes` 与 `validate:close <change>` 是不同门禁：前者枚举全部活动 change 做 OpenSpec strict validation，后者校验显式指定的单个关闭输入。
 - 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项执行 `openspec validate <change> --strict`。
 - 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
