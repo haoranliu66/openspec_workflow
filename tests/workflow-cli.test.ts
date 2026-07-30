@@ -108,9 +108,9 @@ assert.deepStrictEqual(calls, [
         changeId,
         schema: "bugfix",
         diagnostics: [{
-          code: "TASKS_INVALID",
-          path: "tasks.md",
-          message: "tasks file is missing",
+          code: "GATE_INVALID",
+          path: "closeout.json",
+          message: "invalid evidence for gate: security",
         }],
         warnings: [{
           code: "TASKS_INCOMPLETE",
@@ -126,7 +126,7 @@ assert.deepStrictEqual(calls, [
     });
     assert.strictEqual(process.exitCode, 1);
     assert.deepStrictEqual(blockedCalls, ["warn:TASKS_INCOMPLETE:tasks.md"]);
-    assert.match(diagnosticOutput.join(""), /TASKS_INVALID/);
+    assert.match(diagnosticOutput.join(""), /GATE_INVALID/);
   } finally {
     process.exitCode = previousExitCode;
     process.stderr.write = previousStderrWrite;

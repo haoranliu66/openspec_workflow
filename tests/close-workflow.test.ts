@@ -86,7 +86,11 @@ function passingDependencies(calls: string[]): CloseWorkflowDependencies {
         return {
           changeId: "add-login",
           schema: "product-change" as const,
-          diagnostics: [{ code: "TASKS_INVALID", path: "tasks.md", message: "missing" }],
+          diagnostics: [{
+            code: "GATE_INVALID",
+            path: "closeout.json",
+            message: "invalid evidence for gate: security",
+          }],
           warnings: [{
             code: "TASKS_INCOMPLETE",
             path: "tasks.md",
@@ -98,7 +102,7 @@ function passingDependencies(calls: string[]): CloseWorkflowDependencies {
     // Break caught: flattening validation failure to a generic close error hides the failed gate from operators.
     (error: unknown) => error instanceof CloseWorkflowError
       && error.archived === false
-      && /TASKS_INVALID/.test(error.message),
+      && /GATE_INVALID/.test(error.message),
   );
   assert.deepStrictEqual(calls, ["validate", "warn:TASKS_INCOMPLETE:tasks.md"]);
 }
