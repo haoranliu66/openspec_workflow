@@ -17,6 +17,7 @@
 - [完成第一个 bugfix](#完成第一个-bugfix)
 - [完成第一个 product change](#完成第一个-product-change)
 - [任务、证据与 FEATURE](#任务证据与-feature)
+- [Closeout JSON](#closeout-json)
 - [关闭单个 change](#关闭单个-change)
 - [程序门禁与团队治理](#程序门禁与团队治理)
 - [命令参考](#命令参考)
@@ -186,3 +187,257 @@ product change 的关键关系如下：
 - change 只有在校验、归档、导航/历史重建和治理检查完成后才关闭。
 
 bugfix 不包含 product PRD/FEATURE 交付链，但仍需稳定的 delta Requirement ID、真实回归 evidence、四项 gate 适用性决策和标准关闭流程。
+
+## 完成第一个 bugfix
+
+下面以边界明确的登录超时缺陷为例。先创建 change 并查看当前可生成的 artifact：
+
+```powershell
+openspec new change fix-login-timeout --schema bugfix
+openspec status --change fix-login-timeout
+openspec instructions proposal --change fix-login-timeout
+```
+
+然后按顺序完成：
+
+1. **加载最小上下文**：读取根 `SPEC.md`、受影响的当前 spec，以及修改同一 capability 的活动 changes。
+2. **定义有界修复**：在 `proposal.md` 中描述可观察缺陷、已确认的预期行为、范围、非目标、风险与回滚方式。如果预期行为仍不明确或范围扩大，停止并迁移到 `product-change`。
+3. **编写 delta specs**：为每个受影响 capability 写完整的 ADDED/MODIFIED/REMOVED/RENAMED delta。每项 Requirement 使用稳定 ID、SHALL/MUST 和精确 WHEN/THEN Scenario。
+4. **生成并执行 tasks**：复现缺陷，保留失败证据，实施最小修复，运行聚焦回归测试，并记录适用质量门禁。
+5. **准备 closeout**：填写四项 gate 的真实适用性、evidence 记录和项目内 artifact。
+6. **校验并关闭**：
+
+```powershell
+node scripts\validate-close.js fix-login-timeout
+node bin\workflow.js close fix-login-timeout --target .
+```
+
+bugfix 不需要 product PRD/FEATURE trace 字段，但所有 delta Requirements 仍必须使用稳定 ID。调研中若出现新流程、角色、接口、数据规则或产品验收，应升级为 product change。
+
+## 完成第一个 product change
+
+### 1. 先建立共享需求包
+
+团队先从模板创建共享需求包：
+
+```text
+docs/requirements/REQ-001-operations-console/
+  README.md
+  BR-001.md
+  PRD-001.md
+  FEATURE.md
+```
+
+BR 描述业务问题、证据、目标与约束；PRD 描述用户、范围、产品规则和结果级 acceptance IDs。团队应在启动 product change 前完成并确认共享 BR/PRD，但这是 change 外的流程治理，不是 Schema、脚本或 CI 门禁。
+
+### 2. 创建并推进 change
+
+```powershell
+openspec new change add-operations-console --schema product-change
+openspec status --change add-operations-console
+openspec instructions proposal --change add-operations-console
+```
+
+按以下顺序推进：
+
+1. 在 change 的 `br.md` 和 `prd.md` 中绑定共享 BR/PRD，不复制共享文档全文。
+2. 完成 `proposal.md`，只表达 Why、What Changes、Capabilities 与 Impact。
+3. proposal 完成后，并行编写 delta specs 与本 change 唯一的 `design.md`。
+4. specs 和 design 都完成后生成 `tasks.md`，按依赖排序并使每项可独立验证。
+5. 实施 change，运行适用质量门禁，在 tasks 或 feature evidence 中记录真实命令和结果。
+6. 为所有 delta Requirements 使用稳定 ID，并把每个 ID 恰好一次映射到一个或多个 PRD acceptance IDs。
+7. 在 change `feature.md` 中记录本地结果/evidence IDs，并把结果 IDs 同步到共享 `FEATURE.md` 台账。
+8. 填写 product-change `closeout.json`，校验并关闭显式指定的 change。
+
+OpenSpec 会通过 `status` 和 `instructions` 告知下一份可生成的 artifact：
+
+```powershell
+openspec status --change add-operations-console
+openspec instructions specs --change add-operations-console
+openspec instructions design --change add-operations-console
+```
+
+如果实际 OpenSpec 输出显示 artifact 尚未解锁，应先完成它声明的前置 artifact，不要绕过 graph 手工伪造完成状态。
+
+## 任务、证据与 FEATURE
+
+### `tasks.md`
+
+`tasks.md` 是实现进度事实，而不是关闭结果的装饰性清单：
+
+- `[x]` 和 `[X]` 表示完成；
+- `[ ]`、`[-]`、`[~]` 或其他真实非 `x` marker 表示未完成，并产生 `TASKS_INCOMPLETE` warning；
+- fenced code block 中的 checkbox 示例不计入真实任务；
+- 缺失、不可读或完全没有真实 checkbox 的 `tasks.md` 产生 blocking `TASKS_INVALID`；
+- AI 应继续完成所有仍可实现的 task。
+
+如果 AI 判断 task 无法实现、已取消或需要延期，关闭前必须：
+
+1. 向用户说明原因；
+2. 说明对本次交付、Requirement 和 FEATURE 声明的影响；
+3. 给出后续安排；
+4. 修正任何不再真实的交付声明；
+5. 在执行 `workflow close` 前取得用户明确确认。
+
+该确认属于团队流程治理。程序不判断 task 是否真的无法实现，也不持久化或验证 waiver、approval，且没有 `--allow-incomplete-tasks` 参数。
+
+### 质量 evidence
+
+closeout evidence 应包含：
+
+- 稳定且唯一的 evidence ID；
+- evidence 类型；
+- 真实状态；被适用 gate 引用时必须为 `passed`；
+- 实际运行过的命令记录；
+- 位于项目根目录内、真实存在的普通文件 artifact。
+
+security、migration、browser、rollback gate 为适用时，必须引用类型匹配且状态为 `passed` 的 evidence。`closeout.json` 中的 `command` 只记录，不会被关闭校验执行。
+
+### FEATURE
+
+FEATURE 只记录有实现和验证 evidence 支持的交付结论：
+
+- `feature` artifact ready 只表示前置 artifacts 已具备、可以开始编写；
+- change `feature.md` 的每条交付结论使用稳定结果 ID，并逐条关联 evidence IDs；
+- product change 把本地结果 IDs 同步到共享 `FEATURE.md` 台账；
+- 没有实现 evidence 时不得声明 ready；
+- FEATURE ready 不等于 change 已完成关闭。
+
+## Closeout JSON
+
+product change 的最小结构如下。字段值必须替换为当前 change 的真实引用和 evidence：
+
+```json
+{
+  "version": 1,
+  "prd": "docs/requirements/REQ-001-operations-console/PRD-001.md",
+  "sharedFeature": "docs/requirements/REQ-001-operations-console/FEATURE.md",
+  "requirements": [
+    { "id": "OPS-001", "acceptanceIds": ["PA-001"] }
+  ],
+  "featureResults": [
+    { "id": "FR-001", "evidenceIds": ["EV-TEST-001"] }
+  ],
+  "evidence": [
+    {
+      "id": "EV-TEST-001",
+      "type": "test",
+      "status": "passed",
+      "command": "npm test",
+      "artifact": "artifacts/closeout/test-report.json"
+    }
+  ],
+  "gates": {
+    "security": {
+      "applicable": false,
+      "reason": "No security boundary changed.",
+      "evidenceIds": []
+    },
+    "migration": {
+      "applicable": false,
+      "reason": "No data migration.",
+      "evidenceIds": []
+    },
+    "browser": {
+      "applicable": false,
+      "reason": "No browser surface changed.",
+      "evidenceIds": []
+    },
+    "rollback": {
+      "applicable": false,
+      "reason": "No deployable change.",
+      "evidenceIds": []
+    }
+  }
+}
+```
+
+关键规则：
+
+- 四个 gates 必须全部存在；
+- 适用 gate 必须引用类型匹配且状态为 `passed` 的 evidence；
+- 不适用 gate 必须给出真实理由，且 `evidenceIds` 为空；
+- evidence artifact 必须是项目内真实存在的普通文件，不能使用逃逸项目根目录的路径；
+- `command` 只是记录，校验器不会执行；
+- product change 需要 PRD、共享 FEATURE、Requirement/acceptance 和 FEATURE/evidence 引用；
+- bugfix 不使用这些 product trace 字段，但仍需要 evidence、四项 gates 和稳定 delta Requirement IDs。
+
+完整模板：
+
+- [product-change closeout 模板](docs/closeout-templates/product-change.json)
+- [bugfix closeout 模板](docs/closeout-templates/bugfix.json)
+
+## 关闭单个 change
+
+### 源仓库
+
+未提前执行 sync 时，让标准 close wrapper 应用 delta：
+
+```powershell
+npm run validate:close -- <change>
+node dist/bin/workflow.js close <change> --target .
+```
+
+### 安装目标
+
+```powershell
+node scripts/validate-close.js <change>
+node bin/workflow.js close <change> --target .
+```
+
+`validate:close` 只校验显式指定的单个活动 change；`close` 在相同校验通过后依次执行：
+
+1. OpenSpec archive；
+2. 重建 `SPEC.md`；
+3. 重建 `openspec/change-history.json`；
+4. 执行治理检查。
+
+### 已经提前 sync
+
+如果已经执行 `/opsx:sync` 并应用了 delta，关闭时必须避免重复同步：
+
+```powershell
+node bin/workflow.js close <change> --skip-specs --target .
+```
+
+`--skip-specs` 只允许用于 `close`。未 sync 却使用它，可能在未应用 delta 的情况下归档；已经 sync 却省略它，可能重复应用同一 delta。
+
+### 归档后 finalization 失败
+
+如果 archive 已成功，但 index 或 check 失败，wrapper 会明确报告 change 已归档。修复原因后运行：
+
+```powershell
+node bin/workflow.js index --target .
+node bin/workflow.js check --target .
+```
+
+不要因为 finalization 失败而重新创建或改写已经归档的 change。
+
+## 程序门禁与团队治理
+
+| 检查 | 结果 | 是否由程序强制 |
+|---|---|---:|
+| 未完成真实 task checkbox | `TASKS_INCOMPLETE` warning；继续关闭 | 否 |
+| `tasks.md` 缺失、不可读或无真实 checkbox | `TASKS_INVALID` | 是 |
+| 四项 gate 矩阵完整 | 缺失或不合法时 `GATE_INVALID` | 是 |
+| 适用 gate 有 matching passed evidence | 无效时 `GATE_INVALID` | 是 |
+| evidence artifact 位于项目内且真实存在 | 无效时 `EVIDENCE_INVALID` | 是 |
+| product FEATURE/evidence 引用完整 | 无效时 `FEATURE_TRACE_INVALID` | 是 |
+| product Requirement/PRD acceptance 引用完整 | 无效时 `PRD_TRACE_INVALID` / `REQUIREMENT_INVALID` | 是 |
+| bugfix delta Requirement ID 稳定 | 无效时 `REQUIREMENT_INVALID` | 是 |
+| OpenSpec strict validation | 失败时停止关闭 | 是 |
+| 不可实现、取消或延期 task 已获用户确认 | 团队协作 | 否 |
+| product change 开始前共享 BR/PRD 已确认 | 团队协作 | 否 |
+| 已归档内容不得修改 | 团队协作 | 否 |
+
+只有 warnings 且无 blocking diagnostics 时，单 change 关闭校验保持成功退出码，标准 close 继续归档。warning 仍会在 archive 前显示，提醒 AI 和用户处理治理责任。
+
+程序能证明的是结构、引用、项目内文件存在和声明 evidence；它不能证明：
+
+- PRD 与 Requirement 语义一致；
+- evidence 足够支持交付结论；
+- N/A 理由合理；
+- 用户确认真实发生；
+- archive 在所有分支和历史中不可变。
+
+已归档 change 不得修改仍是团队规则。历史需要修正时，创建新的 delta/correction change，而不是改写过去。
