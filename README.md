@@ -441,3 +441,257 @@ node bin/workflow.js check --target .
 - archive 在所有分支和历史中不可变。
 
 已归档 change 不得修改仍是团队规则。历史需要修正时，创建新的 delta/correction change，而不是改写过去。
+
+## 命令参考
+
+### 源仓库
+
+源仓库维护 TypeScript 并通过 npm scripts 统一构建和验证。
+
+| 命令 | 用途 |
+|---|---|
+| `npm ci` | 按 lockfile 安装精确的开发依赖 |
+| `npm run build` | 清理并把 TypeScript 编译到不跟踪的 `dist/` |
+| `npm test` | 构建并运行 compiled test suite |
+| `npm run index` | 重建 `SPEC.md` 和 `openspec/change-history.json` |
+| `npm run check` | 检查必要结构、历史解析诊断和生成文件漂移 |
+| `npm run validate:schemas` | 校验两个 OpenSpec schemas |
+| `npm run validate:changes` | 枚举所有活动 change 并逐项执行 strict validation |
+| `npm run validate:close -- <change>` | 校验一个显式指定的活动 change |
+| `npm run verify` | 构建、测试、index、check、schema 校验和全部活动 change 校验 |
+| `node dist/bin/workflow.js install --target <project> [--force]` | 把 emitted workflow assets 安装到目标项目 |
+| `node dist/bin/workflow.js close <change> [--skip-specs] --target <project>` | 执行校验、归档、index 和 check |
+
+### 安装目标
+
+| 命令 | 用途 |
+|---|---|
+| `node scripts/openspec-governance.js index` | 确定性重建导航和机器历史 |
+| `node scripts/openspec-governance.js check` | 检查结构、生成文件漂移、解析诊断和当前工作树的 archive 修改 |
+| `node scripts/validate-schemas.js` | 校验已安装 schemas |
+| `node scripts/validate-changes.js` | 严格校验每个活动 change |
+| `node scripts/validate-close.js <change>` | 校验一个显式指定的 closeout |
+| `node bin/workflow.js validate:close <change> --target .` | 通过统一 CLI 执行同一单 change 校验 |
+| `node bin/workflow.js index --target .` | 通过统一 CLI 重建导航和历史 |
+| `node bin/workflow.js check --target .` | 通过统一 CLI 执行治理检查 |
+| `node bin/workflow.js close <change> --target .` | 校验、归档、重建索引并执行检查 |
+
+`validate:changes` 和 `validate:close` 是不同门禁：前者从文件系统枚举所有活动 changes；后者只处理命令行显式给出的一个 change。只有 `close` 会归档。
+
+### 常用 OpenSpec 命令
+
+| 命令 | 用途 |
+|---|---|
+| `openspec new change <id> --schema <schema>` | 使用指定 Schema 创建 change |
+| `openspec status --change <id>` | 查看 artifact 状态和可生成项 |
+| `openspec instructions <artifact> --change <id>` | 获取指定 artifact 的生成指引 |
+| `openspec validate <id> --strict` | 对一个 change 执行原生 strict validation |
+| `openspec archive <id>` | 原生归档；日常关闭优先使用本项目的 guarded wrapper |
+
+## CI 接入
+
+CI 只执行真实命令或脚本能够证明的检查。不要把团队 BR/PRD 确认、用户确认或跨分支 archive 不可变性写成 CI 已证明的事实。
+
+### 工作流源仓库
+
+以下 GitHub Actions 示例验证本仓库自身：
+
+```yaml
+name: verify
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20.19.0
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+```
+
+### 已安装目标项目
+
+目标项目需要让 OpenSpec `1.5.0` 可从命令行调用，再运行 emitted JavaScript：
+
+```yaml
+name: openspec-governance
+
+on:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20.19.0
+      - run: npm install --global @fission-ai/openspec@1.5.0
+      - run: node scripts/openspec-governance.js index
+      - run: git diff --exit-code -- SPEC.md openspec/change-history.json
+      - run: node scripts/validate-schemas.js
+      - run: node scripts/validate-changes.js
+      - run: node scripts/openspec-governance.js check
+      - run: git diff --check
+```
+
+示例使用 GitHub 官方的 [`actions/checkout@v6`](https://github.com/actions/checkout) 与 [`actions/setup-node@v6`](https://github.com/actions/setup-node)。如果团队使用其他 CI 平台，保持命令顺序和失败语义一致即可。
+
+`node scripts/validate-changes.js` 会：
+
+1. 枚举 `openspec/changes/` 的一级目录；
+2. 排除 `archive`、隐藏目录和非目录项；
+3. 按英文名称排序；
+4. 对每个活动 change 运行 `openspec validate <change> --strict`；
+5. 收集全部失败后统一以非零状态退出。
+
+## 安装器与升级
+
+### 安装内容
+
+安装器向目标项目写入：
+
+- 两个 OpenSpec schemas 及其模板；
+- requirements 与 closeout 模板；
+- emitted `scripts/*.js`、`bin/workflow.js` 和必要的 `lib/*.js`；
+- `docs/FULLSTACK_WORKFLOW.md` 与 `docs/QUALITY_GATES.md`；
+- 初始 `SPEC.md` 与 `openspec/change-history.json`；
+- 必要的 `openspec/specs/` 和 `openspec/changes/archive/` 目录。
+
+目标项目只运行 emitted JavaScript，不依赖 TypeScript。工作流 JavaScript 不新增第三方运行时依赖；OpenSpec `1.5.0` 是外部 CLI 前置条件。
+
+### 冲突与备份
+
+| 目标状态 | 默认行为 | `--force` 行为 |
+|---|---|---|
+| 文件不存在 | 写入 | 写入 |
+| 内容相同 | 跳过，保持幂等 | 跳过 |
+| 已有 `openspec/config.yaml` | 保留原文件，写入 `openspec/ai-workflow.config.example.yaml` | 同样保留原配置并生成合并示例 |
+| 其他受管文件冲突 | 在任何写入前整批失败 | 备份到 `.ai-workflow-backup/<timestamp>/` 后覆盖 |
+| 已有 archive | 不移动、不改写 | 不移动、不改写 |
+
+安装命令：
+
+```powershell
+node dist/bin/workflow.js install --target D:\path\to\your-project
+```
+
+只有在审核本地定制和冲突列表后才使用：
+
+```powershell
+node dist/bin/workflow.js install --target D:\path\to\your-project --force
+```
+
+### 升级顺序
+
+1. 在工作流源仓库执行 `npm ci`、`npm run build` 和 `npm run verify`。
+2. 在目标项目执行不带 `--force` 的安装，查看完整冲突列表。
+3. 人工把 `openspec/ai-workflow.config.example.yaml` 中需要的 `context` 和 `rules` 合并到项目配置。
+4. 审核本地定制及备份策略后，再决定是否 `--force`。
+5. 重新校验两个 schemas、两份生成文件和所有活动 changes。
+6. 继续旧的活动 product change 前，把 proposal/design/tasks 与 delta headings 迁移到当前原生结构。
+7. 不移动或改写已有 archive；历史错误用新的 correction change 修正。
+
+版本语义：
+
+- Patch：文案澄清和兼容性修复，不改变产物图；
+- Minor：新增模板字段、校验或向后兼容能力；
+- Major：Schema 产物顺序、目录契约或安装语义出现不兼容变化。
+
+## 目录结构
+
+```text
+.
+├─ bin/                         # TypeScript CLI source
+├─ lib/                         # TypeScript workflow implementation
+├─ scripts/                     # TypeScript governance/validation entry points
+├─ tests/                       # compiled behavioral and integration tests
+├─ openspec/
+│  ├─ schemas/                  # bugfix 和 product-change schemas/templates
+│  ├─ specs/                    # 当前 canonical behavior
+│  ├─ changes/                  # 活动 changes 与 archive/
+│  └─ change-history.json       # 生成的机器历史
+├─ docs/
+│  ├─ requirements/_templates/  # 共享 BR/PRD/FEATURE 模板
+│  └─ closeout-templates/       # product 与 bugfix closeout 模板
+├─ SPEC.md                      # 生成的最小导航
+└─ dist/                        # 不跟踪的 emitted JavaScript
+```
+
+关键边界：
+
+- `bin/`、`lib/`、`scripts/` 和 `tests/` 只维护 TypeScript 源码；
+- `dist/` 可由构建生成，但不提交；
+- `SPEC.md` 和 `openspec/change-history.json` 由同一 change snapshot 确定性生成；
+- 安装目标接收 emitted JavaScript、schemas、模板与选定指南，不接收 TypeScript 测试源码；
+- `docs/requirements/REQ-*/` 是项目真实共享需求包的位置，`_templates/` 只提供初始结构。
+
+## 故障排查
+
+| Code / 现象 | 含义 | 阻止关闭 | 处理方式 |
+|---|---|---:|---|
+| `CHANGE_NOT_ACTIVE` | change ID 不是有效活动目录 | 是 | 检查 ID、命名和 `openspec/changes/` |
+| `SCHEMA_UNSUPPORTED` | `.openspec.yaml` 缺失或 Schema 不受支持 | 是 | 使用 `bugfix` 或 `product-change` |
+| `CLOSEOUT_MISSING` | `closeout.json` 缺失或不可读 | 是 | 从对应 closeout 模板创建 |
+| `CLOSEOUT_INVALID` | JSON 或字段不满足对应契约 | 是 | 修正 JSON、字段和枚举值 |
+| `TASKS_INCOMPLETE` | 存在未完成真实 checkbox | 否 | 继续可行工作；无法完成时履行用户确认治理 |
+| `TASKS_INVALID` | tasks 缺失、不可读或无真实 checkbox | 是 | 修复 `tasks.md` 结构 |
+| `EVIDENCE_INVALID` | artifact 缺失、越界或不是普通文件 | 是 | 引用项目内真实 evidence 文件 |
+| `GATE_INVALID` | gate 矩阵或 matching passed evidence 无效 | 是 | 修正适用性、reason 和 evidence IDs |
+| `REQUIREMENT_INVALID` | delta Requirement ID 缺失或不稳定 | 是 | 为所有 delta Requirements 使用稳定 ID |
+| `PRD_TRACE_INVALID` | PRD acceptance 映射不完整 | 是 | 修正 acceptance IDs 和映射 |
+| `FEATURE_TRACE_INVALID` | FEATURE 结果/evidence/共享台账引用不完整 | 是 | 修正 result/evidence IDs 和台账行 |
+| Strict validation failed | OpenSpec strict validation 失败 | 是 | 先运行 `openspec validate <change> --strict` 修复 |
+| 安装冲突 | 受管文件与目标项目不同 | - | 不带 `--force` 预检；审核后再备份覆盖 |
+| 已归档但 finalization 失败 | archive 成功，index/check 失败 | - | 单独运行 workflow `index` 和 `check` |
+
+### 常见操作错误
+
+- **提前使用 `--skip-specs`**：可能归档但没有把 delta 应用到当前 specs。
+- **已经 sync 却再次正常 close**：可能重复应用同一 delta。
+- **手工编辑生成文件**：下一次 `index` 会覆盖，`check` 也会报告漂移。
+- **把 evidence command 当作自动执行**：程序只记录命令字符串，必须由团队真实运行并保存 artifact。
+- **把 warning 当作已批准豁免**：`TASKS_INCOMPLETE` 只是可见警告；无法完成 task 的说明和用户确认仍由团队负责。
+- **把当前工作树检查当作完整归档证明**：`check` 不检查跨分支 full history、base ref 或 hash。
+
+## 维护与相关文档
+
+### 维护者验证
+
+贡献者使用：
+
+```powershell
+npm ci
+npm run build
+npm run verify
+git diff --check
+```
+
+- 维护编译器版本为 TypeScript `7.0.2`；
+- Node.js 下限为 `>=20.19.0`；
+- 兼容的 OpenSpec CLI 固定为 `1.5.0`；
+- 生产源码统一为 TypeScript；
+- `dist/` 不提交；
+- 安装器、真实 OpenSpec、closeout 和治理流程均有 compiled integration tests；
+- 工作流 emitted JavaScript 不新增第三方运行时依赖。
+
+### 深入阅读
+
+- [完整工作流](docs/FULLSTACK_WORKFLOW.md)
+- [质量门禁](docs/QUALITY_GATES.md)
+- [接入指南](docs/ADOPTION.md)
+- [维护手册](docs/OPERATIONS.md)
+- [product-change closeout 模板](docs/closeout-templates/product-change.json)
+- [bugfix closeout 模板](docs/closeout-templates/bugfix.json)
+- [变更日志](CHANGELOG.md)
+- [许可证](LICENSE)
+
+本项目采用 MIT License。
