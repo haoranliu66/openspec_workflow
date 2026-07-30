@@ -287,7 +287,7 @@ closeout evidence 应包含：
 
 - 稳定且唯一的 evidence ID；
 - evidence 类型；
-- 真实状态；被适用 gate 引用时必须为 `passed`；
+- `status` 为 `passed`；失败或未知结果不得伪装成可用于关闭的 evidence；
 - 实际运行过的命令记录；
 - 位于项目根目录内、真实存在的普通文件 artifact。
 
@@ -299,7 +299,7 @@ FEATURE 只记录有实现和验证 evidence 支持的交付结论：
 
 - `feature` artifact ready 只表示前置 artifacts 已具备、可以开始编写；
 - change `feature.md` 的每条交付结论使用稳定结果 ID，并逐条关联 evidence IDs；
-- product change 把本地结果 IDs 同步到共享 `FEATURE.md` 台账；
+- product change 把本地结果 IDs 同步到共享 `FEATURE.md` 台账，并把对应 change 行标记为 `ready`；
 - 没有实现 evidence 时不得声明 ready；
 - FEATURE ready 不等于 change 已完成关闭。
 
@@ -422,7 +422,7 @@ node bin/workflow.js check --target .
 | 四项 gate 矩阵完整 | 缺失或不合法时 `GATE_INVALID` | 是 |
 | 适用 gate 有 matching passed evidence | 无效时 `GATE_INVALID` | 是 |
 | evidence artifact 位于项目内且真实存在 | 无效时 `EVIDENCE_INVALID` | 是 |
-| product FEATURE/evidence 引用完整 | 无效时 `FEATURE_TRACE_INVALID` | 是 |
+| product FEATURE/evidence 引用及共享台账完整 | 无效时 `FEATURE_TRACE_INVALID` / `SHARED_FEATURE_INVALID` | 是 |
 | product Requirement/PRD acceptance 引用完整 | 无效时 `PRD_TRACE_INVALID` / `REQUIREMENT_INVALID` | 是 |
 | bugfix delta Requirement ID 稳定 | 无效时 `REQUIREMENT_INVALID` | 是 |
 | OpenSpec strict validation | 失败时停止关闭 | 是 |
@@ -442,6 +442,8 @@ node bin/workflow.js check --target .
 
 已归档 change 不得修改仍是团队规则。历史需要修正时，创建新的 delta/correction change，而不是改写过去。
 
+`check` 会发现当前工作树相对 `HEAD` 的已提交 archive 修改或删除；这只是局部漂移检查，不是跨分支、base ref、full history 或 hash 层面的归档不可变性证明。
+
 ## 命令参考
 
 ### 源仓库
@@ -454,7 +456,7 @@ node bin/workflow.js check --target .
 | `npm run build` | 清理并把 TypeScript 编译到不跟踪的 `dist/` |
 | `npm test` | 构建并运行 compiled test suite |
 | `npm run index` | 重建 `SPEC.md` 和 `openspec/change-history.json` |
-| `npm run check` | 检查必要结构、历史解析诊断和生成文件漂移 |
+| `npm run check` | 检查必要结构、历史解析诊断、生成文件漂移和当前工作树的 archive 修改 |
 | `npm run validate:schemas` | 校验两个 OpenSpec schemas |
 | `npm run validate:changes` | 枚举所有活动 change 并逐项执行 strict validation |
 | `npm run validate:close -- <change>` | 校验一个显式指定的活动 change |
@@ -564,6 +566,7 @@ jobs:
 - emitted `scripts/*.js`、`bin/workflow.js` 和必要的 `lib/*.js`；
 - `docs/FULLSTACK_WORKFLOW.md` 与 `docs/QUALITY_GATES.md`；
 - 初始 `SPEC.md` 与 `openspec/change-history.json`；
+- 记录工作流版本和受管文件列表的 `.ai-workflow.json`；
 - 必要的 `openspec/specs/` 和 `openspec/changes/archive/` 目录。
 
 目标项目只运行 emitted JavaScript，不依赖 TypeScript。工作流 JavaScript 不新增第三方运行时依赖；OpenSpec `1.5.0` 是外部 CLI 前置条件。
@@ -648,7 +651,8 @@ node dist/bin/workflow.js install --target D:\path\to\your-project --force
 | `GATE_INVALID` | gate 矩阵或 matching passed evidence 无效 | 是 | 修正适用性、reason 和 evidence IDs |
 | `REQUIREMENT_INVALID` | delta Requirement ID 缺失或不稳定 | 是 | 为所有 delta Requirements 使用稳定 ID |
 | `PRD_TRACE_INVALID` | PRD acceptance 映射不完整 | 是 | 修正 acceptance IDs 和映射 |
-| `FEATURE_TRACE_INVALID` | FEATURE 结果/evidence/共享台账引用不完整 | 是 | 修正 result/evidence IDs 和台账行 |
+| `FEATURE_TRACE_INVALID` | change FEATURE 结果或 evidence 引用不完整 | 是 | 修正 result/evidence IDs |
+| `SHARED_FEATURE_INVALID` | 共享 FEATURE 台账路径、结果 IDs 或 `ready` 状态无效 | 是 | 修正共享台账对应 change 行 |
 | Strict validation failed | OpenSpec strict validation 失败 | 是 | 先运行 `openspec validate <change> --strict` 修复 |
 | 安装冲突 | 受管文件与目标项目不同 | - | 不带 `--force` 预检；审核后再备份覆盖 |
 | 已归档但 finalization 失败 | archive 成功，index/check 失败 | - | 单独运行 workflow `index` 和 `check` |
