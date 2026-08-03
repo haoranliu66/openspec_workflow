@@ -1,7 +1,7 @@
 schema: product-change
 
 context: |
-  Shared BR, PRD, and FEATURE records live in docs/requirements/REQ-<id>-<slug>/ and can govern multiple OpenSpec changes. SPEC.md is generated navigation; current behavior lives in openspec/specs/<capability>/spec.md, while a change only owns its deltas under openspec/changes/<change>/specs/<capability>/spec.md.
+  Shared BR, PRD, and FEATURE records live in docs/requirements/REQ-<id>-<slug>/ and can govern multiple OpenSpec changes. SPEC.md is generated navigation; pathless openspec/change-history.json v2 retains archived Requirement evolution without artifact paths. Current behavior lives in openspec/specs/<capability>/spec.md, while a change only owns its deltas under openspec/changes/<change>/specs/<capability>/spec.md.
   Select bugfix only to restore confirmed behavior without a new Requirement. Select the
   system-change governance path by writing schema: spec-driven for bounded observable system
   behavior that changes no product goal, user journey, role permission, business rule, public
@@ -17,6 +17,15 @@ context: |
   show the exact change ID and plan summary, and wait for explicit authorization in a later message.
   Authorization is change-scoped, is invalidated by material planning changes, and is team process
   governance rather than an approval artifact or Schema/script/CI proof.
+  After implementation, keep detailed test cases, actual results, risk applicability, incomplete work,
+  limitations, rollback notes, and safe evidence references in openspec/changes/<change>/verification.md
+  with optional sibling evidence/. This record and the team's completion judgment are governance, not
+  OpenSpec artifacts or Schema/script/CI gates. Before AI runs formal close, it must present the exact
+  change and verification summary, end the turn, and wait for later explicit close authorization.
+  This upstream workflow source repository excludes its own numbered REQ packages, detailed changes,
+  archives, verification, evidence, and ad-hoc artifacts from the public tracked checkout after their
+  summaries are captured. The installer does not copy that Git policy; downstream repositories own
+  their retention policy.
 rules:
   br:
     - Link the single shared BR instead of copying it into a change.
@@ -31,12 +40,12 @@ rules:
   specs:
     - Use behavior-first SHALL/MUST requirements and precise WHEN/THEN scenarios.
     - Give every ADDED, MODIFIED, REMOVED, or RENAMED delta Requirement a stable ID.
-    - For product-change only, closeout maps every delta Requirement ID exactly once to one or more shared PRD acceptance IDs.
-    - Trace historical changes without modifying archives.
+    - For product-change only, team review traces every delta Requirement ID to shared PRD acceptance and truthful FEATURE conclusions.
+    - Trace historical changes through the pathless history ledger; inspect a detailed local archive only when it exists and is needed, without modifying it.
   design:
     - design.md is the only technical design; trace decisions to requirement IDs.
   tasks:
     - Order numbered checkbox work by dependency and record independently verifiable evidence.
-    - Before closeout, review every real checkbox. Incomplete tasks produce warnings rather than blocking close; AI must explain delivery impact and obtain user confirmation before closing work it judges impossible, cancelled, or deferred. This confirmation is team governance and is not enforced by Schema, scripts, or CI.
-    - A missing, unreadable, or checkbox-free tasks.md remains invalid. Record the security, migration, browser, and rollback applicability matrix with declared evidence in closeout.json.
-    - Add applicable validation and delivery-evidence tasks here; closeout validation does not execute recorded commands or judge evidence sufficiency.
+    - Before team close review, inspect every real checkbox. AI must explain delivery impact and affected Requirement/FEATURE claims for work it judges impossible, cancelled, or deferred.
+    - Record applicable validation and delivery evidence in change-local verification.md; do not create closeout.json or treat verification headings as a machine contract.
+    - Implementation authorization does not authorize close. Present the verification summary and wait for later explicit change-scoped close authorization.

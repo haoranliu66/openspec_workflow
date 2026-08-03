@@ -1,4 +1,3 @@
-import childProcess from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -18,7 +17,7 @@ const REQUIRED_DIRECTORIES = [
 
 interface CapabilityReference {
   change: string;
-  path: string;
+  path: string | null;
 }
 
 interface Capability {
@@ -29,10 +28,6 @@ interface Capability {
 }
 
 type CapabilityBucket = "archived" | "active";
-
-interface CheckProjectOptions {
-  archiveStatus?: string;
-}
 
 function toPosix(relativePath: string): string {
   return relativePath.split(path.sep).join("/");
@@ -72,7 +67,7 @@ function collectChangeSpecs(
       if (!fs.existsSync(specFile)) return;
       ensureCapability(capabilities, capabilityName)[bucket].push({
         change,
-        path: toPosix(path.relative(root, specFile)),
+        path: bucket === "active" ? toPosix(path.relative(root, specFile)) : null,
       });
     });
   });
@@ -115,7 +110,7 @@ export function collectCapabilities(root: string, model?: ChangeHistory): Capabi
       change.capabilities.forEach((capability) => {
         ensureCapability(capabilities, capability.name)[bucket].push({
           change: change.directoryName,
-          path: capability.deltaSpec,
+          path: bucket === "active" ? capability.deltaSpec : null,
         });
       });
     });
@@ -153,13 +148,18 @@ function markdownLink(label: string, target: string): string {
 }
 
 function renderReference(reference: CapabilityReference | undefined): string {
-  return reference ? markdownLink(reference.change, reference.path) : "-";
+  if (reference === undefined) return "-";
+  return reference.path === null
+    ? escapeLinkLabel(reference.change)
+    : markdownLink(reference.change, reference.path);
 }
 
 function renderActiveChange(change: ChangeHistory["changes"][number]): string {
   const capabilities = change.capabilities.length > 0
     ? change.capabilities
-      .map((capability) => markdownLink(capability.name, capability.deltaSpec))
+      .map((capability) => capability.deltaSpec === null
+        ? escapeLinkLabel(capability.name)
+        : markdownLink(capability.name, capability.deltaSpec))
       .join("<br>")
     : "-";
   const artifacts: string[] = [];
@@ -212,7 +212,7 @@ export function renderIndex(root: string, model?: ChangeHistory): string {
     "1. 使用本索引定位受影响 capabilities。",
     "2. 只读取 `openspec/specs/` 下受影响的当前规格。",
     "3. 读取修改相同 capabilities 的活动 changes。",
-    "4. 仅在处理回归、冲突或设计依据时读取历史归档。",
+    "4. 需要 Requirement 级演变时读取 `openspec/change-history.json`；详细本地归档是可选记录，公开克隆通常不包含。",
     "5. BR/PRD 定义目标与范围；其前置完成属于团队流程治理，不是 OpenSpec artifact graph 或程序门禁。",
     "",
     "## 活动 Change",
@@ -231,21 +231,13 @@ export function renderIndex(root: string, model?: ChangeHistory): string {
     "",
     "## 生命周期",
     "",
-    "Product change: `planning -> explicit authorization -> apply -> verify -> shared FEATURE -> workflow close (archive/index/check)`",
+    "Product change: `planning -> implementation authorization -> apply -> change-local verification -> shared FEATURE/team review -> close authorization -> workflow close (strict/archive/index/check)`",
     "",
-    "Bugfix / system-change: `planning -> explicit authorization -> apply -> verify and closeout evidence -> workflow close (archive/index/check)`",
+    "Bugfix / system-change: `planning -> implementation authorization -> apply -> change-local verification/team review -> close authorization -> workflow close (strict/archive/index/check)`",
     "",
-    "归档内容按团队流程不得修改；该规则不由程序或 CI 强制证明。新 delta 可以向后链接历史 changes；旧归档不增加正向链接。",
+    "归档内容按团队流程不得修改；该规则不由程序或 CI 强制证明。公开历史使用无路径摘要，不依赖详细归档目录。",
     "",
   ].join("\n");
-}
-
-export function findArchiveViolations(status: string): string[] {
-  return status
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !line.split(/\s+/)[0].startsWith("A"));
 }
 
 export function checkStructure(root: string): void {
@@ -309,38 +301,10 @@ export function checkGeneratedFiles(root: string): void {
   validateGeneratedFiles(root, model);
 }
 
-function readArchiveStatus(root: string): string {
-  try {
-    childProcess.execFileSync("git", ["rev-parse", "--verify", "HEAD"], {
-      cwd: root,
-      stdio: "ignore",
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    void message;
-    return "";
-  }
-  return childProcess.execFileSync(
-    "git",
-    ["diff", "--name-status", "HEAD", "--", "openspec/changes/archive"],
-    { cwd: root, encoding: "utf8" },
-  );
-}
-
-export function checkProject(root: string, options: CheckProjectOptions = {}): Diagnostic[] {
+export function checkProject(root: string): Diagnostic[] {
   checkStructure(root);
   const model = collectChangeHistory(root);
   validateGeneratedFiles(root, model);
-  const status = options.archiveStatus === undefined
-    ? readArchiveStatus(root)
-    : options.archiveStatus;
-  const violations = findArchiveViolations(status);
-  if (violations.length > 0) {
-    throw new Error([
-      "已提交的 OpenSpec 归档历史不可修改：",
-      ...violations.map((line) => `  ${line}`),
-    ].join("\n"));
-  }
   return model.diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
 }
 

@@ -8,11 +8,10 @@
 - [ ] 2.1 <!-- Task description -->
 - [ ] 2.2 <!-- Task description -->
 
-## 3. Closeout evidence
+## 3. Team verification and close review
 
-- [ ] 3.1 Record the security applicability decision and its required closeout evidence.
-- [ ] 3.2 Record the migration applicability decision and its required closeout evidence.
-- [ ] 3.3 Record the browser applicability decision and its required closeout evidence.
-- [ ] 3.4 Record the rollback applicability decision and its required closeout evidence.
-- [ ] 3.5 Review incomplete tasks, continue all feasible work, and record any user-confirmed cancellation or deferral together with its delivery impact before closeout.
-- [ ] 3.6 Record stable delta Requirement IDs, PRD acceptance mappings, and one shared FEATURE row per delivered result with passed closeout evidence.
+- [ ] 3.1 Prepare `verification.md` under this change with delivered scope, detailed test cases, expected and actual results, and safe evidence references.
+- [ ] 3.2 Record security, migration, browser, and rollback applicability together with known limitations and rollback information for team review.
+- [ ] 3.3 Review incomplete tasks, continue feasible work, and disclose the reason, delivery impact, affected Requirement/FEATURE claims, and follow-up for every cancellation or deferral.
+- [ ] 3.4 Update Requirement/PRD acceptance and shared FEATURE conclusions only when supported by team-reviewed verification material.
+- [ ] 3.5 Present the close review summary and wait for explicit change-scoped close authorization before running formal close.

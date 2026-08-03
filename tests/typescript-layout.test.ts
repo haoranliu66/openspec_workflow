@@ -37,4 +37,19 @@ assert.strictEqual(packageJson.bin["ai-fullstack-workflow"], "dist/bin/workflow.
   assert.ok(fs.existsSync(path.join(repositoryRoot, relativePath)), relativePath);
 });
 
+[
+  "scripts/validate-close.ts",
+  "lib/closeout-contract.ts",
+  "lib/closeout-p0.ts",
+  "lib/closeout-trace.ts",
+  "lib/closeout-feature.ts",
+  "lib/closeout-validation.ts",
+  "lib/structured-markdown.ts",
+  "docs/closeout-templates/product-change.json",
+  "docs/closeout-templates/bugfix.json",
+  "docs/closeout-templates/spec-driven.json",
+].forEach((relativePath) => {
+  assert.ok(!fs.existsSync(path.join(repositoryRoot, relativePath)), relativePath);
+});
+
 process.stdout.write("PASS TypeScript is the only maintained executable source language.\n");

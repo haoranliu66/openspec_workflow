@@ -10,7 +10,6 @@ import {
   checkIndex,
   checkProject,
   collectCapabilities,
-  findArchiveViolations,
   renderIndex,
   writeGeneratedFiles,
 } from "../scripts/openspec-governance";
@@ -66,16 +65,8 @@ test("renders a deterministic navigation-only index", () => {
     const second = renderIndex(root);
 
     assert.strictEqual(first, second);
-    assert.match(first, /AI 全栈规格索引/);
+    assert.ok(first.startsWith("# "));
     assert.match(first, /\[auth\]\(openspec\/specs\/auth\/spec\.md\)/);
-    assert.match(
-      first,
-      /归档内容按团队流程不得修改；该规则不由程序或 CI 强制证明/,
-    );
-    assert.match(
-      first,
-      /BR\/PRD 定义目标与范围；其前置完成属于团队流程治理，不是 OpenSpec artifact graph 或程序门禁/,
-    );
     assert.doesNotMatch(first, /secret body|### Requirement:/);
   });
 });
@@ -87,7 +78,6 @@ test("renders active changes before capability specs exist", () => {
 
     const rendered = renderIndex(root);
 
-    assert.match(rendered, /## 活动 Change/);
     assert.match(rendered, /early-change/);
     assert.match(rendered, /product-change/);
     assert.match(rendered, /proposal\.md/);
@@ -122,7 +112,7 @@ test("renders active capability navigation from the supplied history snapshot", 
 test("escapes active change table cells, link labels, and link targets", () => {
   withProject((root) => {
     const model: ChangeHistory = {
-      version: 1,
+      version: 2,
       diagnostics: [],
       changes: [{
         changeId: "change|draft",
@@ -192,8 +182,8 @@ test("escapes active change table cells, link labels, and link targets", () => {
       + "[cap\\|\\[label\\]](openspec/changes/change%20space/specs/cap%20%28one%29%23/spec.md) | "
       + "[proposal.md](openspec/changes/change%20space/%28draft%29%23proposal.md) |";
     const safeCapabilityRow = "| cap\\|[label] (pending sync) | "
-      + "[archive \\|\\[first\\]](openspec/changes/archive/archive%20%28first%29%23/specs/cap/spec.md) | "
-      + "[archive \\|\\[last\\]](openspec/changes/archive/archive%20%28last%29%23/specs/cap/spec.md) | "
+      + "archive \\|\\[first\\] | "
+      + "archive \\|\\[last\\] | "
       + "[change \\|\\[active\\]](openspec/changes/change%20space/specs/cap%20%28one%29%23/spec.md) |";
 
     const lines = rendered.split("\n");
@@ -213,7 +203,7 @@ test("rejects missing and stale generated files separately", () => {
     assert.throws(() => checkGeneratedFiles(root), /缺少 openspec\/change-history\.json/);
 
     write(root, "openspec/change-history.json", '{"version":0}\n');
-    assert.throws(() => checkGeneratedFiles(root), /change-history\.json 已过期/);
+    assert.throws(() => checkGeneratedFiles(root), /仅支持 version 1 或 version 2/);
   });
 });
 
@@ -252,7 +242,7 @@ test("rejects active unknown schemas and returns archived unknown schema warning
     writeGeneratedFiles(root);
 
     assert.throws(
-      () => checkProject(root, { archiveStatus: "" }),
+      () => checkProject(root),
       /Active change future-change has unknown schema future/,
     );
   });
@@ -267,7 +257,7 @@ test("rejects active unknown schemas and returns archived unknown schema warning
     );
     writeGeneratedFiles(root);
 
-    const warnings = checkProject(root, { archiveStatus: "" });
+    const warnings = checkProject(root);
 
     assert.deepStrictEqual(warnings, [{
       severity: "warning",
@@ -276,22 +266,9 @@ test("rejects active unknown schemas and returns archived unknown schema warning
   });
 });
 
-test("allows new archive additions but rejects committed history edits", () => {
-  const status = [
-    "A\topenspec/changes/archive/2026-03-01-new/proposal.md",
-    "M\topenspec/changes/archive/2026-01-01-old/specs/a/spec.md",
-    "D\topenspec/changes/archive/2026-01-01-old/tasks.md",
-    "R100\topenspec/changes/archive/old/proposal.md\topenspec/changes/archive/new/proposal.md",
-  ].join("\n");
-
-  const violations = findArchiveViolations(status);
-
-  assert.strictEqual(violations.length, 3);
-});
-
 test("detects missing structure and stale index", () => {
   withProject((root) => {
-    assert.throws(() => checkProject(root, { archiveStatus: "" }), /缺少必要目录/);
+    assert.throws(() => checkProject(root), /缺少必要目录/);
 
     write(root, "openspec/specs/.gitkeep");
     write(root, "openspec/changes/archive/.gitkeep");
@@ -306,7 +283,7 @@ test("passes project check with current index and unchanged archive", () => {
     write(root, "openspec/changes/archive/.gitkeep");
     writeGeneratedFiles(root);
 
-    assert.doesNotThrow(() => checkProject(root, { archiveStatus: "" }));
+    assert.doesNotThrow(() => checkProject(root));
   });
 });
 

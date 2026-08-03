@@ -184,17 +184,15 @@ function verifyTasksTemplate(content: string | undefined, violations: string[]):
     }
   }
 
-  if (!/^## 3\. Closeout evidence\s*$/m.test(content)) {
-    violations.push("tasks.md must include the closeout evidence section");
+  if (!/^## 3\. Team verification and close review\s*$/m.test(content)) {
+    violations.push("tasks.md must include the team verification and close review section");
     return;
   }
 
-  const gates = ["security", "migration", "browser", "rollback"];
-  gates.forEach((gate, index) => {
-    const taskNumber = `3.${index + 1}`;
-    const pattern = new RegExp(`^- \\[ \\] ${taskNumber.replace(".", "\\.")}\\s+.*\\b${gate}\\b`, "mi");
-    if (!pattern.test(content)) {
-      violations.push(`tasks.md must include a closeout gate task for ${gate}`);
-    }
-  });
+  if (!/^- \[ \] 3\.1\s+.*`verification\.md`/mi.test(content)) {
+    violations.push("tasks.md must include a change-local verification.md task");
+  }
+  if (!/^- \[ \] 3\.5\s+.*explicit.*close authorization/mi.test(content)) {
+    violations.push("tasks.md must include explicit close authorization review");
+  }
 }

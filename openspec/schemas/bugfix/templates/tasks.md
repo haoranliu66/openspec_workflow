@@ -1,11 +1,5 @@
 # 任务
 
-## Closeout evidence
-
-- [ ] 4.1 Review every implementation and verification task, continue feasible work, and document the impact of any user-confirmed cancellation or deferral before closeout.
-- [ ] 4.2 For every applicable gate, record passed matching evidence; for every inapplicable gate, record a reason and no evidence IDs.
-- [ ] 4.3 Keep a stable ID for every delta Requirement.
-
 ## 诊断
 
 - [ ] 1.1 确认根因和受影响 Requirement。
@@ -19,4 +13,9 @@
 
 - [ ] 3.1 执行适用质量门禁并记录证据。
 - [ ] 3.2 确认回滚可行且范围没有扩大。
-- [ ] 3.3 准备当前规格同步、归档、索引和治理所需输入。
+- [ ] 3.3 在 change 内的 `verification.md` 记录详细测试用例、预期/实际结果、安全证据引用、未完成项、限制和回滚信息。
+
+## 团队审核与关闭
+
+- [ ] 4.1 团队审核验证记录、风险适用性、稳定 Requirement ID 和所有未完成 task 的交付影响。
+- [ ] 4.2 AI 展示关闭摘要，并在取得针对此 change 的明确关闭授权后才运行正式关闭。

@@ -2,18 +2,26 @@
 
 ## Unreleased
 
+- 将 `openspec/change-history.json` 升级为 pathless v2：只持久化 archived change 的日期、Schema、capability 和 Requirement operation/ID/name；支持 v1 迁移、本地 archive 合并、archive 缺失持久化与非法 seed 防覆盖。
+- 上游源仓库的最新发布快照不再跟踪自身的活动/归档 change 详情、编号 REQ 包和历史 artifacts；保留 canonical specs、模板、`CHANGELOG.md` 与 compact history，且不重写既有 Git 提交。
+- 新增公开文档权威地图，统一当前指南/Schema/模板中的历史与保留边界，并以 `examples/core-workflow/` 替换过时示例，覆盖三条路径、双授权、团队验证、关闭及恢复。
+- 增加结构化发布清单测试；安装器不复制上游 `.gitignore`，不改变下游项目对 change/archive/REQ/verification/evidence 的跟踪选择。
+
+## 3.0.0 - 2026-08-03
+
+- **Breaking**：删除 `closeout.json` 合同、三种 closeout 模板、`validate:close` CLI/package script 以及 tasks/evidence/gate/Requirement/PRD/FEATURE 自定义关闭校验器。
+- 三条路径改用 change 内 `verification.md` 和可选 `evidence/` 作为团队审核材料；该约定不进入 artifact graph，也不由 Schema、脚本或 CI 强制解析或判断充分性。
+- 新增独立的 change-scoped 关闭授权边界；实施授权不构成关闭授权，AI 必须展示验证、未完成项、风险和回滚摘要并等待后续明确确认。
+- `workflow close <change>` 精简为 `openspec validate --strict`、OpenSpec archive、索引/历史重建和治理检查；`--skip-specs` 仅保留为提前 sync 后的恢复参数。
+- 安装器能识别旧 manifest 拥有的退役 closeout 文件，先备份再删除；未受管文件、活动/归档 change 和历史 evidence 永不进入退役范围。
+- product-change Schema 升级到 4，bugfix Schema 升级到 2；artifact graph 不变，tasks templates 改为 change-local verification 和团队关闭审核。
+
 - 新增互斥的 `system-change` 治理路径：有限非产品系统行为直接使用 OpenSpec `1.5.0` 内置 `spec-driven`，不复制或安装别名 Schema；路径选择按行为和产品治理面，而不是实现规模。
-- `spec-driven` 纳入实施授权停顿、稳定 delta Requirement ID、非产品 closeout、四项 gate、历史索引、Schema 校验和正式关闭；不要求共享 BR/PRD/FEATURE 或 Requirement/PRD 映射。
-- 安装目标新增 spec-driven closeout 模板和真实 validate/sync/archive 集成覆盖，同时明确仍只分发 bugfix/product-change 两个项目 Schema。
-- product-change Schema 3 移除新 change 的 local `feature.md` artifact，保留 change-local BR/PRD、原生 proposal/specs/design/tasks 核心以及历史 archive 的旧 FEATURE 导航。
+- `spec-driven` 纳入实施授权、change-local verification、团队关闭审核、历史索引、Schema 校验和正式关闭；不要求共享 BR/PRD/FEATURE。
+- product-change 移除新 change 的 local `feature.md` artifact，保留 change-local BR/PRD、原生 proposal/specs/design/tasks 核心以及历史 archive 的旧 FEATURE 导航。
 - 新增规划完成后的 change-scoped 实施授权治理：AI 必须结束当前轮次并等待后续明确授权；原始请求、artifact 生成、continue/ff 不授权，规划实质修改会使旧授权失效。
-- 共享 FEATURE 改为逐结果结论/evidence 行并成为唯一交付结论源；closeout 直接精简现有 `version: 1` 合同，移除重复 PRD/FEATURE 字段并将 evidence `command` 改为可选。
-- `workflow close <change>` 成为唯一必需的正式关闭入口；单 change `validate:close <change>` 保留为可选、非变更性预检。
+- 共享 FEATURE 改为逐结果结论/evidence 行并成为产品交付结论源，其真实性和证据充分性改由团队审核。
 - 澄清共享 BR/PRD 前置与归档不可变属于团队流程治理，不新增相应程序校验。
-- 单个活动 change 的 closeout validation 将未完成真实 task 从阻断错误调整为可见的 `TASKS_INCOMPLETE` 警告；缺失、不可读或没有真实 checkbox 的 `tasks.md` 仍阻断关闭。
-- 四项适用门禁及成功 evidence、product-change 的 FEATURE/evidence 与 Requirement/PRD 验收引用、bugfix/system-change 稳定 Requirement ID 和 OpenSpec strict validation 继续阻断关闭。
-- AI 对无法实现、取消或延期 task 的说明、交付声明修正及用户确认属于团队流程治理，不由程序或 CI 强制证明；artifact graph 与运行时依赖不变。
-- 新增 `workflow close` 标准收尾 wrapper，按“关闭校验 → 归档 → 重建索引 → 治理检查”执行，运行时不新增依赖。
 
 ## 2.1.0 - 2026-07-23
 

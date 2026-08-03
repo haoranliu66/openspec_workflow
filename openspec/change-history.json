@@ -1,25 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "changes": [
     {
       "changeId": "simplify-closeout-and-gate-apply",
-      "directoryName": "2026-08-01-simplify-closeout-and-gate-apply",
-      "state": "archived",
       "archiveDate": "2026-08-01",
       "schema": "product-change",
-      "paths": {
-        "br": "openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/br.md",
-        "prd": "openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/prd.md",
-        "proposal": "openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/proposal.md",
-        "design": "openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/design.md",
-        "tasks": "openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/tasks.md",
-        "feature": null
-      },
       "capabilities": [
         {
           "name": "change-lifecycle-governance",
-          "canonicalSpec": "openspec/specs/change-lifecycle-governance/spec.md",
-          "deltaSpec": "openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/specs/change-lifecycle-governance/spec.md",
           "requirements": [
             {
               "operation": "ADDED",
@@ -62,23 +50,11 @@
     },
     {
       "changeId": "add-system-change-path",
-      "directoryName": "2026-08-03-add-system-change-path",
-      "state": "archived",
       "archiveDate": "2026-08-03",
       "schema": "product-change",
-      "paths": {
-        "br": "openspec/changes/archive/2026-08-03-add-system-change-path/br.md",
-        "prd": "openspec/changes/archive/2026-08-03-add-system-change-path/prd.md",
-        "proposal": "openspec/changes/archive/2026-08-03-add-system-change-path/proposal.md",
-        "design": "openspec/changes/archive/2026-08-03-add-system-change-path/design.md",
-        "tasks": "openspec/changes/archive/2026-08-03-add-system-change-path/tasks.md",
-        "feature": null
-      },
       "capabilities": [
         {
           "name": "change-lifecycle-governance",
-          "canonicalSpec": "openspec/specs/change-lifecycle-governance/spec.md",
-          "deltaSpec": "openspec/changes/archive/2026-08-03-add-system-change-path/specs/change-lifecycle-governance/spec.md",
           "requirements": [
             {
               "operation": "ADDED",
@@ -94,6 +70,53 @@
               "operation": "ADDED",
               "id": "WFG-008",
               "name": "Three-way workflow selection"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "replace-machine-closeout-with-team-review",
+      "archiveDate": "2026-08-03",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "ADDED",
+              "id": "WFG-011",
+              "name": "Change-local team verification record"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-012",
+              "name": "Explicit team close authorization"
+            },
+            {
+              "operation": "REMOVED",
+              "id": "WFG-006",
+              "name": "Minimal product closeout contract"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-013",
+              "name": "Safe retirement of legacy closeout assets"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-005",
+              "name": "Shared FEATURE is the delivery conclusion source"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-007",
+              "name": "Single required close entry point"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-010",
+              "name": "System-change closeout and archive governance"
             }
           ]
         }

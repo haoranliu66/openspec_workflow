@@ -2,8 +2,6 @@
 import path from "node:path";
 
 import { closeChange } from "../lib/close-workflow";
-import type { CloseoutDiagnostic } from "../lib/closeout-contract";
-import { validateCloseChange } from "../lib/closeout-validation";
 import { installWorkflow } from "../lib/installer";
 import { checkProject, writeIndex } from "../scripts/openspec-governance";
 
@@ -19,22 +17,14 @@ export interface WorkflowDependencies {
   install: typeof installWorkflow;
   index: typeof writeIndex;
   check: typeof checkProject;
-  validateClose: typeof validateCloseChange;
   close: typeof closeChange;
-  warn: DiagnosticWriter;
 }
-
-export type DiagnosticWriter = (diagnostic: CloseoutDiagnostic) => void;
 
 const defaultDependencies: WorkflowDependencies = {
   install: installWorkflow,
   index: writeIndex,
   check: checkProject,
-  validateClose: validateCloseChange,
   close: closeChange,
-  warn: (entry) => {
-    process.stderr.write(`WARNING ${entry.code} ${entry.path}: ${entry.message}\n`);
-  },
 };
 
 const CHANGE_ID = /^[a-z0-9][a-z0-9-]*$/;
@@ -71,7 +61,7 @@ export function parseArguments(args: string[]): CliOptions {
     }
   }
 
-  if (command === "close" || command === "validate:close") {
+  if (command === "close") {
     if (positional.length !== 1) throw new Error(`${command} requires exactly one change ID`);
     if (!CHANGE_ID.test(positional[0]) || positional[0] === "archive") {
       throw new Error(`${command} requires a valid change ID`);
@@ -97,7 +87,6 @@ export function printHelp(): void {
     "  workflow install --target <project> [--force]",
     "  workflow index --target <project>",
     "  workflow check --target <project>",
-    "  workflow validate:close <change> --target <project>",
     "  workflow close <change> [--skip-specs] --target <project>",
     "",
   ].join("\n"));
@@ -116,7 +105,7 @@ export function runWorkflow(
   if (options.command === "install") {
     const result = dependencies.install(sourceRoot, options.target, { force: options.force });
     process.stdout.write(`工作流已安装到 ${options.target}\n`);
-    process.stdout.write(`已复制：${result.copied.length}；已跳过：${result.skipped.length}；已备份：${result.backedUp.length}\n`);
+    process.stdout.write(`已复制：${result.copied.length}；已跳过：${result.skipped.length}；已备份：${result.backedUp.length}；已退役：${result.retired.length}\n`);
     return;
   }
   if (options.command === "index") {
@@ -127,19 +116,6 @@ export function runWorkflow(
   if (options.command === "check") {
     dependencies.check(options.target);
     process.stdout.write("AI 工作流治理检查通过。\n");
-    return;
-  }
-  if (options.command === "validate:close") {
-    const result = dependencies.validateClose(options.target, options.changeId!);
-    result.warnings.forEach((entry) => dependencies.warn(entry));
-    if (result.diagnostics.length > 0) {
-      result.diagnostics.forEach((entry) => {
-        process.stderr.write(`${entry.code} ${entry.path}: ${entry.message}\n`);
-      });
-      process.exitCode = 1;
-      return;
-    }
-    process.stdout.write(`Validated closeout for ${result.changeId} (${result.schema}).\n`);
     return;
   }
   if (options.command === "close") {

@@ -3,7 +3,7 @@
 ## 追溯
 
 - **当前规格**：`openspec/specs/capability-name/spec.md`
-- **历史 changes**：无
+- **历史 change IDs**：无（从 `openspec/change-history.json` 查询；不依赖 archive 文件链接）
 
 ## MODIFIED Requirements
 

@@ -170,6 +170,20 @@ test("collects active and archived changes deterministically", () => {
   });
 });
 
+test("ignores empty archive directory skeletons", () => {
+  withProject((root) => {
+    fs.mkdirSync(
+      path.join(root, "openspec/changes/archive/2026-01-01-empty/specs/capability"),
+      { recursive: true },
+    );
+
+    const history = collectChangeHistory(root);
+
+    assert.deepStrictEqual(history.changes, []);
+    assert.deepStrictEqual(history.diagnostics, []);
+  });
+});
+
 test("recognizes the native spec-driven schema in change history", () => {
   withProject((root) => {
     write(root, "openspec/changes/add-cache/.openspec.yaml", "schema: spec-driven\n");
@@ -229,17 +243,127 @@ test("sorts active and archived discovery, capabilities, and requirements", () =
   });
 });
 
+test("preserves version 2 seed history when detailed archives are absent", () => {
+  withProject((root) => {
+    const seed = {
+      version: 2,
+      changes: [{
+        changeId: "add-auth",
+        archiveDate: "2026-01-03",
+        schema: "product-change",
+        capabilities: [{
+          name: "auth",
+          requirements: [{ operation: "ADDED", id: "AUTH-001", name: "Password login" }],
+        }],
+      }],
+    };
+    write(root, "openspec/change-history.json", `${JSON.stringify(seed, null, 2)}\n`);
+
+    const history = collectChangeHistory(root);
+
+    assert.strictEqual(history.changes.length, 1);
+    assert.strictEqual(history.changes[0].state, "archived");
+    assert.strictEqual(history.changes[0].capabilities[0].deltaSpec, null);
+    assert.strictEqual(renderChangeHistory(history), `${JSON.stringify(seed, null, 2)}\n`);
+  });
+});
+
+test("migrates archived version 1 data and omits active records and paths", () => {
+  withProject((root) => {
+    write(root, "openspec/change-history.json", `${JSON.stringify({
+      version: 1,
+      changes: [{
+        changeId: "active-only",
+        directoryName: "active-only",
+        state: "active",
+        archiveDate: null,
+        schema: "product-change",
+        paths: { proposal: "openspec/changes/active-only/proposal.md" },
+        capabilities: [],
+      }, {
+        changeId: "retire-auth",
+        directoryName: "2026-02-01-retire-auth",
+        state: "archived",
+        archiveDate: "2026-02-01",
+        schema: "bugfix",
+        paths: { proposal: "openspec/changes/archive/2026-02-01-retire-auth/proposal.md" },
+        capabilities: [{
+          name: "auth",
+          canonicalSpec: "openspec/specs/auth/spec.md",
+          deltaSpec: "openspec/changes/archive/2026-02-01-retire-auth/specs/auth/spec.md",
+          requirements: [{ operation: "REMOVED", id: "AUTH-001", name: "Legacy login" }],
+        }],
+      }],
+    }, null, 2)}\n`);
+
+    const rendered = renderChangeHistory(collectChangeHistory(root));
+
+    assert.match(rendered, /^\{\n  "version": 2,/);
+    assert.match(rendered, /"changeId": "retire-auth"/);
+    assert.doesNotMatch(rendered, /active-only|directoryName|paths|deltaSpec|canonicalSpec/);
+  });
+});
+
+test("merges local archives over seeded summaries by stable identity", () => {
+  withProject((root) => {
+    write(root, "openspec/change-history.json", `${JSON.stringify({
+      version: 2,
+      changes: [{
+        changeId: "add-auth",
+        archiveDate: "2026-01-03",
+        schema: "product-change",
+        capabilities: [{ name: "auth", requirements: [] }],
+      }],
+    }, null, 2)}\n`);
+    write(root, "openspec/changes/archive/2026-01-03-add-auth/.openspec.yaml", "schema: product-change\n");
+    write(
+      root,
+      "openspec/changes/archive/2026-01-03-add-auth/specs/auth/spec.md",
+      "## ADDED Requirements\n\n### Requirement: AUTH-001 Password login\n",
+    );
+
+    const history = collectChangeHistory(root);
+    const rendered = renderChangeHistory(history);
+
+    assert.strictEqual(history.changes.filter((change) => change.state === "archived").length, 1);
+    assert.match(rendered, /"id": "AUTH-001"/);
+  });
+});
+
+test("rejects invalid or unsupported history seeds before regeneration", () => {
+  withProject((root) => {
+    write(root, "openspec/change-history.json", "{broken\n");
+    assert.throws(() => collectChangeHistory(root), /不是有效 JSON/);
+  });
+  withProject((root) => {
+    write(root, "openspec/change-history.json", '{"version":99,"changes":[]}\n');
+    assert.throws(() => collectChangeHistory(root), /仅支持 version 1 或 version 2/);
+  });
+  withProject((root) => {
+    write(root, "openspec/change-history.json", `${JSON.stringify({
+      version: 2,
+      changes: [{
+        changeId: "bad-date",
+        archiveDate: "yesterday",
+        schema: "bugfix",
+        capabilities: [],
+      }],
+    })}\n`);
+    assert.throws(() => collectChangeHistory(root), /无效的 archived change 摘要/);
+  });
+});
+
 
 test("renders exact deterministic JSON without diagnostics or input mutation", () => {
   const model = {
-    version: 1 as const,
+    version: 2 as const,
     changes: [],
     diagnostics: [{ severity: "error" as const, message: "excluded diagnostic" }],
   };
   const before = structuredClone(model);
   const expected = [
     "{",
-    '  "version": 1,',
+    '  "version": 2,',
     '  "changes": []',
     "}",
     "",

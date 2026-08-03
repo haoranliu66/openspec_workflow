@@ -1,5 +1,5 @@
 name: product-change
-version: 3
+version: 4
 description: Product workflow with a native OpenSpec change core
 artifacts:
   - id: br
@@ -54,4 +54,6 @@ apply:
     A later `/opsx:apply <change>`, `确认实施 <change>`, or an unambiguous confirmation to a single-change
     authorization prompt authorizes only that change. Material planning changes invalidate prior authorization;
     formatting, link repair, evidence attachment, and checkbox/status notes do not. This is AI/team governance,
-    not an approval artifact or a Schema, script, or CI proof.
+    not an approval artifact or a Schema, script, or CI proof. After implementation, prepare change-local
+    verification material for team review. Implementation authorization does not authorize formal close; present
+    the verification summary and wait for later explicit close authorization before running workflow close.

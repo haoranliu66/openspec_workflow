@@ -14,8 +14,20 @@ export interface RequirementChange {
 export interface CapabilityChange {
   name: string;
   canonicalSpec: string;
-  deltaSpec: string;
+  deltaSpec: string | null;
   requirements: RequirementChange[];
+}
+
+export interface ArchivedCapabilitySummary {
+  name: string;
+  requirements: Array<Pick<RequirementChange, "operation" | "id" | "name">>;
+}
+
+export interface ArchivedChangeSummary {
+  changeId: string;
+  archiveDate: string | null;
+  schema: string;
+  capabilities: ArchivedCapabilitySummary[];
 }
 
 export interface ChangeRecord {
@@ -34,7 +46,7 @@ export interface Diagnostic {
 }
 
 export interface ChangeHistory {
-  version: 1;
+  version: 2;
   changes: ChangeRecord[];
   diagnostics: Diagnostic[];
 }
@@ -94,6 +106,95 @@ function sortRequirements(requirements: RequirementChange[]): RequirementChange[
     if (operationOrder !== 0) return operationOrder;
     return compareEnglish(left.id ?? "", right.id ?? "");
   });
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function seedError(message: string): Error {
+  return new Error(`openspec/change-history.json ${message}`);
+}
+
+function normalizeRequirement(value: unknown): RequirementChange {
+  if (!isObject(value)
+    || typeof value.operation !== "string"
+    || !OPERATIONS.has(value.operation as DeltaOperation)
+    || (value.id !== null && typeof value.id !== "string")
+    || typeof value.name !== "string"
+    || value.name.trim() === "") {
+    throw seedError("包含无效的 Requirement 摘要。");
+  }
+  return {
+    operation: value.operation as DeltaOperation,
+    id: value.id,
+    name: value.name,
+  };
+}
+
+function normalizeCapabilities(value: unknown): ArchivedCapabilitySummary[] {
+  if (!Array.isArray(value)) {
+    throw seedError("中的 capabilities 必须是数组。");
+  }
+  return value.map((capability) => {
+    if (!isObject(capability)
+      || typeof capability.name !== "string"
+      || capability.name.trim() === ""
+      || !Array.isArray(capability.requirements)) {
+      throw seedError("包含无效的 capability 摘要。");
+    }
+    return {
+      name: capability.name,
+      requirements: sortRequirements(capability.requirements.map(normalizeRequirement))
+        .map(({ operation, id, name }) => ({ operation, id, name })),
+    };
+  }).sort((left, right) => compareEnglish(left.name, right.name));
+}
+
+function normalizeArchivedSummary(value: unknown): ArchivedChangeSummary {
+  if (!isObject(value)
+    || typeof value.changeId !== "string"
+    || value.changeId.trim() === ""
+    || (value.archiveDate !== null && typeof value.archiveDate !== "string")
+    || (typeof value.archiveDate === "string" && !/^\d{4}-\d{2}-\d{2}$/.test(value.archiveDate))
+    || typeof value.schema !== "string"
+    || value.schema.trim() === "") {
+    throw seedError("包含无效的 archived change 摘要。");
+  }
+  return {
+    changeId: value.changeId,
+    archiveDate: value.archiveDate,
+    schema: value.schema,
+    capabilities: normalizeCapabilities(value.capabilities),
+  };
+}
+
+function readHistorySeed(root: string): ArchivedChangeSummary[] {
+  const historyPath = path.join(root, "openspec", "change-history.json");
+  if (!fs.existsSync(historyPath)) return [];
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(fs.readFileSync(historyPath, "utf8"));
+  } catch {
+    throw seedError("不是有效 JSON；为避免历史丢失，未生成新索引。");
+  }
+  if (!isObject(parsed) || (parsed.version !== 1 && parsed.version !== 2)) {
+    throw seedError("仅支持 version 1 或 version 2；为避免历史丢失，未生成新索引。");
+  }
+  if (!Array.isArray(parsed.changes)) {
+    throw seedError("中的 changes 必须是数组。");
+  }
+
+  const archived = parsed.version === 1
+    ? parsed.changes.flatMap((change) => {
+      if (!isObject(change) || (change.state !== "active" && change.state !== "archived")) {
+        throw seedError("包含无效的 version 1 change state。");
+      }
+      return change.state === "archived" ? [change] : [];
+    })
+    : parsed.changes;
+  return archived.map(normalizeArchivedSummary);
 }
 
 export function parseDeltaSpec(content: string, sourcePath: string): RequirementChange[] {
@@ -167,6 +268,13 @@ function directDirectories(directory: string): string[] {
     .map((entry) => entry.name);
 }
 
+function containsFiles(directory: string): boolean {
+  if (!fs.existsSync(directory)) return false;
+  return fs.readdirSync(directory, { withFileTypes: true }).some((entry) => (
+    entry.isFile() || (entry.isDirectory() && containsFiles(path.join(directory, entry.name)))
+  ));
+}
+
 function schemaName(changeRoot: string): string {
   const metadata = path.join(changeRoot, ".openspec.yaml");
   if (!fs.existsSync(metadata)) return "unknown";
@@ -219,18 +327,11 @@ function collectRecord(
   root: string,
   directoryName: string,
   state: ChangeRecord["state"],
-  diagnostics: Diagnostic[],
 ): ChangeRecord {
   const changeDirectory = state === "active" ? directoryName : `archive/${directoryName}`;
   const changeRoot = path.join(root, "openspec", "changes", ...changeDirectory.split("/"));
   const archive = state === "archived" ? archiveIdentity(directoryName) : undefined;
   const schema = schemaName(changeRoot);
-  if (!KNOWN_SCHEMAS.has(schema)) {
-    diagnostics.push({
-      severity: state === "active" ? "error" : "warning",
-      message: `${state === "active" ? "Active" : "Archived"} change ${directoryName} has unknown schema ${schema}`,
-    });
-  }
   return {
     changeId: archive?.changeId ?? directoryName,
     directoryName,
@@ -242,20 +343,95 @@ function collectRecord(
   };
 }
 
+function archiveKey(change: Pick<ChangeRecord, "archiveDate" | "changeId" | "schema">): string {
+  return `${change.archiveDate ?? ""}\u0000${change.changeId}\u0000${change.schema}`;
+}
+
+function compareArchived(left: ChangeRecord, right: ChangeRecord): number {
+  const dateOrder = compareEnglish(left.archiveDate ?? "", right.archiveDate ?? "");
+  if (dateOrder !== 0) return dateOrder;
+  const idOrder = compareEnglish(left.changeId, right.changeId);
+  if (idOrder !== 0) return idOrder;
+  return compareEnglish(left.schema, right.schema);
+}
+
+function recordFromSummary(summary: ArchivedChangeSummary): ChangeRecord {
+  const directoryName = summary.archiveDate === null
+    ? summary.changeId
+    : `${summary.archiveDate}-${summary.changeId}`;
+  return {
+    changeId: summary.changeId,
+    directoryName,
+    state: "archived",
+    archiveDate: summary.archiveDate,
+    schema: summary.schema,
+    paths: {
+      br: null,
+      prd: null,
+      proposal: null,
+      design: null,
+      tasks: null,
+      feature: null,
+    },
+    capabilities: summary.capabilities.map((capability) => ({
+      name: capability.name,
+      canonicalSpec: toRelativePath("openspec", "specs", capability.name, "spec.md"),
+      deltaSpec: null,
+      requirements: capability.requirements.map((requirement) => ({ ...requirement })),
+    })),
+  };
+}
+
+function archivedSummary(change: ChangeRecord): ArchivedChangeSummary {
+  return {
+    changeId: change.changeId,
+    archiveDate: change.archiveDate,
+    schema: change.schema,
+    capabilities: change.capabilities.map((capability) => ({
+      name: capability.name,
+      requirements: sortRequirements(capability.requirements.map((requirement) => ({
+        operation: requirement.operation,
+        id: requirement.id,
+        name: requirement.name,
+      }))).map(({ operation, id, name }) => ({ operation, id, name })),
+    })).sort((left, right) => compareEnglish(left.name, right.name)),
+  };
+}
+
 export function collectChangeHistory(root: string): ChangeHistory {
-  const diagnostics: Diagnostic[] = [];
   const changesRoot = path.join(root, "openspec", "changes");
   const active = directDirectories(changesRoot)
     .filter((directory) => directory !== "archive")
     .sort(compareEnglish)
-    .map((directory) => collectRecord(root, directory, "active", diagnostics));
-  const archived = directDirectories(path.join(changesRoot, "archive"))
+    .map((directory) => collectRecord(root, directory, "active"));
+  const localArchived = directDirectories(path.join(changesRoot, "archive"))
+    .filter((directory) => containsFiles(path.join(changesRoot, "archive", directory)))
     .sort(compareEnglish)
-    .map((directory) => collectRecord(root, directory, "archived", diagnostics));
+    .map((directory) => collectRecord(root, directory, "archived"));
 
-  return { version: 1, changes: [...active, ...archived], diagnostics };
+  const archivedByIdentity = new Map<string, ChangeRecord>();
+  readHistorySeed(root).forEach((summary) => {
+    const record = recordFromSummary(summary);
+    archivedByIdentity.set(archiveKey(record), record);
+  });
+  localArchived.forEach((record) => archivedByIdentity.set(archiveKey(record), record));
+  const archived = Array.from(archivedByIdentity.values()).sort(compareArchived);
+
+  const changes = [...active, ...archived];
+  const diagnostics: Diagnostic[] = changes
+    .filter((change) => !KNOWN_SCHEMAS.has(change.schema))
+    .map((change) => ({
+      severity: change.state === "active" ? "error" : "warning",
+      message: `${change.state === "active" ? "Active" : "Archived"} change ${change.directoryName} has unknown schema ${change.schema}`,
+    }));
+
+  return { version: 2, changes, diagnostics };
 }
 
 export function renderChangeHistory(model: ChangeHistory): string {
-  return `${JSON.stringify({ version: model.version, changes: model.changes }, null, 2)}\n`;
+  const changes = model.changes
+    .filter((change) => change.state === "archived")
+    .sort(compareArchived)
+    .map(archivedSummary);
+  return `${JSON.stringify({ version: 2, changes }, null, 2)}\n`;
 }

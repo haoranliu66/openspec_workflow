@@ -1,11 +1,8 @@
-import { type CloseoutDiagnostic } from "./closeout-contract";
-import { type CloseoutValidationResult, validateCloseChange } from "./closeout-validation";
 import { runOpenSpec } from "./openspec-cli";
 import { checkProject, writeIndex } from "../scripts/openspec-governance";
 
 export interface CloseWorkflowDependencies {
-  validate: (root: string, changeId: string) => CloseoutValidationResult;
-  warn: (diagnostic: CloseoutDiagnostic) => void;
+  validate: (root: string, changeId: string) => void;
   archive: (root: string, args: readonly string[]) => void;
   index: (root: string) => void;
   check: (root: string) => void;
@@ -18,20 +15,17 @@ export interface CloseWorkflowResult {
 
 export class CloseWorkflowError extends Error {
   readonly archived: boolean;
-  readonly diagnostics: readonly CloseoutDiagnostic[];
 
-  constructor(message: string, archived: boolean, diagnostics: readonly CloseoutDiagnostic[] = []) {
+  constructor(message: string, archived: boolean) {
     super(message);
     this.name = "CloseWorkflowError";
     this.archived = archived;
-    this.diagnostics = diagnostics;
   }
 }
 
 const defaultDependencies: CloseWorkflowDependencies = {
-  validate: validateCloseChange,
-  warn: (entry) => {
-    process.stderr.write(`WARNING ${entry.code} ${entry.path}: ${entry.message}\n`);
+  validate: (root, changeId) => {
+    runOpenSpec(["validate", changeId, "--strict"], { cwd: root, stdio: "inherit" });
   },
   archive: (root, args) => {
     runOpenSpec(args, { cwd: root, stdio: "inherit" });
@@ -46,15 +40,7 @@ export function closeChange(
   options: { skipSpecs: boolean },
   dependencies: CloseWorkflowDependencies = defaultDependencies,
 ): CloseWorkflowResult {
-  const validation = dependencies.validate(projectRoot, changeId);
-  validation.warnings.forEach((entry) => dependencies.warn(entry));
-  if (validation.diagnostics.length > 0) {
-    throw new CloseWorkflowError(
-      `Closeout validation failed for ${changeId}; archive was not attempted.\n${formatDiagnostics(validation.diagnostics)}`,
-      false,
-      validation.diagnostics,
-    );
-  }
+  dependencies.validate(projectRoot, changeId);
 
   const archiveArgs = [
     "archive",
@@ -79,8 +65,4 @@ export function closeChange(
   }
 
   return { changeId, archived: true };
-}
-
-function formatDiagnostics(diagnostics: readonly CloseoutDiagnostic[]): string {
-  return diagnostics.map((diagnostic) => `${diagnostic.code} ${diagnostic.path}: ${diagnostic.message}`).join("\n");
 }

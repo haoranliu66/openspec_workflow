@@ -1,5 +1,5 @@
 name: bugfix
-version: 1
+version: 2
 description: 小 Bug 工作流 - proposal -> specs -> tasks -> apply
 artifacts:
   - id: proposal
@@ -9,7 +9,8 @@ artifacts:
     instruction: |
       仅当预期行为已经确认，并且变更不新增流程、角色、接口契约或业务规则时使用本 Schema。
       描述可观察缺陷、预期行为、明确范围、非目标、受影响 capability、风险和回滚方式。
-      如果调研发现产品范围扩大，立即停止并改用 product-change。
+      如果调研发现需要新增非产品系统行为，立即停止并改用内置 spec-driven；若触及产品目标、
+      用户旅程、角色权限、业务规则、公共契约或共享验收，改用 product-change。
     requires: []
 
   - id: specs
@@ -20,17 +21,17 @@ artifacts:
       每个受影响 capability 创建一份 delta spec。按需使用 ADDED、MODIFIED、REMOVED 或
       RENAMED；MODIFIED 必须包含修改后的完整 Requirement。每项 Requirement 使用 SHALL/MUST，
       并至少包含一个四级标题 Scenario 及精确 WHEN/THEN。保持 Requirement ID 稳定，链接当前
-      canonical spec，并向后链接相关历史 change。按团队流程不得修改归档以增加正向链接；该团队流程规则不由 Schema、脚本或 CI 强制。
+      canonical spec，并引用 `openspec/change-history.json` 中相关历史 change ID。详细本地归档可能不存在；若存在，按团队流程不得修改归档以增加正向链接。该团队流程规则不由 Schema、脚本或 CI 强制。
     requires:
       - proposal
 
   - id: tasks
     generates: tasks.md
-    description: 最小实现与回归检查清单
+    description: 最小实现、回归验证与团队关闭审核清单
     template: tasks.md
     instruction: |
       使用 `- [ ] X.Y ...` 编写按依赖排序、可独立验证的任务。包含根因确认、实现、聚焦测试、
-      适用质量门禁、回滚证据，以及当前规格同步、归档、索引和治理所需输入。不得加入无关重构。
+      适用质量检查、change-local verification、风险适用性、回滚证据和团队关闭审核。不得加入无关重构。
     requires:
       - specs
 
@@ -44,4 +45,6 @@ apply:
     `确认实施 <change>`，或对单一 change 授权问题的无歧义确认，只授权该 change。规划发生实质修改后
     旧授权失效；仅格式、链接修复、证据附加和 checkbox/状态备注不使授权失效。该规则属于 AI/团队治理，
     不创建 approval artifact，也不由 Schema、脚本或 CI 证明。获得授权后只实现有界修复，产出回归证据
-    并更新任务状态；如果范围扩大，停止并迁移到 product-change。验证后执行正式关闭流程。
+    并更新任务状态；如果范围扩大，停止并按行为与治理面重新选择 spec-driven 或 product-change。验证后在 change 内准备 verification，
+    展示未完成项、风险和回滚摘要并结束当前轮次；实施授权不授权关闭，只有后续明确的 change-scoped
+    关闭授权才允许执行正式关闭。该授权仍是团队治理，不创建 approval artifact 或程序/CI 证明。

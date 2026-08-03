@@ -159,24 +159,24 @@ try {
   fs.rmSync(templateRoot, { recursive: true, force: true });
 }
 
-const closeoutTemplateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-closeout-"));
+const verificationTemplateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-verification-"));
 try {
-  fs.cpSync(productSchemaRoot, closeoutTemplateRoot, { recursive: true });
-  const tasksPath = path.join(closeoutTemplateRoot, "templates", "tasks.md");
+  fs.cpSync(productSchemaRoot, verificationTemplateRoot, { recursive: true });
+  const tasksPath = path.join(verificationTemplateRoot, "templates", "tasks.md");
   const tasks = fs.readFileSync(tasksPath, "utf8");
-  const withoutBrowserGate = tasks.replace(
-    /^- \[ \] 3\.3 .*browser.*\r?\n/m,
+  const withoutVerificationRecord = tasks.replace(
+    /^- \[ \] 3\.1 .*verification\.md.*\r?\n/m,
     "",
   );
-  assert.notStrictEqual(withoutBrowserGate, tasks);
-  fs.writeFileSync(tasksPath, withoutBrowserGate, "utf8");
+  assert.notStrictEqual(withoutVerificationRecord, tasks);
+  fs.writeFileSync(tasksPath, withoutVerificationRecord, "utf8");
 
   assert.throws(
-    () => checkProductSchemaAlignment(closeoutTemplateRoot),
-    /tasks\.md must include a closeout gate task for browser/,
+    () => checkProductSchemaAlignment(verificationTemplateRoot),
+    /tasks\.md must include a change-local verification\.md task/,
   );
 } finally {
-  fs.rmSync(closeoutTemplateRoot, { recursive: true, force: true });
+  fs.rmSync(verificationTemplateRoot, { recursive: true, force: true });
 }
 
 process.stdout.write("PASS validates native product-change schema alignment.\n");

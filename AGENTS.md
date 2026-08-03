@@ -5,7 +5,7 @@
 1. 先读取根目录 `SPEC.md` 定位受影响 capability 与活动 change。
 2. 只加载 `openspec/specs/` 下受影响的当前规格。
 3. 加载修改相同 capability 的活动 changes；需要 Requirement 级历史时读取 `openspec/change-history.json`。
-4. 仅在处理回归、冲突或设计依据时读取相关 archive。
+4. 需要历史依据时优先读取无路径 `openspec/change-history.json`；只有本地详细 archive 存在且回归、冲突或设计依据确有需要时才读取它。
 5. BR/PRD 表达外层产品目标，specs 表达可执行行为。
 
 ## 工作流选择与 artifact graph
@@ -33,23 +33,24 @@
 - 本次行为增量：`openspec/changes/<change>/specs/<capability>/spec.md`。
 - 技术设计：本 change 唯一的 `design.md`。
 - 实现状态：源代码、`tasks.md` 和验证证据。
-- 导航与历史：生成的 `SPEC.md` 与 `openspec/change-history.json`，不得手工编辑。
+- 导航与历史：生成的 `SPEC.md` 与 `openspec/change-history.json` v2；后者只持久化已归档演变摘要，不含活动 change 或 artifact 路径，不得手工编辑。
 
 ## 流程治理规则与程序门禁
 
 流程治理规则依靠团队评审与协作执行；程序门禁仅指 Schema、脚本或 CI 实际校验的检查。二者都应遵守，但执行方式不同。
 
 - 可执行验收场景只写在 specs 中。
-- 历史修订由新的 delta change 表达；2.0 升级不改写已有 archive 目录。
+- 历史修订由新的 delta change 表达；详细本地 archive 若存在也不得用来改写历史结论。
 - 实现证据不存在时，不在 FEATURE 中宣称 ready；FEATURE ready 也不等于 change 已完成关闭。
-- 按改动面选择质量门禁，并在 tasks、共享 FEATURE 或 evidence artifact 中记录命令和结果。
-- `node dist/bin/workflow.js close <change> --target .` 是源码仓库唯一必需的正式关闭入口；安装目标使用 `node bin/workflow.js close <change> --target .`。它会完成关闭校验、归档、重建索引和治理检查；已经 sync 时才传入 `--skip-specs`。`npm run validate:close -- <change>`（安装目标为 `node scripts/validate-close.js <change>`）仅是可选、非变更性的单 change 预检。
-- 未完成的真实 task checkbox 在关闭校验中产生 `TASKS_INCOMPLETE` 警告，但不阻止关闭。缺失、不可读或没有真实 checkbox 的 `tasks.md` 仍以 `TASKS_INVALID` 阻止关闭。
-- AI 应优先继续完成仍可实现的 task。若判断某项 task 无法实现、取消或需要延期，必须向用户说明原因、交付影响、对 Requirement/FEATURE 声明的影响和后续安排，并在执行 `workflow close` 前取得用户明确确认；如未完成项使既有交付声明不再真实，必须先修正相关声明。该确认属于团队流程治理，不由 Schema、脚本或 CI 强制证明。
-- 程序关闭门禁仍强制：`tasks.md` 输入有效、四项适用门禁及成功 evidence、product-change 的共享 FEATURE/evidence 引用和 Requirement/PRD 验收引用，以及 bugfix/system-change 的稳定 Requirement ID。system-change 不要求共享 BR/PRD/FEATURE 或 Requirement/PRD 映射。它们只证明结构、引用、文件存在和声明证据，不证明语义正确、证据充分或 N/A 理由合理；`closeout.json.command` 可选，存在时只记录、不执行，`artifact` 仍必填。
-- `validate:changes` 与 `validate:close <change>` 是不同门禁：前者枚举全部活动 change 做 OpenSpec strict validation，后者校验显式指定的单个关闭输入。
+- 每个 change 应在 `openspec/changes/<change>/verification.md` 记录实际交付范围、详细测试用例、预期与实际结果、安全/迁移/浏览器/回滚适用性、未完成项、限制、回滚信息和安全的 evidence 引用；补充材料可放在同目录 `evidence/`。大型或敏感材料只记录摘要和安全外部引用。
+- `verification.md` 和 `evidence/` 是团队评审材料，不加入 OpenSpec artifact graph，也不由 Schema、脚本、CLI 或 CI 强制存在、解析或判断充分性。不得创建新的 `closeout.json`；下游项目若仍有历史 `closeout.json`，新流程会忽略但不会由安装器删除其 change 记录。
+- 团队负责审核 tasks 完成情况、证据充分性、四项风险适用性、Requirement/PRD/FEATURE 真实性和稳定 ID。AI 应继续所有可实现 task；无法实现、取消或延期的项必须说明原因、交付影响、相关声明影响和后续安排，并先修正不再真实的声明。
+- 实施授权不构成关闭授权。AI 代为关闭前必须展示准确 change ID、已交付/验证范围、证据摘要、未完成 tasks、限制、风险决策和收尾计划，然后结束当前轮次并等待后续明确的“确认关闭 <change>”或等价授权。该规则不创建 approval artifact，也不由程序或 CI 证明。
+- `node dist/bin/workflow.js close <change> --target .` 是源码仓库唯一正式关闭入口；安装目标使用 `node bin/workflow.js close <change> --target .`。它只执行 `openspec validate <change> --strict`、OpenSpec archive、索引/历史重建和治理检查，不读取 tasks、verification、evidence、BR/PRD/FEATURE 或历史 closeout。正常路径由 archive 应用 delta；只有已经提前 sync 的恢复场景才传入 `--skip-specs`。
+- 本项目不再提供 `validate:close` 或独立关闭预检。`validate:changes` 仍枚举全部活动 change 并逐项执行 OpenSpec strict validation；它不判断 change 是否完成或是否应关闭。
 - 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项执行 `openspec validate <change> --strict`。
 - 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
+- 本工作流源仓库的活动/归档 change 详情、编号 `docs/requirements/REQ-*` 和 `artifacts/**` 受根目录规则排除，不进入公开 checkout；正式关闭仍会先把本地归档摘要合入 history v2。安装器不得复制该排除策略，下游项目自行决定是否跟踪完整过程记录。旧 Git 提交不在本变更中重写。
 
 ## 工具边界
 

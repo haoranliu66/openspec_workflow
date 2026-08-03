@@ -9,3 +9,11 @@ dist/
 Thumbs.db
 docs/superpowers/plans/
 docs/superpowers/specs/
+
+# Upstream-only development records. The installer does not copy this file.
+/openspec/changes/*
+!/openspec/changes/archive/
+/openspec/changes/archive/*
+!/openspec/changes/archive/.gitkeep
+/docs/requirements/REQ-[0-9]*/
+/artifacts/

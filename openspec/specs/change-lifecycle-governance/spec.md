@@ -1,7 +1,9 @@
 # change-lifecycle-governance Specification
 
 ## Purpose
-TBD - created by archiving change simplify-closeout-and-gate-apply. Update Purpose after archive.
+
+Define the workflow-selection, authorization, verification, formal-close, installation, and history-governance behavior shared by all supported OpenSpec change paths.
+
 ## Requirements
 ### Requirement: WFG-001 Planning package authorization stop
 
@@ -61,45 +63,36 @@ The product-change Schema SHALL retain change-local BR and PRD artifacts while p
 
 ### Requirement: WFG-005 Shared FEATURE is the delivery conclusion source
 
-The workflow SHALL store each delivered product result in the shared requirement `FEATURE.md` as a separate row containing change ID, result ID, non-empty delivered conclusion, evidence IDs, version or date, and status. A result marked `ready` MUST reference at least one passed evidence record from the change closeout.
+The workflow SHALL store each delivered product result in the shared requirement `FEATURE.md` as a separate row containing change ID, result ID, non-empty delivered conclusion, evidence references, version or date, and status. A result marked `ready` MUST be supported by verification material reviewed by the team. The shared FEATURE remains the product delivery conclusion source, but Schema, scripts, CLI, and CI MUST NOT claim to prove the semantic correctness or evidence sufficiency of its rows during formal close.
 
-#### Scenario: Shared result has successful evidence
+#### Scenario: Shared result is accepted in team review
 
-- **WHEN** a shared FEATURE row for the closing change is marked `ready` and every referenced evidence ID resolves to a passed project-local evidence artifact
-- **THEN** the delivery result trace SHALL pass validation
+- **WHEN** the team reviews a product change's verification material and determines that a shared FEATURE result is delivered and supported
+- **THEN** the result MAY be marked `ready` with evidence references and formal close SHALL NOT repeat a machine FEATURE/evidence validation
 
-#### Scenario: Shared result lacks evidence
+#### Scenario: Shared result is not supported
 
-- **WHEN** a shared FEATURE result has no evidence IDs or references missing or unsuccessful evidence
-- **THEN** closeout validation SHALL fail with a FEATURE trace diagnostic
-
-### Requirement: WFG-006 Minimal product closeout contract
-
-The single supported product closeout contract SHALL directly replace the previous contract without introducing a parallel v2 format. It SHALL retain the existing `version: 1` format marker and contain only the version, complete delta Requirement-to-PRD acceptance mappings, evidence records, and the security, migration, browser, and rollback applicability matrix. The validator SHALL derive the shared PRD from change-local `prd.md` and the shared FEATURE from the shared requirement directory, and MUST NOT require duplicate PRD, shared FEATURE, or feature result fields in closeout JSON.
-
-#### Scenario: Minimal closeout is complete
-
-- **WHEN** a product closeout contains valid Requirement mappings, passed project-local evidence, a complete gate matrix, and matching shared PRD and FEATURE records
-- **THEN** closeout content validation SHALL succeed without `prd`, `sharedFeature`, or `featureResults` JSON fields
-
-#### Scenario: Applicable gate lacks matching evidence
-
-- **WHEN** any applicable security, migration, browser, or rollback gate lacks passed evidence of the corresponding type
-- **THEN** closeout validation SHALL remain blocking
+- **WHEN** team review finds that a planned or ready FEATURE conclusion is not supported by the implementation or verification record
+- **THEN** the delivery claim MUST be corrected before close authorization is requested
 
 ### Requirement: WFG-007 Single required close entry point
 
-The documented normal close flow SHALL require only `workflow close <change>`, which SHALL validate the explicit active change before archive and then rebuild navigation and run governance checks. `validate:close <change>` SHALL remain available as an optional non-mutating preflight.
+The documented normal close flow SHALL require only `workflow close <change>`. For the explicit active change, the command SHALL execute OpenSpec strict validation before archive, run archive with delta application by default, rebuild navigation/history, and run governance checks. The workflow MUST NOT provide a separate `validate:close` command or execute custom closeout, task, evidence, gate, Requirement/PRD, FEATURE, or stable-ID validation. `--skip-specs` SHALL remain a recovery-only option for a change that was already synced and MUST NOT be documented as the normal path.
 
-#### Scenario: User runs formal close
+#### Scenario: Team-authorized change is formally closed
 
-- **WHEN** the user runs `workflow close <change>` for a valid active change
-- **THEN** the command SHALL perform strict and closeout validation before archive without requiring a separate preflight command
+- **WHEN** the team has reviewed a change, explicitly authorized its close, and runs `workflow close <change>`
+- **THEN** the command SHALL strictly validate, archive with delta application, rebuild generated navigation/history, and run governance checks without reading a closeout contract
 
-#### Scenario: User wants a preview
+#### Scenario: Strict validation fails
 
-- **WHEN** the user runs `validate:close <change>`
-- **THEN** the command SHALL report the same pre-archive validation diagnostics without archiving the change
+- **WHEN** `openspec validate <change> --strict` fails for the explicit active change
+- **THEN** formal close SHALL stop before archive and report the validation failure
+
+#### Scenario: Change was already synced
+
+- **WHEN** an exceptional recovery case has already applied the change's delta to canonical specs
+- **THEN** the user MAY invoke formal close with `--skip-specs`, while normal workflow guidance SHALL continue to apply delta only during archive
 
 ### Requirement: WFG-008 Three-way workflow selection
 
@@ -141,20 +134,76 @@ The system-change governance path SHALL use OpenSpec `1.5.0`'s built-in `spec-dr
 
 ### Requirement: WFG-010 System-change closeout and archive governance
 
-The workflow SHALL recognize `spec-driven` as a supported non-product closeout Schema. A system-change closeout SHALL require valid tasks input, project-local passed evidence, the complete security/migration/browser/rollback matrix, and stable IDs for every delta Requirement, while it MUST NOT require shared BR, PRD, FEATURE, or Requirement-to-PRD mappings. `workflow close <change>` SHALL strictly validate, archive, rebuild navigation/history, and run governance checks for the explicit spec-driven change.
+The workflow SHALL recognize `spec-driven` as the native Schema for the system-change path and apply the same change-local verification, team review, explicit close authorization, and minimal formal archive governance used by other paths. System-change MUST NOT require shared BR, PRD, or FEATURE. Stable delta Requirement IDs remain a team-reviewed governance convention, but the formal close command MUST NOT parse or separately gate them.
 
-#### Scenario: Valid system change is formally closed
+#### Scenario: Reviewed system change is formally closed
 
-- **WHEN** a spec-driven change has stable delta Requirement IDs, valid tasks, passed evidence, and a complete gate matrix
-- **THEN** formal close SHALL archive it, update canonical specs and generated history, and complete governance checks without product trace artifacts
+- **WHEN** a spec-driven change has verification material reviewed by the team and receives explicit close authorization
+- **THEN** formal close SHALL strictly validate, archive, rebuild navigation/history, and run governance checks without a non-product closeout contract
 
-#### Scenario: System change has an unstable Requirement heading
+#### Scenario: Team review finds an unstable Requirement heading
 
-- **WHEN** any spec-driven delta Requirement lacks the stable project Requirement ID prefix
-- **THEN** closeout validation SHALL fail with `REQUIREMENT_INVALID`
+- **WHEN** team review finds that a spec-driven delta Requirement does not follow the project's stable ID convention
+- **THEN** the team SHALL correct or explicitly resolve the traceability issue before authorizing close, without claiming a Schema or CI proof
 
 #### Scenario: Installed workflow validates supported schemas
 
 - **WHEN** Schema validation runs in the source repository or an installed target with OpenSpec 1.5.0
-- **THEN** it SHALL validate bugfix, product-change, and the built-in spec-driven Schema while distributing no copied spec-driven Schema files
+- **THEN** it SHALL validate bugfix, product-change, and the built-in spec-driven Schema while distributing no copied spec-driven Schema or closeout contract
 
+### Requirement: WFG-011 Change-local team verification record
+
+For every workflow path, the team SHALL record delivered scope, test cases and results, evidence references, applicable risk decisions, incomplete work, known limitations, and rollback information under the active change using `verification.md` and optional `evidence/` material. These records SHALL move with the change when OpenSpec archives it. They MUST remain outside the OpenSpec artifact graph and MUST NOT be required, parsed, or semantically judged by Schema, scripts, CLI, or CI.
+
+#### Scenario: Implementation reaches team review
+
+- **WHEN** implementation and verification work is ready for close review
+- **THEN** the AI or delivery team SHALL prepare the change-local verification record and disclose every known incomplete or deferred item and its delivery impact
+
+#### Scenario: Verification contains large or sensitive artifacts
+
+- **WHEN** detailed evidence is too large for source control or contains credentials, personal data, or other sensitive content
+- **THEN** the change record SHALL store a concise result and safe external reference rather than committing the sensitive or oversized artifact
+
+#### Scenario: Change is archived
+
+- **WHEN** OpenSpec archives a change containing `verification.md` or `evidence/`
+- **THEN** those files SHALL be preserved with the archived change without a separate evidence migration step
+
+### Requirement: WFG-012 Explicit team close authorization
+
+After verification is prepared, the AI SHALL present the exact change ID, delivered and tested scope, evidence summary, incomplete tasks, known limitations, risk decisions, and finalization plan, then end the current execution turn and wait for a later explicit close authorization. Implementation authorization, task completion, verification generation, `/opsx:sync`, a generic continuation, or a prior apply confirmation MUST NOT authorize close. Close authorization applies only to the identified change and is team governance that SHALL NOT create an approval artifact or program/CI proof.
+
+#### Scenario: Team explicitly authorizes close
+
+- **WHEN** the immediately preceding close review identifies exactly one change and the user later says `确认关闭 <change>` or gives an unambiguous equivalent instruction
+- **THEN** the AI MAY run formal close for that change without asking a duplicate confirmation
+
+#### Scenario: Incomplete task is accepted
+
+- **WHEN** a task is impossible, cancelled, or deferred and the team accepts the stated reason, delivery impact, affected Requirement/FEATURE claims, and follow-up arrangement
+- **THEN** the team MAY authorize close after false delivery claims are corrected, without requiring a machine checkbox exception or approval record
+
+#### Scenario: Only implementation was authorized
+
+- **WHEN** a change has implementation authorization but no later explicit close authorization
+- **THEN** the AI MUST NOT run formal close on the user's behalf
+
+### Requirement: WFG-013 Safe retirement of legacy closeout assets
+
+The source repository and clean installations MUST NOT distribute the retired closeout validation script, closeout-specific libraries, or closeout JSON templates. During upgrade, the installer SHALL retire only explicitly allowlisted paths owned by the previous workflow manifest, create a recoverable backup before removal, and leave unowned files and all project change, archive, verification, and evidence content unchanged.
+
+#### Scenario: Legacy installed target is upgraded
+
+- **WHEN** an installed target's previous workflow manifest owns a retired closeout implementation file
+- **THEN** the installer SHALL back up and remove that managed file and report the retirement
+
+#### Scenario: Similar user file is not workflow-managed
+
+- **WHEN** a target contains a closeout-named file that is not both allowlisted and owned by the previous workflow manifest
+- **THEN** the installer MUST leave the file unchanged
+
+#### Scenario: Historical closeout record exists
+
+- **WHEN** an active or archived change contains a historical `closeout.json` or the project contains historical closeout evidence
+- **THEN** installation, upgrade, governance, and formal close MUST leave that content unchanged and the new close command SHALL ignore it

@@ -14,6 +14,7 @@ export interface InstallResult {
   skipped: string[];
   conflicts: string[];
   backedUp: string[];
+  retired: string[];
 }
 
 interface ManagedSource {
@@ -40,10 +41,6 @@ const REQUIRED_FILES: ManagedSource[] = [
     targetPath: "scripts/validate-changes.js",
   },
   {
-    sourcePath: "dist/scripts/validate-close.js",
-    targetPath: "scripts/validate-close.js",
-  },
-  {
     sourcePath: "dist/bin/workflow.js",
     targetPath: "bin/workflow.js",
   },
@@ -64,30 +61,6 @@ const REQUIRED_FILES: ManagedSource[] = [
     targetPath: "lib/change-history.js",
   },
   {
-    sourcePath: "dist/lib/closeout-contract.js",
-    targetPath: "lib/closeout-contract.js",
-  },
-  {
-    sourcePath: "dist/lib/structured-markdown.js",
-    targetPath: "lib/structured-markdown.js",
-  },
-  {
-    sourcePath: "dist/lib/closeout-p0.js",
-    targetPath: "lib/closeout-p0.js",
-  },
-  {
-    sourcePath: "dist/lib/closeout-trace.js",
-    targetPath: "lib/closeout-trace.js",
-  },
-  {
-    sourcePath: "dist/lib/closeout-feature.js",
-    targetPath: "lib/closeout-feature.js",
-  },
-  {
-    sourcePath: "dist/lib/closeout-validation.js",
-    targetPath: "lib/closeout-validation.js",
-  },
-  {
     sourcePath: "dist/lib/close-workflow.js",
     targetPath: "lib/close-workflow.js",
   },
@@ -103,8 +76,20 @@ const REQUIRED_DIRECTORIES = [
   "openspec/schemas/bugfix",
   "openspec/schemas/product-change",
   "docs/requirements/_templates",
-  "docs/closeout-templates",
 ];
+
+const RETIRED_MANAGED_FILES = [
+  "scripts/validate-close.js",
+  "lib/closeout-contract.js",
+  "lib/structured-markdown.js",
+  "lib/closeout-p0.js",
+  "lib/closeout-trace.js",
+  "lib/closeout-feature.js",
+  "lib/closeout-validation.js",
+  "docs/closeout-templates/product-change.json",
+  "docs/closeout-templates/bugfix.json",
+  "docs/closeout-templates/spec-driven.json",
+] as const;
 
 function toPosix(relativePath: string): string {
   return relativePath.split(path.sep).join("/");
@@ -199,6 +184,24 @@ function readSourceVersion(sourceRoot: string): string {
   return metadata.version;
 }
 
+function readPreviousManagedFiles(targetRoot: string): Set<string> {
+  const manifestPath = path.join(targetRoot, ".ai-workflow.json");
+  if (!fs.existsSync(manifestPath)) return new Set();
+
+  let metadata: unknown;
+  try {
+    metadata = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch {
+    throw new Error("现有 .ai-workflow.json 不是有效 JSON，本次未修改任何文件。");
+  }
+  if (typeof metadata !== "object" || metadata === null
+    || !("managedFiles" in metadata) || !Array.isArray(metadata.managedFiles)
+    || !metadata.managedFiles.every((entry) => typeof entry === "string")) {
+    throw new Error("现有 .ai-workflow.json 的 managedFiles 必须是字符串数组，本次未修改任何文件。");
+  }
+  return new Set(metadata.managedFiles);
+}
+
 export function installWorkflow(
   sourceRoot: string,
   targetRoot: string,
@@ -208,6 +211,7 @@ export function installWorkflow(
   const target = path.resolve(targetRoot);
   if (!fs.existsSync(source)) throw new Error(`源仓库不存在：${source}`);
   const version = readSourceVersion(source);
+  const previousManagedFiles = readPreviousManagedFiles(target);
 
   const operations = buildOperations(source, target);
   const sourceConflicts = operations
@@ -247,6 +251,7 @@ export function installWorkflow(
     skipped: [],
     conflicts: [],
     backedUp: [],
+    retired: [],
   };
   fs.mkdirSync(target, { recursive: true });
   const backupStamp = options.backupStamp || new Date().toISOString().replace(/[:.]/g, "-");
@@ -258,6 +263,14 @@ export function installWorkflow(
     });
   }
 
+  const retiredPaths = RETIRED_MANAGED_FILES.filter((relativePath) => (
+    previousManagedFiles.has(relativePath)
+    && fs.existsSync(path.join(target, relativePath))
+  ));
+  retiredPaths.forEach((relativePath) => {
+    result.backedUp.push(backupFile(target, relativePath, backupRoot));
+  });
+
   managedOperations.forEach((operation) => {
     const targetPath = path.join(target, operation.relativePath);
     if (sameContent(targetPath, operation.content)) {
@@ -268,6 +281,16 @@ export function installWorkflow(
     fs.writeFileSync(targetPath, operation.content);
     result.copied.push(operation.relativePath);
   });
+
+  retiredPaths.forEach((relativePath) => {
+    fs.unlinkSync(path.join(target, relativePath));
+    result.retired.push(relativePath);
+  });
+  const retiredTemplateDirectory = path.join(target, "docs", "closeout-templates");
+  if (fs.existsSync(retiredTemplateDirectory)
+    && fs.readdirSync(retiredTemplateDirectory).length === 0) {
+    fs.rmdirSync(retiredTemplateDirectory);
+  }
 
   const manifestPath = path.join(target, ".ai-workflow.json");
   const manifest = `${JSON.stringify({
