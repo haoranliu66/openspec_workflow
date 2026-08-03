@@ -38,6 +38,10 @@ apply:
   requires: [tasks]
   tracks: tasks.md
   instruction: |
-    先读 SPEC.md，再读受影响当前规格和本 change。只实现有界修复，产出回归证据并更新任务状态。
-    如果范围扩大，停止并迁移到 product-change。验证后同步当前规格、归档、重建 SPEC.md，
-    并执行治理检查。
+    先读 SPEC.md，再读受影响当前规格和本 change。proposal.md、delta specs 与 tasks.md 完成或发生
+    实质修改后，结束当前执行轮次，展示 change ID 与计划摘要，等待用户在后续消息中授权。原始请求、
+    artifact 生成、/opsx:continue、/opsx:ff 或普通“继续”不构成授权；后续 `/opsx:apply <change>`、
+    `确认实施 <change>`，或对单一 change 授权问题的无歧义确认，只授权该 change。规划发生实质修改后
+    旧授权失效；仅格式、链接修复、证据附加和 checkbox/状态备注不使授权失效。该规则属于 AI/团队治理，
+    不创建 approval artifact，也不由 Schema、脚本或 CI 证明。获得授权后只实现有界修复，产出回归证据
+    并更新任务状态；如果范围扩大，停止并迁移到 product-change。验证后执行正式关闭流程。

@@ -76,8 +76,8 @@ function createOpenSpecProbe(base: string): {
     'const path = require("node:path");',
     "const args = process.argv.slice(2);",
     "const schema = args[2];",
-    'const schemaFile = path.join(process.cwd(), "openspec", "schemas", schema, "schema.yaml");',
-    "if (schema === undefined || !fs.existsSync(schemaFile)) {",
+    'const schemaFile = schema === "spec-driven" ? "builtin:spec-driven" : path.join(process.cwd(), "openspec", "schemas", schema, "schema.yaml");',
+    'if (schema === undefined || (schema !== "spec-driven" && !fs.existsSync(schemaFile))) {',
     "  process.stderr.write('missing schema ' + schemaFile + '\\n');",
     "  process.exit(42);",
     "}",
@@ -137,8 +137,9 @@ function makeSource(root: string): void {
   write(root, "docs/requirements/_templates/FEATURE.md", "# FEATURE\n");
   write(root, "docs/FULLSTACK_WORKFLOW.md", "# Workflow\n");
   write(root, "docs/QUALITY_GATES.md", "# Gates\n");
-  write(root, "docs/closeout-templates/product-change.json", '{"version":1,"prd":"docs/requirements/REQ-000/PRD-000.md","sharedFeature":"docs/requirements/REQ-000/FEATURE.md","requirements":[],"featureResults":[],"evidence":[],"gates":{"security":{"applicable":false,"reason":"replace","evidenceIds":[]},"migration":{"applicable":false,"reason":"replace","evidenceIds":[]},"browser":{"applicable":false,"reason":"replace","evidenceIds":[]},"rollback":{"applicable":false,"reason":"replace","evidenceIds":[]}}}\n');
+  write(root, "docs/closeout-templates/product-change.json", '{"version":1,"requirements":[],"evidence":[],"gates":{"security":{"applicable":false,"reason":"replace","evidenceIds":[]},"migration":{"applicable":false,"reason":"replace","evidenceIds":[]},"browser":{"applicable":false,"reason":"replace","evidenceIds":[]},"rollback":{"applicable":false,"reason":"replace","evidenceIds":[]}}}\n');
   write(root, "docs/closeout-templates/bugfix.json", '{"version":1,"evidence":[],"gates":{"security":{"applicable":false,"reason":"replace","evidenceIds":[]},"migration":{"applicable":false,"reason":"replace","evidenceIds":[]},"browser":{"applicable":false,"reason":"replace","evidenceIds":[]},"rollback":{"applicable":false,"reason":"replace","evidenceIds":[]}}}\n');
+  write(root, "docs/closeout-templates/spec-driven.json", '{"version":1,"evidence":[],"gates":{"security":{"applicable":false,"reason":"replace","evidenceIds":[]},"migration":{"applicable":false,"reason":"replace","evidenceIds":[]},"browser":{"applicable":false,"reason":"replace","evidenceIds":[]},"rollback":{"applicable":false,"reason":"replace","evidenceIds":[]}}}\n');
 }
 
 function withRoots(fn: (roots: { source: string; target: string }) => void): void {
@@ -192,6 +193,8 @@ test("installs versioned assets and required OpenSpec structure", () => {
     assert.strictEqual(read(target, "openspec/config.yaml"), "schema: product-change\n");
     assert.ok(fs.existsSync(path.join(target, "openspec/schemas/bugfix/schema.yaml")));
     assert.ok(fs.existsSync(path.join(target, "openspec/schemas/product-change/schema.yaml")));
+    assert.ok(!fs.existsSync(path.join(target, "openspec/schemas/spec-driven")));
+    assert.ok(!fs.existsSync(path.join(target, "openspec/schemas/product-change/templates/feature.md")));
     assert.ok(fs.existsSync(path.join(target, "openspec/specs/.gitkeep")));
     assert.ok(fs.existsSync(path.join(target, "openspec/changes/archive/.gitkeep")));
     assert.ok(fs.existsSync(path.join(target, ".ai-workflow.json")));
@@ -271,6 +274,7 @@ test("installs the 2.1 release manifest and emitted JavaScript runtime", () => {
       "lib/installer.js",
       "docs/closeout-templates/product-change.json",
       "docs/closeout-templates/bugfix.json",
+      "docs/closeout-templates/spec-driven.json",
     ].forEach((relativePath) => {
       assert.ok(manifest.managedFiles.includes(relativePath), relativePath);
     });
@@ -282,9 +286,10 @@ test("installs the 2.1 release manifest and emitted JavaScript runtime", () => {
 });
 
 test("ships templates accepted by the matching closeout schema", () => {
-  const templates: Array<{ file: string; schema: "product-change" | "bugfix" }> = [
+  const templates: Array<{ file: string; schema: "product-change" | "bugfix" | "spec-driven" }> = [
     { file: "product-change.json", schema: "product-change" },
     { file: "bugfix.json", schema: "bugfix" },
+    { file: "spec-driven.json", schema: "spec-driven" },
   ];
   templates.forEach(({ file, schema }) => {
     const content = fs.readFileSync(path.join(releaseRoot, "docs", "closeout-templates", file), "utf8");
@@ -335,11 +340,16 @@ test("runs installed emitted scripts with the target as the project root", () =>
       [
         ["schema", "validate", "bugfix"],
         ["schema", "validate", "product-change"],
+        ["schema", "validate", "spec-driven"],
       ],
     );
     records.forEach((record) => {
       assert.strictEqual(path.resolve(record.cwd), path.resolve(target));
-      assert.ok(record.schemaFile.startsWith(path.join(target, "openspec", "schemas")));
+      if (record.args[2] === "spec-driven") {
+        assert.strictEqual(record.schemaFile, "builtin:spec-driven");
+      } else {
+        assert.ok(record.schemaFile.startsWith(path.join(target, "openspec", "schemas")));
+      }
     });
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
@@ -367,10 +377,14 @@ test("runs installed schema validation when the target directory is named dist",
       .trim()
       .split(/\r?\n/)
       .map((line) => JSON.parse(line) as OpenSpecProbeRecord);
-    assert.strictEqual(records.length, 2);
+    assert.strictEqual(records.length, 3);
     records.forEach((record) => {
       assert.strictEqual(path.resolve(record.cwd), path.resolve(target));
-      assert.ok(record.schemaFile.startsWith(path.join(target, "openspec", "schemas")));
+      if (record.args[2] === "spec-driven") {
+        assert.strictEqual(record.schemaFile, "builtin:spec-driven");
+      } else {
+        assert.ok(record.schemaFile.startsWith(path.join(target, "openspec", "schemas")));
+      }
     });
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
@@ -456,6 +470,18 @@ test("reinstall is idempotent when managed files are unchanged", () => {
 
     assert.strictEqual(result.conflicts.length, 0);
     assert.ok(result.skipped.length > 0);
+  });
+});
+
+test("install and upgrade preserve historical archived feature records", () => {
+  withRoots(({ source, target }) => {
+    const archiveFeature = "openspec/changes/archive/2026-01-01-old-change/feature.md";
+    write(target, archiveFeature, "# Historical delivery record\n");
+
+    installWorkflow(source, target);
+    installWorkflow(source, target, { force: true, backupStamp: "upgrade" });
+
+    assert.strictEqual(read(target, archiveFeature), "# Historical delivery record\n");
   });
 });
 

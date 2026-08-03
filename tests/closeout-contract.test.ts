@@ -4,15 +4,11 @@ import { parseCloseoutJson } from "../lib/closeout-contract";
 
 const validProduct = {
   version: 1,
-  prd: "docs/requirements/REQ-001/PRD-001.md",
-  sharedFeature: "docs/requirements/REQ-001/FEATURE.md",
   requirements: [{ id: "AUTH-001", acceptanceIds: ["PA-001"] }],
-  featureResults: [{ id: "FR-001", evidenceIds: ["EV-TEST-001"] }],
   evidence: [{
     id: "EV-TEST-001",
     type: "test",
     status: "passed",
-    command: "npm test",
     artifact: "artifacts/test.json",
   }],
   gates: {
@@ -29,7 +25,7 @@ const validBugfix = {
   gates: validProduct.gates,
 };
 
-function parse(value: unknown, schema: "product-change" | "bugfix" = "product-change") {
+function parse(value: unknown, schema: "product-change" | "bugfix" | "spec-driven" = "product-change") {
   return parseCloseoutJson(JSON.stringify(value), schema, "closeout.json");
 }
 
@@ -37,7 +33,7 @@ function cloneProduct(): typeof validProduct {
   return JSON.parse(JSON.stringify(validProduct)) as typeof validProduct;
 }
 
-function assertInvalid(value: unknown, schema: "product-change" | "bugfix" = "product-change") {
+function assertInvalid(value: unknown, schema: "product-change" | "bugfix" | "spec-driven" = "product-change") {
   const result = parse(value, schema);
   assert.ok(result.diagnostics.length > 0);
   assert.ok(result.diagnostics.every(
@@ -49,6 +45,7 @@ function assertInvalid(value: unknown, schema: "product-change" | "bugfix" = "pr
 // Break caught: accepting a well-formed product closeout would regress its public contract.
 assert.deepStrictEqual(parse(validProduct).diagnostics, []);
 assert.deepStrictEqual(parse(validBugfix, "bugfix").diagnostics, []);
+assert.deepStrictEqual(parse(validBugfix, "spec-driven").diagnostics, []);
 
 // Break caught: passing malformed JSON through as a valid closeout.
 assertInvalidJson();
@@ -72,15 +69,19 @@ assertInvalid({ ...validProduct, unexpected: true });
   assertInvalid(value);
 }
 
-// Break caught: allowing a product change to omit its required product traceability fields.
-for (const field of ["prd", "sharedFeature", "requirements", "featureResults"] as const) {
-  const value = cloneProduct();
-  delete value[field];
+// Break caught: allowing a product change to omit its required requirement traceability field.
+{
+  const value = cloneProduct() as Partial<typeof validProduct>;
+  delete value.requirements;
   assertInvalid(value);
 }
 
-// Break caught: allowing a bugfix to carry product-change-only traceability fields.
-assertInvalid({ ...validBugfix, prd: validProduct.prd }, "bugfix");
+// Break caught: allowing removed closeout fields or product-only fields in the wrong schema.
+for (const field of ["prd", "sharedFeature", "featureResults"] as const) {
+  assertInvalid({ ...validProduct, [field]: field === "featureResults" ? [] : "obsolete.md" });
+}
+assertInvalid({ ...validBugfix, requirements: validProduct.requirements }, "bugfix");
+assertInvalid({ ...validBugfix, requirements: validProduct.requirements }, "spec-driven");
 
 // Break caught: accepting an incomplete or expanded fixed gate set.
 {
@@ -90,10 +91,10 @@ assertInvalid({ ...validBugfix, prd: validProduct.prd }, "bugfix");
   assertInvalid({ ...validProduct, gates: { ...validProduct.gates, other: validProduct.gates.browser } });
 }
 
-// Break caught: accepting whitespace-only required text fields.
+// Break caught: accepting a whitespace-only command when the optional field is present.
 {
   const value = cloneProduct();
-  value.evidence[0].command = "   ";
+  value.evidence[0] = { ...value.evidence[0], command: "   " } as typeof value.evidence[0];
   assertInvalid(value);
 }
 
@@ -102,9 +103,6 @@ assertInvalid({ ...validBugfix, prd: validProduct.prd }, "bugfix");
   const requirement = cloneProduct();
   requirement.requirements[0].id = "auth-001";
   assertInvalid(requirement);
-  const featureResult = cloneProduct();
-  featureResult.featureResults[0].id = "FR_invalid";
-  assertInvalid(featureResult);
   const evidence = cloneProduct();
   evidence.evidence[0].id = "TEST-001";
   assertInvalid(evidence);
@@ -121,7 +119,7 @@ assertInvalid({ ...validBugfix, prd: validProduct.prd }, "bugfix");
 }
 
 // Break caught: permitting ambiguous duplicate identities in independent trace collections.
-for (const collection of ["requirements", "featureResults", "evidence"] as const) {
+for (const collection of ["requirements", "evidence"] as const) {
   const value = cloneProduct();
   value[collection].push({ ...value[collection][0] } as never);
   assertInvalid(value);
@@ -132,9 +130,6 @@ for (const collection of ["requirements", "featureResults", "evidence"] as const
   const requirement = cloneProduct();
   requirement.requirements[0].acceptanceIds.push("PA-001");
   assertInvalid(requirement);
-  const featureResult = cloneProduct();
-  featureResult.featureResults[0].evidenceIds.push("EV-TEST-001");
-  assertInvalid(featureResult);
   assertInvalid({
     ...cloneProduct(),
     gates: { ...validProduct.gates, security: { applicable: true, reason: "Security reviewed", evidenceIds: ["EV-TEST-001", "EV-TEST-001"] } },

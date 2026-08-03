@@ -1,4 +1,4 @@
-export type CloseoutSchema = "product-change" | "bugfix";
+export type CloseoutSchema = "product-change" | "bugfix" | "spec-driven";
 export type GateName = "security" | "migration" | "browser" | "rollback";
 export type EvidenceType =
   | "test" | "build" | "security" | "migration" | "browser"
@@ -14,7 +14,7 @@ export interface EvidenceRecord {
   id: string;
   type: EvidenceType;
   status: "passed";
-  command: string;
+  command?: string;
   artifact: string;
 }
 
@@ -29,17 +29,9 @@ export interface RequirementTrace {
   acceptanceIds: string[];
 }
 
-export interface FeatureResultTrace {
-  id: string;
-  evidenceIds: string[];
-}
-
 export interface CloseoutDocument {
   version: 1;
-  prd?: string;
-  sharedFeature?: string;
   requirements?: RequirementTrace[];
-  featureResults?: FeatureResultTrace[];
   evidence: EvidenceRecord[];
   gates: Record<GateName, GateRecord>;
 }
@@ -50,7 +42,6 @@ export interface ParseCloseoutResult {
 }
 
 const REQUIREMENT_ID = /^[A-Z][A-Z0-9]*-\d+$/;
-const FEATURE_RESULT_ID = /^FR-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const EVIDENCE_ID = /^EV-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const GATE_NAMES = ["security", "migration", "browser", "rollback"] as const;
 const EVIDENCE_TYPES = new Set<EvidenceType>([
@@ -89,7 +80,7 @@ export function parseCloseoutJson(
 function validateDocument(value: JsonRecord, schema: CloseoutSchema, sourcePath: string, diagnostics: CloseoutDiagnostic[]): void {
   rejectUnknownKeys(
     value,
-    ["version", "prd", "sharedFeature", "requirements", "featureResults", "evidence", "gates"],
+    ["version", "requirements", "evidence", "gates"],
     "document",
     sourcePath,
     diagnostics,
@@ -97,18 +88,11 @@ function validateDocument(value: JsonRecord, schema: CloseoutSchema, sourcePath:
   requireLiteral(value, "version", 1, "document.version", sourcePath, diagnostics);
 
   if (schema === "product-change") {
-    for (const field of ["prd", "sharedFeature", "requirements", "featureResults"] as const) {
-      requireField(value, field, `document.${field}`, sourcePath, diagnostics);
-    }
-    validateNonEmptyString(value.prd, "document.prd", sourcePath, diagnostics);
-    validateNonEmptyString(value.sharedFeature, "document.sharedFeature", sourcePath, diagnostics);
+    requireField(value, "requirements", "document.requirements", sourcePath, diagnostics);
     validateRequirements(value.requirements, sourcePath, diagnostics);
-    validateFeatureResults(value.featureResults, sourcePath, diagnostics);
   } else {
-    for (const field of ["prd", "sharedFeature", "requirements", "featureResults"] as const) {
-      if (Object.hasOwn(value, field)) {
-        addDiagnostic(diagnostics, sourcePath, `document.${field}: is not allowed for bugfix`);
-      }
+    if (Object.hasOwn(value, "requirements")) {
+      addDiagnostic(diagnostics, sourcePath, "document.requirements: is not allowed for a non-product schema");
     }
   }
 
@@ -130,18 +114,6 @@ function validateRequirements(value: unknown, sourcePath: string, diagnostics: C
   });
 }
 
-function validateFeatureResults(value: unknown, sourcePath: string, diagnostics: CloseoutDiagnostic[]): void {
-  if (!Array.isArray(value)) {
-    addDiagnostic(diagnostics, sourcePath, "document.featureResults: must be an array");
-    return;
-  }
-  validateUniqueRecords(value, "document.featureResults", FEATURE_RESULT_ID, "feature result", sourcePath, diagnostics, (item, path) => {
-    rejectUnknownKeys(item, ["id", "evidenceIds"], path, sourcePath, diagnostics);
-    validateIdentifier(item.id, FEATURE_RESULT_ID, `${path}.id`, "feature result ID", sourcePath, diagnostics);
-    validateReferenceIds(item.evidenceIds, `${path}.evidenceIds`, sourcePath, diagnostics, true);
-  });
-}
-
 function validateEvidence(value: unknown, sourcePath: string, diagnostics: CloseoutDiagnostic[]): void {
   if (!Array.isArray(value)) {
     addDiagnostic(diagnostics, sourcePath, "document.evidence: must be an array");
@@ -154,7 +126,9 @@ function validateEvidence(value: unknown, sourcePath: string, diagnostics: Close
       addDiagnostic(diagnostics, sourcePath, `${path}.type: must be a supported evidence type`);
     }
     requireLiteral(item, "status", "passed", `${path}.status`, sourcePath, diagnostics);
-    validateNonEmptyString(item.command, `${path}.command`, sourcePath, diagnostics);
+    if (Object.hasOwn(item, "command")) {
+      validateNonEmptyString(item.command, `${path}.command`, sourcePath, diagnostics);
+    }
     validateNonEmptyString(item.artifact, `${path}.artifact`, sourcePath, diagnostics);
   });
 }

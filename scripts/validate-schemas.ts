@@ -4,7 +4,7 @@ import { OpenSpecRunner, runOpenSpec } from "../lib/openspec-cli";
 import { resolveProjectRoot } from "../lib/project-root";
 import { checkProductSchemaAlignment } from "../lib/schema-alignment";
 
-export const schemas = ["bugfix", "product-change"] as const;
+export const schemas = ["bugfix", "product-change", "spec-driven"] as const;
 
 export function validateSchemas(
   root: string,

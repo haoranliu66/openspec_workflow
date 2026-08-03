@@ -11,10 +11,11 @@
 - [适用场景](#适用场景)
 - [核心模型](#核心模型)
 - [五分钟快速开始](#五分钟快速开始)
-- [选择 bugfix 或 product-change](#选择-bugfix-或-product-change)
+- [选择 bugfix、system-change 或 product-change](#选择-bugfixsystem-change-或-product-change)
 - [事实来源与 artifact graph](#事实来源与-artifact-graph)
 - [完整交付生命周期](#完整交付生命周期)
 - [完成第一个 bugfix](#完成第一个-bugfix)
+- [完成第一个 system change](#完成第一个-system-change)
 - [完成第一个 product change](#完成第一个-product-change)
 - [任务、证据与 FEATURE](#任务证据与-feature)
 - [Closeout JSON](#closeout-json)
@@ -29,10 +30,11 @@
 
 ## 适用场景
 
-本项目适合希望让 AI 参与实现、同时保留明确行为契约、验证证据和关闭审查的团队。它提供两条路径：
+本项目适合希望让 AI 参与实现、同时保留明确行为契约、验证证据和关闭审查的团队。它提供三条互斥路径：
 
-- 对边界明确的小缺陷使用 `bugfix`；
-- 对新功能、跨角色流程、接口或业务规则变化使用 `product-change`。
+- 对只恢复已确认行为、不新增 Requirement 的缺陷使用 `bugfix`；
+- 对不涉及产品治理面的有限系统行为变化使用 `system-change`，实际 metadata 为 `schema: spec-driven`；
+- 对产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收变化使用 `product-change`。
 
 它重点解决以下问题：
 
@@ -55,8 +57,8 @@
 
 | 层次 | 主要事实 | 执行方式 |
 |---|---|---|
-| 团队流程治理 | product change 前完成并确认共享 BR/PRD；无法实现、取消或延期 task 的用户确认；归档不得修改 | 团队评审与协作 |
-| OpenSpec artifact graph | proposal、specs、design、tasks、feature 的生成和依赖关系 | OpenSpec Schema |
+| 团队流程治理 | product change 前完成并确认共享 BR/PRD；规划完成后的 change-scoped 实施授权；无法实现、取消或延期 task 的用户确认；归档不得修改 | AI、团队评审与协作 |
+| OpenSpec artifact graph | proposal、specs、design、tasks 的生成和依赖关系；apply 跟踪 tasks | OpenSpec Schema |
 | 程序门禁 | strict validation、closeout 结构与引用、evidence 文件、适用 gate、生成文件漂移 | 脚本、CLI 与 CI |
 
 事实按职责分层：
@@ -104,23 +106,24 @@ node scripts/openspec-governance.js check
 
 `npm exec` 会从 GitHub `main` 分支临时获取工作流包，并通过现有 `prepare` 构建后执行 `ai-fullstack-workflow`；无需预先克隆工作流仓库，也不会保留全局 CLI。目标项目接收的是 emitted JavaScript，因此不需要 TypeScript 或 ts-node。目标环境仍需提供 Git、npm 和 OpenSpec `1.5.0` CLI。
 
-安装器会创建必要目录、安装两个 schemas 与模板、复制治理/校验脚本和标准指南，并生成初始 `SPEC.md` 与 `openspec/change-history.json`。已有文件的冲突和升级策略见[安装器与升级](#安装器与升级)。
+安装器会创建必要目录、安装项目自定义的 `bugfix` 与 `product-change` Schema/template，并复制治理/校验脚本、closeout 模板和标准指南。`system-change` 直接依赖目标环境 OpenSpec `1.5.0` 内置的 `spec-driven`，不会复制本地 Schema。安装器还会生成初始 `SPEC.md` 与 `openspec/change-history.json`。已有文件的冲突和升级策略见[安装器与升级](#安装器与升级)。
 
-## 选择 bugfix 或 product-change
+## 选择 bugfix、system-change 或 product-change
 
 ```mermaid
 flowchart TD
-    A["收到变更请求"] --> B{"是否改变流程、角色、接口或业务规则？"}
-    B -- "是" --> P["product-change"]
-    B -- "否" --> C{"缺陷边界与预期行为是否已确认？"}
+    A["收到变更请求"] --> B{"是否改变产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收？"}
+    B -- "是，或无法确认" --> P["product-change"]
+    B -- "否" --> C{"是否只恢复已确认行为，且不新增 Requirement？"}
     C -- "是" --> F["bugfix"]
-    C -- "否，或调研后范围扩大" --> P
+    C -- "否：有限系统行为变化" --> S["system-change：schema spec-driven"]
 ```
 
 | 选择 | 使用条件 | 原生核心流程 |
 |---|---|---|
-| `bugfix` | 缺陷边界明确、预期行为已确认，不改变流程、角色、接口或业务规则 | `proposal -> specs -> tasks -> apply` |
-| `product-change` | 新功能、管理台、跨角色流程、接口/数据/权限变化或新增业务规则 | `proposal -> {specs ∥ design} -> tasks -> apply -> feature` |
+| `bugfix` | 缺陷边界明确，只恢复已确认行为，不新增 Requirement | `proposal -> specs -> tasks -> authorization -> apply` |
+| `system-change` | 新增或修改有限、可观察的系统行为，且不触及任何产品治理面；metadata 使用 `schema: spec-driven` | `proposal -> {specs ∥ design} -> tasks -> authorization -> apply` |
+| `product-change` | 产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收有变化 | `proposal -> {specs ∥ design} -> tasks -> authorization -> apply` |
 
 只有同时满足以下条件时才使用 `bugfix`：
 
@@ -129,7 +132,7 @@ flowchart TD
 - 不增加角色流程、接口契约或业务规则；
 - 可用聚焦回归测试证明修复。
 
-如果调研发现范围扩大，停止当前 bugfix，并迁移为 `product-change`。不要为了缩短 artifact 流程而把产品变化包装成 Bug。
+路径选择依据行为和治理面，而不是代码行数、文件数或预计工时。小型权限或业务规则变化仍是 product change；有限的缓存、调度或内部协议行为若不触及产品治理面，可以是 system change。调研发现范围扩大时，bugfix 升级为 system-change 或 product-change；system-change 一旦触及产品治理面必须升级为 product-change。
 
 ## 事实来源与 artifact graph
 
@@ -140,7 +143,7 @@ flowchart TD
 | 本 change 改变什么行为 | `openspec/changes/<change>/specs/<capability>/spec.md` |
 | 技术上如何实现 | 本 change 唯一的 `design.md` |
 | 实现与验证到了哪里 | 源代码、`tasks.md`、验证 evidence |
-| 哪些能力已真实交付 | change `feature.md` 与共享 `FEATURE.md` |
+| 哪些能力已真实交付 | 共享 `FEATURE.md` 的逐结果 evidence 行 |
 | 去哪里找活动与历史上下文 | 生成的 `SPEC.md` 与 `openspec/change-history.json` |
 
 BR/PRD 只表达外层产品目标和结果级验收。精确的 SHALL/MUST、WHEN/THEN 与异常行为只写在 specs 中。一个共享 BR/PRD 可以对应多个可独立交付的 changes。
@@ -162,23 +165,37 @@ flowchart LR
     P --> D["design"]
     S --> T["tasks"]
     D --> T
-    T --> A["apply / verify"]
-    A --> F["feature"]
-    F --> V["validate:close"]
-    V --> C["archive → index → check"]
+    T --> W["结束当前轮次并等待后续授权"]
+    W --> A["apply / verify"]
+    A --> K{"Schema"}
+    K -- "product-change" --> F["更新共享 FEATURE"]
+    K -- "bugfix / spec-driven" --> E["确认非产品 closeout evidence"]
+    F --> C["workflow close：validate → archive → index → check"]
+    E --> C
 ```
 
-product change 的关键关系如下：
+图中的共享 BR/PRD 前置和共享 FEATURE 分支只适用于 product change。bugfix 与 system-change 不需要共享产品文档，但都必须完成当前 Schema 的规划包、实施授权停顿、验证 evidence、四项 gate 和正式关闭。product change 的关键关系如下：
 
 - `proposal` 是独立 root，不依赖 change 内的 `br.md` 或 `prd.md`；
 - change 内的 `br.md` 与 `prd.md` 只是共享文档的轻量绑定，`prd` 等待 `br`，但两者都不是 `proposal` 的前置；
 - 团队在 change 外完成并确认共享 BR/PRD，该顺序不由 Schema、脚本或 CI 强制；
 - `proposal` 完成后，`specs` 与唯一的 `design.md` 可并行；
 - `tasks` 等待 specs 和 design，并作为 `apply` 的进度事实；
-- `feature` artifact ready 只表示可以开始记录交付，不表示 change 已关闭；
+- apply-required artifacts 及依赖闭包完成或实质修改后，AI 必须结束当前轮次并等待后续明确授权；
+- 新 change 不生成 local `feature.md`，交付结论逐条记录在共享 `FEATURE.md`；
 - change 只有在校验、归档、导航/历史重建和治理检查完成后才关闭。
 
-bugfix 不包含 product PRD/FEATURE 交付链，但仍需稳定的 delta Requirement ID、真实回归 evidence、四项 gate 适用性决策和标准关闭流程。
+实施授权只接受规划完成后的后续消息：`/opsx:apply <change>`、`确认实施 <change>`，或对只包含一个明确 change 的授权提示作出的无歧义确认。原始开发请求、创建 change、生成 artifacts、`/opsx:continue`、`/opsx:ff` 或普通“继续”都不是授权。授权只适用于该 change；proposal、specs、design 或 tasks 的范围、行为、技术决策或工作分解发生实质修改后，旧授权失效。格式调整、链接修复、证据附加和 checkbox/状态备注不使授权失效。该规则属于 AI/团队治理，不创建 approval artifact，也不由 Schema、脚本或 CI 强制证明。
+
+| OpenSpec 交互 | 本工作流中的授权语义 |
+|---|---|
+| `/opsx:propose <change>` | 创建 change 并生成规划内容；不授权实施，规划包完成后必须停下 |
+| `/opsx:continue <change>` | 继续生成下一个 artifact；不授权实施 |
+| `/opsx:ff <change>` | 快速生成完整规划包；完成后停下，不授权实施 |
+| `/opsx:apply <change>` | 仅在上述停顿后的后续用户消息中，授权实施准确指定的 change |
+| `/opsx:onboard` | 教学流程也必须展示并遵守同一停顿，不得把演示中的 artifact 完成视为授权 |
+
+bugfix 与 system-change 不包含 product PRD/FEATURE 交付链，但仍需稳定的 delta Requirement ID、真实 evidence、四项 gate 适用性决策和标准关闭流程。
 
 ## 完成第一个 bugfix
 
@@ -204,7 +221,32 @@ node scripts\validate-close.js fix-login-timeout
 node bin\workflow.js close fix-login-timeout --target .
 ```
 
-bugfix 不需要 product PRD/FEATURE trace 字段，但所有 delta Requirements 仍必须使用稳定 ID。调研中若出现新流程、角色、接口、数据规则或产品验收，应升级为 product change。
+bugfix 不需要 product PRD/FEATURE trace 字段，但所有 delta Requirements 仍必须使用稳定 ID。调研中若需要新增有限、非产品的系统行为，应升级为 system-change；若触及产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收，应升级为 product change。
+
+## 完成第一个 system change
+
+system-change 是团队治理名称，实际必须直接使用 OpenSpec `1.5.0` 内置 Schema：
+
+```powershell
+openspec new change add-cache-expiration --schema spec-driven
+openspec status --change add-cache-expiration
+openspec instructions proposal --change add-cache-expiration
+```
+
+适合该路径的例子是：为内部缓存增加可观察的过期行为，同时不改变产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收。按以下顺序推进：
+
+1. 完成原生 `proposal.md`；proposal 后并行完成 delta specs 与 `design.md`，即使设计很简单也不省略 design。
+2. specs 与 design 完成后生成 `tasks.md`；为每个 delta Requirement 使用稳定 ID。
+3. 完整规划包生成或实质修改后，结束当前轮次，展示 change ID 与计划摘要，等待后续明确授权。
+4. 获得该 change 的授权后实施并保存真实验证 evidence，填写 security、migration、browser、rollback 四项 gate。
+5. 从 [spec-driven closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/spec-driven.json) 创建 `closeout.json`。它使用与 bugfix 相同的非产品结构，不包含 Requirement/PRD 映射，也不要求共享 BR/PRD/FEATURE。
+6. 运行正式关闭；未提前 sync 时让 OpenSpec 同步 delta 到 canonical specs：
+
+```powershell
+node bin\workflow.js close add-cache-expiration --target .
+```
+
+本仓库和安装器都不会创建 `openspec/schemas/spec-driven/`。如果目标环境无法识别该 Schema，应先确认命令行实际使用的是 `@fission-ai/openspec@1.5.0`，不要把内置 Schema 复制进项目。
 
 ## 完成第一个 product change
 
@@ -236,10 +278,11 @@ openspec instructions proposal --change add-operations-console
 2. 完成 `proposal.md`，只表达 Why、What Changes、Capabilities 与 Impact。
 3. proposal 完成后，并行编写 delta specs 与本 change 唯一的 `design.md`。
 4. specs 和 design 都完成后生成 `tasks.md`，按依赖排序并使每项可独立验证。
-5. 实施 change，运行适用质量门禁，在 tasks 或 feature evidence 中记录真实命令和结果。
-6. 为所有 delta Requirements 使用稳定 ID，并把每个 ID 恰好一次映射到一个或多个 PRD acceptance IDs。
-7. 在 change `feature.md` 中记录本地结果/evidence IDs，并把结果 IDs 同步到共享 `FEATURE.md` 台账。
-8. 填写 product-change `closeout.json`，校验并关闭显式指定的 change。
+5. 规划包完成后结束当前轮次，展示 change ID 和计划摘要，等待后续明确实施授权。
+6. 获得该 change 的授权后实施并运行适用质量门禁，在 tasks 或 evidence artifact 中记录真实命令和结果。
+7. 为所有 delta Requirements 使用稳定 ID，并把每个 ID 恰好一次映射到一个或多个 PRD acceptance IDs。
+8. 在共享 `FEATURE.md` 中每行记录一个结果 ID、已交付结论、evidence IDs、版本/日期和状态。
+9. 填写 product-change `closeout.json`，通过正式 `workflow close <change>` 关闭显式指定的 change。
 
 OpenSpec 会通过 `status` 和 `instructions` 告知下一份可生成的 artifact：
 
@@ -280,18 +323,18 @@ closeout evidence 应包含：
 - 稳定且唯一的 evidence ID；
 - evidence 类型；
 - `status` 为 `passed`；失败或未知结果不得伪装成可用于关闭的 evidence；
-- 实际运行过的命令记录；
+- 可选的实际运行命令记录；
 - 位于项目根目录内、真实存在的普通文件 artifact。
 
-security、migration、browser、rollback gate 为适用时，必须引用类型匹配且状态为 `passed` 的 evidence。`closeout.json` 中的 `command` 只记录，不会被关闭校验执行。
+security、migration、browser、rollback gate 为适用时，必须引用类型匹配且状态为 `passed` 的 evidence。`closeout.json` 中的 `command` 可省略；存在时只记录，不会被关闭校验执行。`artifact` 始终必填。
 
 ### FEATURE
 
 FEATURE 只记录有实现和验证 evidence 支持的交付结论：
 
-- `feature` artifact ready 只表示前置 artifacts 已具备、可以开始编写；
-- change `feature.md` 的每条交付结论使用稳定结果 ID，并逐条关联 evidence IDs；
-- product change 把本地结果 IDs 同步到共享 `FEATURE.md` 台账，并把对应 change 行标记为 `ready`；
+- 新 product change 不生成 change-local `feature.md`；
+- 共享 `FEATURE.md` 每行只记录一个稳定结果 ID、一个已交付结论及其 evidence IDs；
+- 每个被引用的 evidence ID 都必须解析到当前 closeout 中状态为 `passed` 的 evidence；
 - 没有实现 evidence 时不得声明 ready；
 - FEATURE ready 不等于 change 已完成关闭。
 
@@ -302,13 +345,8 @@ product change 的最小结构如下。字段值必须替换为当前 change 的
 ```json
 {
   "version": 1,
-  "prd": "docs/requirements/REQ-001-operations-console/PRD-001.md",
-  "sharedFeature": "docs/requirements/REQ-001-operations-console/FEATURE.md",
   "requirements": [
     { "id": "OPS-001", "acceptanceIds": ["PA-001"] }
-  ],
-  "featureResults": [
-    { "id": "FR-001", "evidenceIds": ["EV-TEST-001"] }
   ],
   "evidence": [
     {
@@ -350,39 +388,41 @@ product change 的最小结构如下。字段值必须替换为当前 change 的
 - 适用 gate 必须引用类型匹配且状态为 `passed` 的 evidence；
 - 不适用 gate 必须给出真实理由，且 `evidenceIds` 为空；
 - evidence artifact 必须是项目内真实存在的普通文件，不能使用逃逸项目根目录的路径；
-- `command` 只是记录，校验器不会执行；
-- product change 需要 PRD、共享 FEATURE、Requirement/acceptance 和 FEATURE/evidence 引用；
-- bugfix 不使用这些 product trace 字段，但仍需要 evidence、四项 gates 和稳定 delta Requirement IDs。
+- `command` 可选；存在时只是记录，校验器不会执行；`artifact` 必填；
+- product change 的 JSON 只增加 Requirement/acceptance 映射；校验器从 change-local `prd.md` 推导共享 PRD，并从同一目录推导共享 FEATURE；
+- 共享 FEATURE 的逐结果行提供结论/evidence 引用，不在 closeout JSON 中重复 `prd`、`sharedFeature` 或 `featureResults`；
+- bugfix 与 system-change 不使用这些 product trace 字段，但仍需要 evidence、四项 gates 和稳定 delta Requirement IDs。
 
 完整模板：
 
 - [product-change closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/product-change.json)
 - [bugfix closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/bugfix.json)
+- [spec-driven closeout 模板](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/closeout-templates/spec-driven.json)
 
 ## 关闭单个 change
 
 ### 源仓库
 
-未提前执行 sync 时，让标准 close wrapper 应用 delta：
+未提前执行 sync 时，让唯一必需的正式 close wrapper 校验并应用 delta：
 
 ```powershell
-npm run validate:close -- <change>
 node dist/bin/workflow.js close <change> --target .
 ```
 
 ### 安装目标
 
 ```powershell
-node scripts/validate-close.js <change>
 node bin/workflow.js close <change> --target .
 ```
 
-`validate:close` 只校验显式指定的单个活动 change；`close` 在相同校验通过后依次执行：
+`close` 自身先校验显式指定的单个活动 change，然后依次执行：
 
 1. OpenSpec archive；
 2. 重建 `SPEC.md`；
 3. 重建 `openspec/change-history.json`；
 4. 执行治理检查。
+
+`npm run validate:close -- <change>`（安装目标为 `node scripts/validate-close.js <change>`）仅是可选的非变更性预检，不是正式关闭前必须重复运行的步骤。
 
 ### 已经提前 sync
 
@@ -414,10 +454,11 @@ node bin/workflow.js check --target .
 | 四项 gate 矩阵完整 | 缺失或不合法时 `GATE_INVALID` | 是 |
 | 适用 gate 有 matching passed evidence | 无效时 `GATE_INVALID` | 是 |
 | evidence artifact 位于项目内且真实存在 | 无效时 `EVIDENCE_INVALID` | 是 |
-| product FEATURE/evidence 引用及共享台账完整 | 无效时 `FEATURE_TRACE_INVALID` / `SHARED_FEATURE_INVALID` | 是 |
+| product 共享 FEATURE/evidence 逐结果引用完整 | 无效时 `FEATURE_TRACE_INVALID` / `SHARED_FEATURE_INVALID` | 是 |
 | product Requirement/PRD acceptance 引用完整 | 无效时 `PRD_TRACE_INVALID` / `REQUIREMENT_INVALID` | 是 |
-| bugfix delta Requirement ID 稳定 | 无效时 `REQUIREMENT_INVALID` | 是 |
+| bugfix/system-change delta Requirement ID 稳定 | 无效时 `REQUIREMENT_INVALID` | 是 |
 | OpenSpec strict validation | 失败时停止关闭 | 是 |
+| 规划完成后已获得 change-scoped 实施授权 | AI/团队协作 | 否 |
 | 不可实现、取消或延期 task 已获用户确认 | 团队协作 | 否 |
 | product change 开始前共享 BR/PRD 已确认 | 团队协作 | 否 |
 | 已归档内容不得修改 | 团队协作 | 否 |
@@ -449,9 +490,9 @@ node bin/workflow.js check --target .
 | `npm test` | 构建并运行 compiled test suite |
 | `npm run index` | 重建 `SPEC.md` 和 `openspec/change-history.json` |
 | `npm run check` | 检查必要结构、历史解析诊断、生成文件漂移和当前工作树的 archive 修改 |
-| `npm run validate:schemas` | 校验两个 OpenSpec schemas |
+| `npm run validate:schemas` | 校验两个项目 Schema 和 OpenSpec 内置 `spec-driven` |
 | `npm run validate:changes` | 枚举所有活动 change 并逐项执行 strict validation |
-| `npm run validate:close -- <change>` | 校验一个显式指定的活动 change |
+| `npm run validate:close -- <change>` | 可选、非变更性地预检一个显式指定的活动 change |
 | `npm run verify` | 构建、测试、index、check、schema 校验和全部活动 change 校验 |
 | `node dist/bin/workflow.js install --target <project> [--force]` | 把 emitted workflow assets 安装到目标项目 |
 | `node dist/bin/workflow.js close <change> [--skip-specs] --target <project>` | 执行校验、归档、index 和 check |
@@ -462,10 +503,10 @@ node bin/workflow.js check --target .
 |---|---|
 | `node scripts/openspec-governance.js index` | 确定性重建导航和机器历史 |
 | `node scripts/openspec-governance.js check` | 检查结构、生成文件漂移、解析诊断和当前工作树的 archive 修改 |
-| `node scripts/validate-schemas.js` | 校验已安装 schemas |
+| `node scripts/validate-schemas.js` | 校验两个已安装项目 Schema 和 OpenSpec 内置 `spec-driven` |
 | `node scripts/validate-changes.js` | 严格校验每个活动 change |
-| `node scripts/validate-close.js <change>` | 校验一个显式指定的 closeout |
-| `node bin/workflow.js validate:close <change> --target .` | 通过统一 CLI 执行同一单 change 校验 |
+| `node scripts/validate-close.js <change>` | 可选预检一个显式指定的 closeout |
+| `node bin/workflow.js validate:close <change> --target .` | 通过统一 CLI 执行同一可选预检 |
 | `node bin/workflow.js index --target .` | 通过统一 CLI 重建导航和历史 |
 | `node bin/workflow.js check --target .` | 通过统一 CLI 执行治理检查 |
 | `node bin/workflow.js close <change> --target .` | 校验、归档、重建索引并执行检查 |
@@ -553,7 +594,7 @@ jobs:
 
 安装器向目标项目写入：
 
-- 两个 OpenSpec schemas 及其模板；
+- 两个项目自定义 OpenSpec Schema 及其模板；`spec-driven` 由必需的 OpenSpec `1.5.0` 提供，不复制；
 - requirements 与 closeout 模板；
 - emitted `scripts/*.js`、`bin/workflow.js` 和必要的 `lib/*.js`；
 - `docs/FULLSTACK_WORKFLOW.md` 与 `docs/QUALITY_GATES.md`；
@@ -573,16 +614,16 @@ jobs:
 | 其他受管文件冲突 | 在任何写入前整批失败 | 备份到 `.ai-workflow-backup/<timestamp>/` 后覆盖 |
 | 已有 archive | 不移动、不改写 | 不移动、不改写 |
 
-安装命令：
+从 GitHub 安装或升级：
 
 ```powershell
-node dist/bin/workflow.js install --target D:\path\to\your-project
+npm exec --yes --package="github:haoranliu66/openspec_workflow#main" -- ai-fullstack-workflow install --target D:\path\to\your-project
 ```
 
 只有在审核本地定制和冲突列表后才使用：
 
 ```powershell
-node dist/bin/workflow.js install --target D:\path\to\your-project --force
+npm exec --yes --package="github:haoranliu66/openspec_workflow#main" -- ai-fullstack-workflow install --target D:\path\to\your-project --force
 ```
 
 ### 升级顺序
@@ -591,7 +632,7 @@ node dist/bin/workflow.js install --target D:\path\to\your-project --force
 2. 在目标项目执行不带 `--force` 的安装，查看完整冲突列表。
 3. 人工把 `openspec/ai-workflow.config.example.yaml` 中需要的 `context` 和 `rules` 合并到项目配置。
 4. 审核本地定制及备份策略后，再决定是否 `--force`。
-5. 重新校验两个 schemas、两份生成文件和所有活动 changes。
+5. 重新校验两个项目 Schema、内置 `spec-driven`、两份生成文件和所有活动 changes。
 6. 继续旧的活动 product change 前，把 proposal/design/tasks 与 delta headings 迁移到当前原生结构。
 7. 不移动或改写已有 archive；历史错误用新的 correction change 修正。
 
@@ -610,13 +651,13 @@ node dist/bin/workflow.js install --target D:\path\to\your-project --force
 ├─ scripts/                     # TypeScript governance/validation entry points
 ├─ tests/                       # compiled behavioral and integration tests
 ├─ openspec/
-│  ├─ schemas/                  # bugfix 和 product-change schemas/templates
+│  ├─ schemas/                  # 仅 bugfix 和 product-change 项目 Schema；不复制 spec-driven
 │  ├─ specs/                    # 当前 canonical behavior
 │  ├─ changes/                  # 活动 changes 与 archive/
 │  └─ change-history.json       # 生成的机器历史
 ├─ docs/
 │  ├─ requirements/_templates/  # 共享 BR/PRD/FEATURE 模板
-│  └─ closeout-templates/       # product 与 bugfix closeout 模板
+│  └─ closeout-templates/       # product-change、bugfix 与 spec-driven closeout 模板
 ├─ SPEC.md                      # 生成的最小导航
 └─ dist/                        # 不跟踪的 emitted JavaScript
 ```
@@ -634,7 +675,7 @@ node dist/bin/workflow.js install --target D:\path\to\your-project --force
 | Code / 现象 | 含义 | 阻止关闭 | 处理方式 |
 |---|---|---:|---|
 | `CHANGE_NOT_ACTIVE` | change ID 不是有效活动目录 | 是 | 检查 ID、命名和 `openspec/changes/` |
-| `SCHEMA_UNSUPPORTED` | `.openspec.yaml` 缺失或 Schema 不受支持 | 是 | 使用 `bugfix` 或 `product-change` |
+| `SCHEMA_UNSUPPORTED` | `.openspec.yaml` 缺失或 Schema 不受支持 | 是 | 使用 `bugfix`、`spec-driven` 或 `product-change` |
 | `CLOSEOUT_MISSING` | `closeout.json` 缺失或不可读 | 是 | 从对应 closeout 模板创建 |
 | `CLOSEOUT_INVALID` | JSON 或字段不满足对应契约 | 是 | 修正 JSON、字段和枚举值 |
 | `TASKS_INCOMPLETE` | 存在未完成真实 checkbox | 否 | 继续可行工作；无法完成时履行用户确认治理 |
@@ -643,8 +684,8 @@ node dist/bin/workflow.js install --target D:\path\to\your-project --force
 | `GATE_INVALID` | gate 矩阵或 matching passed evidence 无效 | 是 | 修正适用性、reason 和 evidence IDs |
 | `REQUIREMENT_INVALID` | delta Requirement ID 缺失或不稳定 | 是 | 为所有 delta Requirements 使用稳定 ID |
 | `PRD_TRACE_INVALID` | PRD acceptance 映射不完整 | 是 | 修正 acceptance IDs 和映射 |
-| `FEATURE_TRACE_INVALID` | change FEATURE 结果或 evidence 引用不完整 | 是 | 修正 result/evidence IDs |
-| `SHARED_FEATURE_INVALID` | 共享 FEATURE 台账路径、结果 IDs 或 `ready` 状态无效 | 是 | 修正共享台账对应 change 行 |
+| `FEATURE_TRACE_INVALID` | 共享 FEATURE 当前 change 行的结果或 evidence 引用不完整 | 是 | 修正逐结果 conclusion/evidence IDs |
+| `SHARED_FEATURE_INVALID` | 从 change PRD 推导的共享 FEATURE、逐结果行、版本/日期或 `ready` 状态无效 | 是 | 修正 PRD 绑定或共享台账对应 change 行 |
 | Strict validation failed | OpenSpec strict validation 失败 | 是 | 先运行 `openspec validate <change> --strict` 修复 |
 | 安装冲突 | 受管文件与目标项目不同 | - | 不带 `--force` 预检；审核后再备份覆盖 |
 | 已归档但 finalization 失败 | archive 成功，index/check 失败 | - | 单独运行 workflow `index` 和 `check` |
@@ -654,7 +695,8 @@ node dist/bin/workflow.js install --target D:\path\to\your-project --force
 - **提前使用 `--skip-specs`**：可能归档但没有把 delta 应用到当前 specs。
 - **已经 sync 却再次正常 close**：可能重复应用同一 delta。
 - **手工编辑生成文件**：下一次 `index` 会覆盖，`check` 也会报告漂移。
-- **把 evidence command 当作自动执行**：程序只记录命令字符串，必须由团队真实运行并保存 artifact。
+- **把 evidence command 当作自动执行**：`command` 是可选记录字段，程序不会执行；团队仍必须真实运行验证并保存必填 artifact。
+- **把 artifact ready 或“继续”当作实施授权**：规划完成后必须结束当前轮次，等待后续针对准确 change 的明确授权。
 - **把 warning 当作已批准豁免**：`TASKS_INCOMPLETE` 只是可见警告；无法完成 task 的说明和用户确认仍由团队负责。
 - **把当前工作树检查当作完整归档证明**：`check` 不检查跨分支 full history、base ref 或 hash。
 

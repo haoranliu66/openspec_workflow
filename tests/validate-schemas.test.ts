@@ -7,7 +7,7 @@ import { OpenSpecRunner } from "../lib/openspec-cli";
 import { schemas, validateSchemas } from "../scripts/validate-schemas";
 
 const repositoryRoot = path.resolve(__dirname, "..", "..");
-assert.deepStrictEqual(schemas, ["bugfix", "product-change"]);
+assert.deepStrictEqual(schemas, ["bugfix", "product-change", "spec-driven"]);
 
 const calls: Array<{ args: readonly string[]; cwd: string; stdio?: string }> = [];
 const runner: OpenSpecRunner = (args, options) => {
@@ -24,6 +24,11 @@ assert.deepStrictEqual(calls, [
   },
   {
     args: ["schema", "validate", "product-change"],
+    cwd: repositoryRoot,
+    stdio: "inherit",
+  },
+  {
+    args: ["schema", "validate", "spec-driven"],
     cwd: repositoryRoot,
     stdio: "inherit",
   },

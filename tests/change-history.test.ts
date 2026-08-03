@@ -170,6 +170,20 @@ test("collects active and archived changes deterministically", () => {
   });
 });
 
+test("recognizes the native spec-driven schema in change history", () => {
+  withProject((root) => {
+    write(root, "openspec/changes/add-cache/.openspec.yaml", "schema: spec-driven\n");
+    write(root, "openspec/changes/add-cache/proposal.md", "# Proposal\n");
+
+    const history = collectChangeHistory(root);
+
+    assert.strictEqual(history.changes.length, 1);
+    assert.strictEqual(history.changes[0].changeId, "add-cache");
+    assert.strictEqual(history.changes[0].schema, "spec-driven");
+    assert.deepStrictEqual(history.diagnostics, []);
+  });
+});
+
 test("sorts active and archived discovery, capabilities, and requirements", () => {
   withProject((root) => {
     write(root, "openspec/changes/z-last/.openspec.yaml", "schema: product-change\n");

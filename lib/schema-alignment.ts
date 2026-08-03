@@ -1,13 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
 
-type NativeArtifact = "proposal" | "specs" | "design" | "tasks";
+type ProductArtifact = "br" | "prd" | "proposal" | "specs" | "design" | "tasks";
 
 export interface ProductSchemaAlignmentResult {
   warnings: string[];
 }
 
-const EXPECTED: Record<NativeArtifact, string[]> = {
+const EXPECTED: Record<ProductArtifact, string[]> = {
+  br: [],
+  prd: ["br"],
   proposal: [],
   specs: ["proposal"],
   design: ["proposal"],
@@ -109,7 +111,7 @@ export function checkProductSchemaAlignment(root: string): ProductSchemaAlignmen
     violations.push("missing schema.yaml");
   } else {
     const schema = fs.readFileSync(schemaPath, "utf8");
-    (Object.entries(EXPECTED) as Array<[NativeArtifact, string[]]>).forEach(([artifact, expected]) => {
+    (Object.entries(EXPECTED) as Array<[ProductArtifact, string[]]>).forEach(([artifact, expected]) => {
       const block = artifactBlock(schema, artifact);
       if (block === undefined) {
         violations.push(`missing ${artifact} artifact`);
@@ -120,6 +122,9 @@ export function checkProductSchemaAlignment(root: string): ProductSchemaAlignmen
         violations.push(`${artifact} must require only ${requirementsDescription(expected)}`);
       }
     });
+    if (artifactBlock(schema, "feature") !== undefined) {
+      violations.push("product schema must not define feature artifact");
+    }
 
     const apply = topLevelBlock(schema, "apply");
     if (apply === undefined) {

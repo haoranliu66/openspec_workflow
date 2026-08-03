@@ -22,10 +22,12 @@
 
 | 当前规格 | 首次归档 change | 最新归档 change | 活动 changes |
 |---|---|---|---|
-| _暂无已同步或活动的 capability_ | - | - | - |
+| [change-lifecycle-governance](openspec/specs/change-lifecycle-governance/spec.md) | [2026-08-01-simplify-closeout-and-gate-apply](openspec/changes/archive/2026-08-01-simplify-closeout-and-gate-apply/specs/change-lifecycle-governance/spec.md) | [2026-08-03-add-system-change-path](openspec/changes/archive/2026-08-03-add-system-change-path/specs/change-lifecycle-governance/spec.md) | - |
 
 ## 生命周期
 
-`apply -> verify -> feature -> sync/archive -> index -> check`
+Product change: `planning -> explicit authorization -> apply -> verify -> shared FEATURE -> workflow close (archive/index/check)`
+
+Bugfix / system-change: `planning -> explicit authorization -> apply -> verify and closeout evidence -> workflow close (archive/index/check)`
 
 归档内容按团队流程不得修改；该规则不由程序或 CI 强制证明。新 delta 可以向后链接历史 changes；旧归档不增加正向链接。

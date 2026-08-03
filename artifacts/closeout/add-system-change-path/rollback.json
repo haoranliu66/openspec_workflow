@@ -1,0 +1,12 @@
+{
+  "changeId": "add-system-change-path",
+  "date": "2026-08-03",
+  "status": "passed",
+  "strategy": "Before publication, revert the governed source and documentation change. After publication, pin installation to the previous known-good Git revision and reinstall with the normal conflict review and backup process.",
+  "constraints": [
+    "Do not modify an already archived change.",
+    "Do not remove or rewrite canonical specs already synchronized by downstream product changes.",
+    "Review managed-file conflicts before using --force."
+  ],
+  "result": "Rollback path reviewed and remains compatible with the existing installer backup model."
+}

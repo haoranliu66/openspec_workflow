@@ -1,6 +1,14 @@
 # 全栈质量门禁
 
-只有命令或 CI 实际执行的检查才叫程序门禁。共享 BR/PRD 的完成顺序和已归档 change 不得修改属于团队流程治理规则，依靠团队评审与协作执行；它们不由 Schema、脚本或 CI 强制。程序门禁按改动面选择，不要求每个 change 执行无关工具。`tasks.md` 必须写明选择了哪些门禁、命令和结果；跳过高相关门禁必须说明原因。
+只有命令或 CI 实际执行的检查才叫程序门禁。共享 BR/PRD 的完成顺序、规划完成后的实施授权和已归档 change 不得修改属于团队流程治理规则，依靠 AI、团队评审与协作执行；它们不由 Schema、脚本或 CI 强制证明。程序门禁按改动面选择，不要求每个 change 执行无关工具。`tasks.md` 必须写明选择了哪些门禁、命令和结果；跳过高相关门禁必须说明原因。
+
+## 路径与风险分类
+
+- `bugfix` 只恢复已确认行为且不新增 Requirement。
+- `system-change` 用于不改变产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收的有限系统行为；metadata 使用 OpenSpec 内置 `schema: spec-driven`。
+- `product-change` 覆盖任一产品治理面变化，即使代码改动很小；边界不明确时也使用该路径。
+
+路径决定所需产品追踪，但不替代按实际改动面选择质量门禁。system-change 没有共享产品文档，不等于可以跳过安全、迁移、浏览器或回滚评估；适用项仍必须有 matching passed evidence。
 
 ## 所有变更
 
@@ -41,7 +49,7 @@
 
 - 明确开关、灰度、兼容窗口、监控指标和告警责任人。
 - 回滚步骤可执行，且不会破坏已写入数据。
-- `feature` artifact ready 只表示可以开始编写 FEATURE；FEATURE 仅写具备实现与验证证据的可交付行为。两者都不代表关闭已经完成，已知限制应有后续 change 或运营说明。
+- 共享 FEATURE 每行只写一个具备实现与验证证据的可交付结论，并关联 passed closeout evidence。`ready` 不代表关闭已经完成，已知限制应有后续 change 或运营说明。
 
 ## 工作流仓库门禁
 
@@ -54,14 +62,13 @@ npm run verify
 git diff --check
 ```
 
-CI 在 Node.js 20.19 和 22 上检查 TypeScript 源边界、测试、两个确定性生成文件、两个 schema、全部活动 changes 的逐项 strict validation 以及当前治理命令。`dist/` 可以在构建时生成，但 `bin/`、`lib/`、`scripts/`、`tests/` 下不得出现 `.js`。
+CI 在 Node.js 20.19 和 22 上检查 TypeScript 源边界、测试、两个确定性生成文件、两个项目 Schema、OpenSpec 内置 `spec-driven`、全部活动 changes 的逐项 strict validation 以及当前治理命令。`dist/` 可以在构建时生成，但 `bin/`、`lib/`、`scripts/`、`tests/` 下不得出现 `.js`。system-change 直接使用内置 Schema，仓库与安装目标都不复制 `openspec/schemas/spec-driven/`。
 
 ## 收尾治理
 
 未提前 sync：
 
 ```powershell
-npm run validate:close -- <change>
 node dist/bin/workflow.js close <change> --target .
 git diff --check
 ```
@@ -69,7 +76,6 @@ git diff --check
 已经执行 `/opsx:sync` 时，将 close 命令改为：
 
 ```powershell
-npm run validate:close -- <change>
 node dist/bin/workflow.js close <change> --skip-specs --target .
 ```
 
@@ -77,6 +83,6 @@ node dist/bin/workflow.js close <change> --skip-specs --target .
 
 An incomplete real task checkbox produces a visible `TASKS_INCOMPLETE` warning and does not block closeout. A missing, unreadable, or checkbox-free `tasks.md` remains a blocking `TASKS_INVALID` error. AI must continue feasible work; before closing a task it judges impossible, cancelled, or deferred, it must explain the reason, delivery and Requirement/FEATURE impact, and follow-up plan, obtain explicit user confirmation, and correct any delivery claim that is no longer true. This confirmation is team process governance and is not enforced or proved by Schema, scripts, or CI.
 
-The security, migration, browser, and rollback matrix remains mandatory. Applicable gates require passed matching evidence; inapplicable gates require a reason and no evidence IDs. Product changes also require FEATURE/evidence and Requirement/PRD acceptance references; bugfixes require stable delta Requirement IDs. The program establishes valid task input, structure, references, project-local artifact existence, and declared evidence only. It does not establish semantic correctness, evidence sufficiency, or a reasonable N/A rationale, and it never executes `closeout.json.command`. `validate:changes` remains separate from the one-change `validate:close <change>` gate.
+The security, migration, browser, and rollback matrix remains mandatory. Applicable gates require passed matching evidence; inapplicable gates require a reason and no evidence IDs. Product changes also require shared FEATURE/evidence and Requirement/PRD acceptance references; bugfixes and spec-driven system changes require stable delta Requirement IDs without product trace artifacts. The program establishes valid task input, structure, references, project-local artifact existence, and declared evidence only. It does not establish semantic correctness, evidence sufficiency, or a reasonable N/A rationale. `closeout.json.command` is optional and is never executed; `artifact` remains required. `workflow close <change>` is the only required formal close command, while the separate one-change `validate:close <change>` remains an optional non-mutating preflight.
 
 活动 change strict validation 已是 2.1.0 程序门禁。已归档 change 的内容按团队流程不得修改；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。

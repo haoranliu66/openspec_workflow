@@ -1,0 +1,22 @@
+{
+  "changeId": "simplify-closeout-and-gate-apply",
+  "date": "2026-08-01",
+  "status": "passed",
+  "acceptedResults": [
+    {
+      "resultId": "FR-001",
+      "acceptanceIds": ["PA-001", "PA-002"],
+      "evidence": "Repository, Schema apply instructions, and installed guidance define a turn boundary, exact-change authorization, and material-change invalidation without an approval artifact."
+    },
+    {
+      "resultId": "FR-002",
+      "acceptanceIds": ["PA-003", "PA-004", "PA-005", "PA-007"],
+      "evidence": "Product Schema no longer defines local feature; shared FEATURE parser validates one result per row against passed closeout evidence; installer tests preserve archived feature.md files."
+    },
+    {
+      "resultId": "FR-003",
+      "acceptanceIds": ["PA-006"],
+      "evidence": "The formal close wrapper performs validation before archive; documentation identifies validate:close as an optional non-mutating preflight."
+    }
+  ]
+}

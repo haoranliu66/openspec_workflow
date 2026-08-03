@@ -24,10 +24,7 @@ function hasCode(diagnostics: CloseoutDiagnostic[], code: string, sourcePath?: s
 function closeout(): CloseoutDocument {
   return {
     version: 1,
-    prd: "docs/requirements/REQ-001/PRD-001.md",
-    sharedFeature: "docs/requirements/REQ-001/FEATURE.md",
     requirements: [{ id: "AUTH-001", acceptanceIds: ["PA-001"] }],
-    featureResults: [],
     evidence: [],
     gates: {
       security: { applicable: false, reason: "No security scope", evidenceIds: [] },
@@ -88,7 +85,7 @@ try {
   assert.ok(hasCode(collectDeltaRequirementIds(changeRoot).diagnostics, "REQUIREMENT_INVALID"));
   setDelta(root, validDelta);
 
-  // Break caught: a change must bind the exact structured shared PRD path that its closeout declares.
+  // Break caught: a change must bind one exact structured shared PRD path.
   setChangePrd(root, "- **共享 PRD**：docs/requirements/REQ-001/PRD-001.md\n");
   assert.ok(hasCode(validateProductRequirementTrace(root, changeRoot, closeout()), "PRD_TRACE_INVALID"));
   setChangePrd(root, "- **共享 PRD**：`docs/requirements/REQ-001/OTHER.md`\n");
@@ -99,10 +96,8 @@ try {
   fs.rmSync(path.join(root, "docs", "requirements", "REQ-001", "PRD-001.md"));
   assert.ok(hasCode(validateProductRequirementTrace(root, changeRoot, closeout()), "PRD_TRACE_INVALID"));
   setPrd(root, validSharedPrd);
-  const escaped = closeout();
-  escaped.prd = "../outside-prd.md";
   setChangePrd(root, "- **共享 PRD**：`../outside-prd.md`\n");
-  assert.ok(hasCode(validateProductRequirementTrace(root, changeRoot, escaped), "PRD_TRACE_INVALID"));
+  assert.ok(hasCode(validateProductRequirementTrace(root, changeRoot, closeout()), "PRD_TRACE_INVALID"));
   setChangePrd(root, validChangePrd);
 
   // Break caught: acceptance tables must contain unique, valid, non-placeholder IDs.

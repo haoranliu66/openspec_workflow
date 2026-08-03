@@ -8,6 +8,23 @@ import { checkProductSchemaAlignment } from "../lib/schema-alignment";
 const repositoryRoot = path.resolve(__dirname, "..", "..");
 const productSchemaRoot = path.join(repositoryRoot, "openspec", "schemas", "product-change");
 
+const legacyFeatureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-feature-"));
+try {
+  fs.cpSync(productSchemaRoot, legacyFeatureRoot, { recursive: true });
+  const schemaPath = path.join(legacyFeatureRoot, "schema.yaml");
+  const schema = fs.readFileSync(schemaPath, "utf8");
+  fs.writeFileSync(schemaPath, schema.replace(
+    "\napply:\n",
+    "\n  - id: feature\n    generates: feature.md\n    requires:\n      - tasks\n\napply:\n",
+  ), "utf8");
+  assert.throws(
+    () => checkProductSchemaAlignment(legacyFeatureRoot),
+    /product schema must not define feature artifact/,
+  );
+} finally {
+  fs.rmSync(legacyFeatureRoot, { recursive: true, force: true });
+}
+
 const repositoryResult = checkProductSchemaAlignment(productSchemaRoot);
 assert.deepStrictEqual(repositoryResult.warnings, []);
 
@@ -30,6 +47,26 @@ try {
   );
 } finally {
   fs.rmSync(temporaryRoot, { recursive: true, force: true });
+}
+
+const productBindingRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-product-binding-"));
+try {
+  fs.cpSync(productSchemaRoot, productBindingRoot, { recursive: true });
+  const schemaPath = path.join(productBindingRoot, "schema.yaml");
+  const schema = fs.readFileSync(schemaPath, "utf8");
+  const mutated = schema.replace(
+    /(  - id: prd\r?\n[\s\S]*?    requires:)\r?\n      - br/,
+    "$1 []",
+  );
+  assert.notStrictEqual(mutated, schema);
+  fs.writeFileSync(schemaPath, mutated, "utf8");
+
+  assert.throws(
+    () => checkProductSchemaAlignment(productBindingRoot),
+    /prd must require only br/,
+  );
+} finally {
+  fs.rmSync(productBindingRoot, { recursive: true, force: true });
 }
 
 const missingRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-missing-"));

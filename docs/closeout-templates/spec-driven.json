@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "evidence": [{
+    "id": "EV-REPLACE-WITH-REAL-EVIDENCE",
+    "type": "other",
+    "status": "passed",
+    "command": "Replace with the command actually run for this change.",
+    "artifact": "artifacts/closeout/replace-with-real-report.json"
+  }],
+  "gates": {
+    "security": { "applicable": false, "reason": "Replace with the factual applicability decision before closing.", "evidenceIds": [] },
+    "migration": { "applicable": false, "reason": "Replace with the factual applicability decision before closing.", "evidenceIds": [] },
+    "browser": { "applicable": false, "reason": "Replace with the factual applicability decision before closing.", "evidenceIds": [] },
+    "rollback": { "applicable": false, "reason": "Replace with the factual applicability decision before closing.", "evidenceIds": [] }
+  }
+}

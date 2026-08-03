@@ -41,15 +41,6 @@ function writeProductChange(target: string, changeId = "add-login"): void {
   write(target, `${change}/tasks.md`, "- [x] 1.1 Implement login\n- [X] 1.2 Verify login\n");
   write(target, `${change}/prd.md`, "- **共享 PRD**：`docs/requirements/REQ-001/PRD-001.md`\n");
   write(target, `${change}/specs/auth/spec.md`, `## ADDED Requirements\n\n### Requirement: AUTH-001 Password login\n\nThe service SHALL create a session for valid credentials.\n\n${validScenario}\n`);
-  write(target, `${change}/feature.md`, [
-    "# Delivery record",
-    "",
-    "## 已交付结果",
-    "",
-    "| 结果 ID | 已交付结论 | Evidence IDs |",
-    "|---|---|---|",
-    "| FR-001 | Users can sign in | EV-TEST-001 |",
-  ].join("\n"));
   write(target, "docs/requirements/REQ-001/PRD-001.md", [
     "# PRD",
     "",
@@ -64,19 +55,16 @@ function writeProductChange(target: string, changeId = "add-login"): void {
     "",
     "## 限制与变更",
     "",
-    "| Change | 结果 IDs | 已交付切片 | 版本 / 日期 | 状态 |",
-    "|---|---|---|---|---|",
-    `| ${changeId} | FR-001 | Login | 1.0 / 2026-07-27 | ready |`,
+    "| Change | 结果 ID | 已交付结论 | Evidence IDs | 版本 / 日期 | 状态 |",
+    "|---|---|---|---|---|---|",
+    `| ${changeId} | FR-001 | Users can sign in | EV-TEST-001 | 1.0 / 2026-07-27 | ready |`,
   ].join("\n"));
   ["test", "security", "migration", "browser", "rollback"].forEach((name) => {
     write(target, `artifacts/${name}.json`, "{}\n");
   });
   write(target, `${change}/closeout.json`, JSON.stringify({
     version: 1,
-    prd: "docs/requirements/REQ-001/PRD-001.md",
-    sharedFeature: "docs/requirements/REQ-001/FEATURE.md",
     requirements: [{ id: "AUTH-001", acceptanceIds: ["PA-001"] }],
-    featureResults: [{ id: "FR-001", evidenceIds: ["EV-TEST-001"] }],
     evidence: [
       { id: "EV-TEST-001", type: "test", status: "passed", command: "npm test", artifact: "artifacts/test.json" },
       { id: "EV-SECURITY-001", type: "security", status: "passed", command: "security scan", artifact: "artifacts/security.json" },
@@ -108,6 +96,69 @@ function writeBugfixChange(target: string, changeId = "fix-login"): void {
       migration: { applicable: false, reason: "No data migration", evidenceIds: [] },
       browser: { applicable: false, reason: "No browser change", evidenceIds: [] },
       rollback: { applicable: false, reason: "No deployment change", evidenceIds: [] },
+    },
+  }, null, 2));
+}
+
+function writeSystemChange(target: string, changeId = "add-cache-policy"): void {
+  const change = `openspec/changes/${changeId}`;
+  write(target, `${change}/.openspec.yaml`, "schema: spec-driven\n");
+  write(target, `${change}/proposal.md`, [
+    "# Change: Add cache policy",
+    "",
+    "## Why",
+    "",
+    "The service needs a bounded cache policy.",
+    "",
+    "## What Changes",
+    "",
+    "- Add deterministic cache expiration behavior.",
+    "",
+    "## Capabilities",
+    "",
+    "### New Capabilities",
+    "",
+    "- `cache-policy`: Cache expiration behavior.",
+    "",
+    "### Modified Capabilities",
+    "",
+    "- None.",
+    "",
+    "## Impact",
+    "",
+    "- Service cache implementation.",
+    "",
+  ].join("\n"));
+  write(target, `${change}/design.md`, "# Design\n\n## Context\n\nUse the existing cache adapter.\n");
+  write(target, `${change}/tasks.md`, "- [x] 1.1 Implement cache expiration\n- [x] 1.2 Verify expiration behavior\n");
+  write(target, `${change}/specs/cache-policy/spec.md`, [
+    "## ADDED Requirements",
+    "",
+    "### Requirement: CACHE-001 Deterministic expiration",
+    "",
+    "The service SHALL expire cached values at the configured deadline.",
+    "",
+    "#### Scenario: Cached value reaches its deadline",
+    "",
+    "- **WHEN** a cached value reaches its configured deadline",
+    "- **THEN** the service no longer returns that value from the cache",
+    "",
+  ].join("\n"));
+  write(target, "artifacts/system-change-test.json", "{}\n");
+  write(target, `${change}/closeout.json`, JSON.stringify({
+    version: 1,
+    evidence: [{
+      id: "EV-SYSTEM-TEST-001",
+      type: "test",
+      status: "passed",
+      command: "npm test",
+      artifact: "artifacts/system-change-test.json",
+    }],
+    gates: {
+      security: { applicable: false, reason: "No security boundary changes", evidenceIds: [] },
+      migration: { applicable: false, reason: "No persisted data changes", evidenceIds: [] },
+      browser: { applicable: false, reason: "No browser behavior", evidenceIds: [] },
+      rollback: { applicable: false, reason: "Existing deployment rollback applies", evidenceIds: [] },
     },
   }, null, 2));
 }
@@ -203,6 +254,25 @@ try {
   result = run(bugfix, ["close", "fix-login", "--skip-specs"]);
   assert.strictEqual(result.status, 0, output(result));
   assert.ok(archiveNames(bugfix).some((name) => name.includes("fix-login")));
+
+  const system = path.join(root, "system");
+  installWorkflow(releaseRoot, system);
+  writeSystemChange(system);
+
+  // Break caught: an installed target uses OpenSpec's native spec-driven schema without a copied local schema.
+  assert.ok(!fs.existsSync(path.join(system, "openspec", "schemas", "spec-driven")));
+  result = run(system, ["validate:close", "add-cache-policy"]);
+  assert.strictEqual(result.status, 0, output(result));
+
+  // Break caught: formal close syncs the native delta, archives it, and preserves its schema in generated history.
+  result = run(system, ["close", "add-cache-policy"]);
+  assert.strictEqual(result.status, 0, output(result));
+  assert.ok(archiveNames(system).some((name) => name.includes("add-cache-policy")));
+  assert.ok(fs.existsSync(path.join(system, "openspec", "specs", "cache-policy", "spec.md")));
+  assert.match(
+    fs.readFileSync(path.join(system, "openspec", "change-history.json"), "utf8"),
+    /"schema": "spec-driven"/,
+  );
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

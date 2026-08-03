@@ -36,7 +36,7 @@ export function validateCloseoutContent(projectRoot: string, changeId: string): 
   const schemaPath = path.join(active, ".openspec.yaml");
   const schema = readSchema(schemaPath);
   if (schema === undefined) {
-    return result(changeId, [diagnostic("SCHEMA_UNSUPPORTED", schemaPath, "change schema must be product-change or bugfix")], []);
+    return result(changeId, [diagnostic("SCHEMA_UNSUPPORTED", schemaPath, "change schema must be product-change, bugfix, or spec-driven")], []);
   }
 
   const closeoutPath = path.join(active, "closeout.json");
@@ -109,7 +109,9 @@ function readSchema(schemaPath: string): CloseoutSchema | undefined {
     return undefined;
   }
   const match = /^schema:\s*([^\s#]+)\s*$/m.exec(content);
-  return match?.[1] === "product-change" || match?.[1] === "bugfix" ? match[1] : undefined;
+  return match?.[1] === "product-change" || match?.[1] === "bugfix" || match?.[1] === "spec-driven"
+    ? match[1]
+    : undefined;
 }
 
 function validateTasks(changeRoot: string): TaskValidationResult {

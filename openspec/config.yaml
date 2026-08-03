@@ -2,10 +2,21 @@ schema: product-change
 
 context: |
   Shared BR, PRD, and FEATURE records live in docs/requirements/REQ-<id>-<slug>/ and can govern multiple OpenSpec changes. SPEC.md is generated navigation; current behavior lives in openspec/specs/<capability>/spec.md, while a change only owns its deltas under openspec/changes/<change>/specs/<capability>/spec.md.
+  Select bugfix only to restore confirmed behavior without a new Requirement. Select the
+  system-change governance path by writing schema: spec-driven for bounded observable system
+  behavior that changes no product goal, user journey, role permission, business rule, public
+  contract, or shared product acceptance. Select product-change for every product-governed
+  change regardless of implementation size. OpenSpec 1.5.0 supplies spec-driven; this project
+  does not copy that built-in Schema.
   Completing shared BR/PRD before starting a product change is team process governance.
   It is not enforced by the schema, scripts, or CI; proposal remains an independent
   root in the native OpenSpec artifact graph. Archived changes are treated as immutable
   by team process, without requiring programmatic or CI enforcement.
+  Artifact readiness is not implementation authorization. After the Schema-aware apply-required
+  artifact dependency closure is complete or materially changed, AI must end the current turn,
+  show the exact change ID and plan summary, and wait for explicit authorization in a later message.
+  Authorization is change-scoped, is invalidated by material planning changes, and is team process
+  governance rather than an approval artifact or Schema/script/CI proof.
 rules:
   br:
     - Link the single shared BR instead of copying it into a change.
@@ -14,12 +25,13 @@ rules:
     - Link the shared PRD and identify the independently deliverable slice.
     - Keep outcome-level acceptance here; executable WHEN/THEN scenarios belong only in specs.
   proposal:
-    - Link the governing BR and PRD while keeping the proposal independently releasable.
-    - Link the governing BR and PRD when the team process prerequisite has been completed; this prerequisite is not a schema or CI gate.
+    - For product-change only, link the governing BR and PRD while keeping the proposal independently releasable.
+    - For product-change only, link the governing BR and PRD when the team process prerequisite has been completed; this prerequisite is not a schema or CI gate.
     - Use the native Why, What Changes, Capabilities, and Impact sections.
   specs:
     - Use behavior-first SHALL/MUST requirements and precise WHEN/THEN scenarios.
-    - Give every ADDED, MODIFIED, REMOVED, or RENAMED delta Requirement a stable ID; product-change closeout maps each such ID exactly once to one or more shared PRD acceptance IDs.
+    - Give every ADDED, MODIFIED, REMOVED, or RENAMED delta Requirement a stable ID.
+    - For product-change only, closeout maps every delta Requirement ID exactly once to one or more shared PRD acceptance IDs.
     - Trace historical changes without modifying archives.
   design:
     - design.md is the only technical design; trace decisions to requirement IDs.
@@ -28,5 +40,3 @@ rules:
     - Before closeout, review every real checkbox. Incomplete tasks produce warnings rather than blocking close; AI must explain delivery impact and obtain user confirmation before closing work it judges impossible, cancelled, or deferred. This confirmation is team governance and is not enforced by Schema, scripts, or CI.
     - A missing, unreadable, or checkbox-free tasks.md remains invalid. Record the security, migration, browser, and rollback applicability matrix with declared evidence in closeout.json.
     - Add applicable validation and delivery-evidence tasks here; closeout validation does not execute recorded commands or judge evidence sufficiency.
-  feature:
-    - For product-change, record each local delivered conclusion in the structured result/evidence table and synchronize its result IDs to the shared FEATURE ledger.

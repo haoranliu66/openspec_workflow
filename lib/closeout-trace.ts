@@ -115,9 +115,6 @@ export function validateProductRequirementTrace(
   if (binding.path === undefined) {
     return diagnostics;
   }
-  if (closeout.prd !== binding.path) {
-    diagnostics.push(diagnostic("PRD_TRACE_INVALID", closeoutPath, "closeout PRD does not match change PRD binding"));
-  }
 
   const sharedPrdPath = resolveProjectFile(projectRoot, binding.path);
   if (sharedPrdPath === undefined) {

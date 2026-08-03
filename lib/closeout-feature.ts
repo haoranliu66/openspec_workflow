@@ -1,40 +1,49 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import type { CloseoutDiagnostic, CloseoutDocument, FeatureResultTrace } from "./closeout-contract";
+import type { CloseoutDiagnostic, CloseoutDocument } from "./closeout-contract";
+import { parseSharedPrdBinding } from "./closeout-trace";
 import { parseSectionTable } from "./structured-markdown";
 
-export interface FeatureResultRecord {
+export interface SharedFeatureResultRecord {
   id: string;
   conclusion: string;
   evidenceIds: string[];
+  versionOrDate: string;
+  status: string;
 }
 
-const FEATURE_HEADERS = ["结果 ID", "已交付结论", "Evidence IDs"] as const;
-const SHARED_FEATURE_HEADERS = ["Change", "结果 IDs", "已交付切片", "版本 / 日期", "状态"] as const;
+const SHARED_FEATURE_HEADERS = ["Change", "结果 ID", "已交付结论", "Evidence IDs", "版本 / 日期", "状态"] as const;
 const FEATURE_RESULT_ID = /^FR-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 const EVIDENCE_ID = /^EV-[A-Z0-9]+(?:-[A-Z0-9]+)*$/;
 
-export function parseChangeFeatureResults(
+export function parseSharedFeatureRows(
   content: string,
   sourcePath: string,
-): { results: FeatureResultRecord[]; diagnostics: CloseoutDiagnostic[] } {
-  const table = parseSectionTable(content, "已交付结果", FEATURE_HEADERS, sourcePath);
+  changeId: string,
+): { results: SharedFeatureResultRecord[]; diagnostics: CloseoutDiagnostic[] } {
+  const table = parseSectionTable(content, "限制与变更", SHARED_FEATURE_HEADERS, sourcePath);
   if (table.diagnostics.length > 0) {
-    return { results: [], diagnostics: table.diagnostics.map(featureDiagnostic) };
+    return { results: [], diagnostics: table.diagnostics.map(sharedDiagnostic) };
   }
 
+  const rows = table.rows.filter((row) => row.cells[0] === changeId);
   const diagnostics: CloseoutDiagnostic[] = [];
-  const results: FeatureResultRecord[] = [];
-  const ids = new Set<string>();
-  for (const row of table.rows) {
-    const [id, conclusion, evidenceCell] = row.cells;
+  if (rows.length === 0) {
+    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `missing ledger row for change: ${changeId}`));
+    return { results: [], diagnostics };
+  }
+
+  const results: SharedFeatureResultRecord[] = [];
+  const resultIds = new Set<string>();
+  for (const row of rows) {
+    const [, id, conclusion, evidenceCell, versionOrDate, status] = row.cells;
     if (!FEATURE_RESULT_ID.test(id)) {
       diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, `invalid result ID at line ${row.line}`));
-    } else if (ids.has(id)) {
+    } else if (resultIds.has(id)) {
       diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, `duplicate result ID at line ${row.line}`));
     }
-    ids.add(id);
+    resultIds.add(id);
     if (conclusion.length === 0) {
       diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, `empty conclusion at line ${row.line}`));
     }
@@ -52,49 +61,15 @@ export function parseChangeFeatureResults(
       }
       references.add(evidenceId);
     }
-    results.push({ id, conclusion, evidenceIds });
-  }
-  return { results, diagnostics };
-}
-
-export function parseSharedFeatureRows(
-  content: string,
-  sourcePath: string,
-  changeId: string,
-): { resultIds: string[]; diagnostics: CloseoutDiagnostic[] } {
-  const table = parseSectionTable(content, "限制与变更", SHARED_FEATURE_HEADERS, sourcePath);
-  if (table.diagnostics.length > 0) {
-    return { resultIds: [], diagnostics: table.diagnostics.map(sharedDiagnostic) };
-  }
-
-  const rows = table.rows.filter((row) => row.cells[0] === changeId);
-  const diagnostics: CloseoutDiagnostic[] = [];
-  if (rows.length === 0) {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `missing ledger row for change: ${changeId}`));
-    return { resultIds: [], diagnostics };
-  }
-
-  const resultIds: string[] = [];
-  const seen = new Set<string>();
-  for (const row of rows) {
-    if (row.cells[4] !== "ready") {
+    if (versionOrDate.length === 0) {
+      diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `missing version or date at line ${row.line}`));
+    }
+    if (status !== "ready") {
       diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `ledger status must be ready at line ${row.line}`));
     }
-    const rowResultIds = splitIds(row.cells[1]);
-    if (rowResultIds.length === 0) {
-      diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `ledger result IDs are missing at line ${row.line}`));
-    }
-    for (const resultId of rowResultIds) {
-      if (!FEATURE_RESULT_ID.test(resultId)) {
-        diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sourcePath, `invalid ledger result ID at line ${row.line}`));
-      }
-      if (!seen.has(resultId)) {
-        seen.add(resultId);
-        resultIds.push(resultId);
-      }
-    }
+    results.push({ id, conclusion, evidenceIds, versionOrDate, status });
   }
-  return { resultIds, diagnostics };
+  return { results, diagnostics };
 }
 
 export function validateProductFeatureTrace(
@@ -104,81 +79,55 @@ export function validateProductFeatureTrace(
   closeout: CloseoutDocument,
 ): CloseoutDiagnostic[] {
   const diagnostics: CloseoutDiagnostic[] = [];
-  const closeoutPath = path.join(changeRoot, "closeout.json");
-  const featurePath = path.join(changeRoot, "feature.md");
-  const local = readChangeFeature(featurePath);
-  diagnostics.push(...local.diagnostics);
-  const localResults = new Map(local.results.map((result) => [result.id, new Set(result.evidenceIds)]));
-  validateCloseoutFeatureResults(localResults, closeout.featureResults, closeout, closeoutPath, diagnostics);
+  const changePrdPath = path.join(changeRoot, "prd.md");
+  let bindingContent: string;
+  try {
+    bindingContent = fs.readFileSync(changePrdPath, "utf8");
+  } catch {
+    return [diagnostic("SHARED_FEATURE_INVALID", changePrdPath, "change PRD is missing or unreadable")];
+  }
 
-  const sharedPath = resolveProjectFile(projectRoot, closeout.sharedFeature);
-  if (sharedPath === undefined) {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", closeoutPath, "shared FEATURE must be a project-local file"));
+  const binding = parseSharedPrdBinding(bindingContent, changePrdPath);
+  diagnostics.push(...binding.diagnostics.map(sharedDiagnostic));
+  if (binding.path === undefined) {
     return diagnostics;
   }
-  const shared = parseSharedFeatureRows(fs.readFileSync(sharedPath, "utf8"), sharedPath, changeId);
-  diagnostics.push(...shared.diagnostics);
-  if (!covers(new Set(shared.resultIds), new Set(localResults.keys()))) {
-    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", sharedPath, "ledger result IDs do not cover local FEATURE results"));
+  const sharedPrdPath = resolveProjectFile(projectRoot, binding.path);
+  if (sharedPrdPath === undefined) {
+    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", changePrdPath, "shared PRD path is not a project-local file"));
+    return diagnostics;
   }
-  return diagnostics;
-}
+  const sharedFeatureReference = path.join(path.dirname(binding.path), "FEATURE.md");
+  const sharedFeaturePath = resolveProjectFile(projectRoot, sharedFeatureReference);
+  if (sharedFeaturePath === undefined) {
+    diagnostics.push(diagnostic("SHARED_FEATURE_INVALID", changePrdPath, "sibling shared FEATURE is missing or unreadable"));
+    return diagnostics;
+  }
 
-function readChangeFeature(featurePath: string): { results: FeatureResultRecord[]; diagnostics: CloseoutDiagnostic[] } {
-  try {
-    return parseChangeFeatureResults(fs.readFileSync(featurePath, "utf8"), featurePath);
-  } catch {
-    return { results: [], diagnostics: [diagnostic("FEATURE_TRACE_INVALID", featurePath, "change feature is missing or unreadable")] };
-  }
-}
-
-function validateCloseoutFeatureResults(
-  localResults: ReadonlyMap<string, ReadonlySet<string>>,
-  featureResults: FeatureResultTrace[] | undefined,
-  closeout: CloseoutDocument,
-  sourcePath: string,
-  diagnostics: CloseoutDiagnostic[],
-): void {
-  if (!Array.isArray(featureResults)) {
-    diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, "closeout feature results are missing"));
-    return;
-  }
+  const parsed = parseSharedFeatureRows(fs.readFileSync(sharedFeaturePath, "utf8"), sharedFeaturePath, changeId);
+  diagnostics.push(...parsed.diagnostics);
   const evidenceById = new Map(closeout.evidence.map((evidence) => [evidence.id, evidence]));
-  const closeoutResults = new Map<string, ReadonlySet<string>>();
-  for (const result of featureResults) {
-    if (closeoutResults.has(result.id)) {
-      diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, "closeout repeats a feature result"));
-      continue;
-    }
-    const evidenceIds = new Set(result.evidenceIds);
-    if (evidenceIds.size !== result.evidenceIds.length) {
-      diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, "closeout repeats an evidence reference"));
-    }
-    for (const evidenceId of evidenceIds) {
+  for (const result of parsed.results) {
+    for (const evidenceId of result.evidenceIds) {
       const evidence = evidenceById.get(evidenceId);
-      if (!evidence || evidence.status !== "passed") {
-        diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, "feature references missing or unsuccessful evidence"));
+      if (evidence === undefined || evidence.status !== "passed") {
+        diagnostics.push(diagnostic(
+          "FEATURE_TRACE_INVALID",
+          sharedFeaturePath,
+          `result ${result.id} references missing or unsuccessful evidence: ${evidenceId}`,
+        ));
       }
     }
-    closeoutResults.set(result.id, evidenceIds);
   }
-  if (!sameSet(new Set(localResults.keys()), new Set(closeoutResults.keys()))) {
-    diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, "closeout result IDs do not match local FEATURE results"));
-  }
-  for (const [id, localEvidenceIds] of localResults) {
-    const closeoutEvidenceIds = closeoutResults.get(id);
-    if (closeoutEvidenceIds !== undefined && !sameSet(localEvidenceIds, closeoutEvidenceIds)) {
-      diagnostics.push(diagnostic("FEATURE_TRACE_INVALID", sourcePath, "closeout evidence IDs do not match local FEATURE results"));
-    }
-  }
+  return diagnostics;
 }
 
 function splitIds(value: string): string[] {
   return value.split(",").map((item) => item.trim()).filter((item) => item.length > 0);
 }
 
-function resolveProjectFile(projectRoot: string, relativePath: string | undefined): string | undefined {
-  if (typeof relativePath !== "string" || path.isAbsolute(relativePath) || relativePath.split(/[\\/]+/).includes("..")) {
+function resolveProjectFile(projectRoot: string, relativePath: string): string | undefined {
+  if (path.isAbsolute(relativePath) || relativePath.split(/[\\/]+/).includes("..")) {
     return undefined;
   }
   try {
@@ -197,18 +146,6 @@ function resolveProjectFile(projectRoot: string, relativePath: string | undefine
 function isWithin(root: string, target: string): boolean {
   const relative = path.relative(root, target);
   return relative.length > 0 && relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
-}
-
-function sameSet(left: ReadonlySet<string>, right: ReadonlySet<string>): boolean {
-  return left.size === right.size && [...left].every((value) => right.has(value));
-}
-
-function covers(available: ReadonlySet<string>, required: ReadonlySet<string>): boolean {
-  return [...required].every((value) => available.has(value));
-}
-
-function featureDiagnostic(entry: CloseoutDiagnostic): CloseoutDiagnostic {
-  return { ...entry, code: "FEATURE_TRACE_INVALID" };
 }
 
 function sharedDiagnostic(entry: CloseoutDiagnostic): CloseoutDiagnostic {

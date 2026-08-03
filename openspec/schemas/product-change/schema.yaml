@@ -1,5 +1,5 @@
 name: product-change
-version: 2
+version: 3
 description: Product workflow with a native OpenSpec change core
 artifacts:
   - id: br
@@ -43,13 +43,15 @@ artifacts:
       - specs
       - design
 
-  - id: feature
-    generates: feature.md
-    description: Post-implementation delivery record
-    template: feature.md
-    requires:
-      - tasks
-
 apply:
   requires: [tasks]
   tracks: tasks.md
+  instruction: |
+    Apply is an implementation action, not an artifact-completion action. After br.md, prd.md, proposal.md,
+    delta specs, design.md, and tasks.md are complete or materially changed, end the current execution turn,
+    show this change ID and the implementation-plan summary, and wait for a later user message. The original
+    request, artifact generation, /opsx:continue, /opsx:ff, or an unqualified "continue" is not authorization.
+    A later `/opsx:apply <change>`, `确认实施 <change>`, or an unambiguous confirmation to a single-change
+    authorization prompt authorizes only that change. Material planning changes invalidate prior authorization;
+    formatting, link repair, evidence attachment, and checkbox/status notes do not. This is AI/team governance,
+    not an approval artifact or a Schema, script, or CI proof.

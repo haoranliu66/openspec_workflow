@@ -4,13 +4,8 @@ import os from "node:os";
 import path from "node:path";
 
 import type { CloseoutDiagnostic, CloseoutDocument } from "../lib/closeout-contract";
-import {
-  parseChangeFeatureResults,
-  parseSharedFeatureRows,
-  validateProductFeatureTrace,
-} from "../lib/closeout-feature";
+import { parseSharedFeatureRows, validateProductFeatureTrace } from "../lib/closeout-feature";
 
-const RESULT_HEADING = "已交付结果";
 const LEDGER_HEADING = "限制与变更";
 
 function write(root: string, relativePath: string, content: string): void {
@@ -23,22 +18,12 @@ function hasCode(diagnostics: CloseoutDiagnostic[], code: string, sourcePath?: s
   return diagnostics.some((diagnostic) => diagnostic.code === code && (sourcePath === undefined || diagnostic.path === sourcePath));
 }
 
-function feature(rows = "| FR-001 | 用户可以完成登录 | EV-E2E-001, EV-TEST-001 |\n"): string {
-  return [
-    `## ${RESULT_HEADING}`,
-    "",
-    "| 结果 ID | 已交付结论 | Evidence IDs |",
-    "|---|---|---|",
-    rows,
-  ].join("\n");
-}
-
-function sharedFeature(rows = "| add-login | FR-001 | 登录 | 2.2.0 | ready |\n"): string {
+function sharedFeature(rows = "| add-login | FR-001 | 用户可以完成登录 | EV-E2E-001, EV-TEST-001 | 2.2.0 | ready |\n"): string {
   return [
     `## ${LEDGER_HEADING}`,
     "",
-    "| Change | 结果 IDs | 已交付切片 | 版本 / 日期 | 状态 |",
-    "|---|---|---|---|---|",
+    "| Change | 结果 ID | 已交付结论 | Evidence IDs | 版本 / 日期 | 状态 |",
+    "|---|---|---|---|---|---|",
     rows,
   ].join("\n");
 }
@@ -46,13 +31,10 @@ function sharedFeature(rows = "| add-login | FR-001 | 登录 | 2.2.0 | ready |\n
 function closeout(): CloseoutDocument {
   return {
     version: 1,
-    prd: "docs/requirements/REQ-001/PRD-001.md",
-    sharedFeature: "docs/requirements/REQ-001/FEATURE.md",
     requirements: [],
-    featureResults: [{ id: "FR-001", evidenceIds: ["EV-E2E-001", "EV-TEST-001"] }],
     evidence: [
       { id: "EV-E2E-001", type: "test", status: "passed", command: "npm run e2e", artifact: "reports/e2e.json" },
-      { id: "EV-TEST-001", type: "test", status: "passed", command: "npm test", artifact: "reports/test.json" },
+      { id: "EV-TEST-001", type: "test", status: "passed", artifact: "reports/test.json" },
     ],
     gates: {
       security: { applicable: false, reason: "No security scope", evidenceIds: [] },
@@ -66,99 +48,74 @@ function closeout(): CloseoutDocument {
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "closeout-feature-"));
 try {
   const changeRoot = path.join(root, "openspec", "changes", "add-login");
-  write(root, "openspec/changes/add-login/feature.md", feature());
+  write(root, "openspec/changes/add-login/prd.md", "- **共享 PRD**：`docs/requirements/REQ-001/PRD-001.md`\n");
+  write(root, "docs/requirements/REQ-001/PRD-001.md", "# Login PRD\n");
   write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature());
 
-  // Break caught: valid local and shared FEATURE records must remain closeable.
-  assert.deepStrictEqual(parseChangeFeatureResults(feature(), "feature.md"), {
-    results: [{ id: "FR-001", conclusion: "用户可以完成登录", evidenceIds: ["EV-E2E-001", "EV-TEST-001"] }],
-    diagnostics: [],
-  });
+  // Break caught: a ready shared result with passed evidence remains closeable without change-local feature.md.
   assert.deepStrictEqual(parseSharedFeatureRows(sharedFeature(), "FEATURE.md", "add-login"), {
-    resultIds: ["FR-001"],
+    results: [{
+      id: "FR-001",
+      conclusion: "用户可以完成登录",
+      evidenceIds: ["EV-E2E-001", "EV-TEST-001"],
+      versionOrDate: "2.2.0",
+      status: "ready",
+    }],
     diagnostics: [],
   });
   assert.deepStrictEqual(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), []);
 
-  // Break caught: result tables must be present and every delivered conclusion needs a real unique result ID.
+  // Break caught: the shared FEATURE needs a structured table and at least one ready row for this change.
   for (const content of [
     "## Other\n",
-    feature("| FR-001 |  | EV-E2E-001 |\n"),
-    feature("| invalid | conclusion | EV-E2E-001 |\n"),
-    feature("| FR-001 | first | EV-E2E-001 |\n| FR-001 | second | EV-TEST-001 |\n"),
+    sharedFeature("| other-change | invalid | old | invalid | 1.0.0 | unknown |\n"),
+    sharedFeature("| add-login | FR-001 | login | EV-E2E-001 | 2.2.0 | pending |\n"),
   ]) {
-    assert.ok(hasCode(parseChangeFeatureResults(content, "feature.md").diagnostics, "FEATURE_TRACE_INVALID", "feature.md"));
-  }
-
-  // Break caught: evidence references must be non-empty and unique before trace comparison.
-  for (const content of [
-    feature("| FR-001 | conclusion |  |\n"),
-    feature("| FR-001 | conclusion | EV-E2E-001, EV-E2E-001 |\n"),
-  ]) {
-    assert.ok(hasCode(parseChangeFeatureResults(content, "feature.md").diagnostics, "FEATURE_TRACE_INVALID", "feature.md"));
-  }
-
-  // Break caught: local FEATURE, closeout, and evidence index must agree exactly.
-  for (const mutate of [
-    (document: CloseoutDocument) => { document.featureResults = []; },
-    (document: CloseoutDocument) => { document.featureResults![0].evidenceIds = ["EV-E2E-001"]; },
-    (document: CloseoutDocument) => { document.evidence = document.evidence.filter((item) => item.id !== "EV-TEST-001"); },
-  ]) {
-    const document = closeout();
-    mutate(document);
-    assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", document), "FEATURE_TRACE_INVALID"));
-  }
-
-  // Break caught: the shared FEATURE reference must be a real project-local ordinary file.
-  for (const sharedPath of ["docs/requirements/REQ-001/MISSING.md", "../outside/FEATURE.md"]) {
-    const document = closeout();
-    document.sharedFeature = sharedPath;
-    assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", document), "SHARED_FEATURE_INVALID"));
-  }
-
-  // Break caught: the current change needs at least one ready ledger row that covers every local result.
-  for (const rows of [
-    "| other-change | invalid | old | 1.0.0 | ready |\n",
-    "| add-login | FR-001 | login | 2.2.0 | pending |\n",
-  ]) {
-    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(rows));
+    write(root, "docs/requirements/REQ-001/FEATURE.md", content);
     assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), "SHARED_FEATURE_INVALID"));
   }
 
-  // Break caught: one change may use multiple ledger rows; their result IDs are merged and need only cover the local results.
-  {
-    const document = closeout();
-    document.featureResults = [
-      { id: "FR-001", evidenceIds: ["EV-E2E-001", "EV-TEST-001"] },
-      { id: "FR-002", evidenceIds: ["EV-E2E-001"] },
-    ];
-    write(root, "openspec/changes/add-login/feature.md", feature(
-      "| FR-001 | 用户可以完成登录 | EV-E2E-001, EV-TEST-001 |\n| FR-002 | 用户可以登出 | EV-E2E-001 |\n",
-    ));
-    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
-      "| add-login | FR-001 | 登录 | 2.2.0 | ready |\n| add-login | FR-002 | 登出 | 2.2.0 | ready |\n",
-    ));
-    assert.deepStrictEqual(validateProductFeatureTrace(root, changeRoot, "add-login", document), []);
-
-    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
-      "| add-login | FR-001, FR-EXTRA | 登录 | 2.2.0 | ready |\n| add-login | FR-002 | 登出 | 2.2.0 | ready |\n",
-    ));
-    assert.deepStrictEqual(validateProductFeatureTrace(root, changeRoot, "add-login", document), []);
-
-    write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
-      "| add-login | FR-001 | 登录 | 2.2.0 | ready |\n",
-    ));
-    assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", document), "SHARED_FEATURE_INVALID"));
+  // Break caught: each current-change row needs one unique result ID, a conclusion, evidence, and a version/date.
+  for (const rows of [
+    "| add-login | invalid | login | EV-E2E-001 | 2.2.0 | ready |\n",
+    "| add-login | FR-001 |  | EV-E2E-001 | 2.2.0 | ready |\n",
+    "| add-login | FR-001 | login |  | 2.2.0 | ready |\n",
+    "| add-login | FR-001 | login | EV-E2E-001, EV-E2E-001 | 2.2.0 | ready |\n",
+    "| add-login | FR-001 | login | invalid | 2.2.0 | ready |\n",
+    "| add-login | FR-001 | login | EV-E2E-001 |  | ready |\n",
+    "| add-login | FR-001 | first | EV-E2E-001 | 2.2.0 | ready |\n| add-login | FR-001 | second | EV-TEST-001 | 2.2.0 | ready |\n",
+  ]) {
+    const parsed = parseSharedFeatureRows(sharedFeature(rows), "FEATURE.md", "add-login");
+    assert.ok(parsed.diagnostics.length > 0);
   }
 
-  // Break caught: malformed historical rows are outside this change's ledger scope.
-  write(root, "openspec/changes/add-login/feature.md", feature());
+  // Break caught: every shared FEATURE evidence reference must resolve to passed closeout evidence.
   write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
-    "| other-change | invalid | old | 1.0.0 | unknown |\n| add-login | FR-001 | login | 2.2.0 | ready |\n",
+    "| add-login | FR-001 | login | EV-MISSING-001 | 2.2.0 | ready |\n",
+  ));
+  assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), "FEATURE_TRACE_INVALID"));
+
+  // Break caught: the shared FEATURE location is derived from the one safe shared-PRD binding.
+  for (const binding of [
+    "- **共享 PRD**：`docs/requirements/REQ-001/MISSING.md`\n",
+    "- **共享 PRD**：`../outside/PRD-001.md`\n",
+    "No structured binding\n",
+  ]) {
+    write(root, "openspec/changes/add-login/prd.md", binding);
+    assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), "SHARED_FEATURE_INVALID"));
+  }
+  write(root, "openspec/changes/add-login/prd.md", "- **共享 PRD**：`docs/requirements/REQ-001/PRD-001.md`\n");
+
+  fs.rmSync(path.join(root, "docs", "requirements", "REQ-001", "FEATURE.md"));
+  assert.ok(hasCode(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), "SHARED_FEATURE_INVALID"));
+
+  // Break caught: semantic defects in historical rows are outside this change's validation scope.
+  write(root, "docs/requirements/REQ-001/FEATURE.md", sharedFeature(
+    "| other-change | invalid |  | invalid |  | unknown |\n| add-login | FR-001 | login | EV-E2E-001 | 2.2.0 | ready |\n",
   ));
   assert.deepStrictEqual(validateProductFeatureTrace(root, changeRoot, "add-login", closeout()), []);
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }
 
-process.stdout.write("PASS validates FEATURE evidence traces.\n");
+process.stdout.write("PASS validates shared FEATURE evidence traces.\n");

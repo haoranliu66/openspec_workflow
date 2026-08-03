@@ -16,7 +16,7 @@ function hasCode(diagnostics: CloseoutDiagnostic[], code: string, sourcePath?: s
   return diagnostics.some((entry) => entry.code === code && (sourcePath === undefined || entry.path === sourcePath));
 }
 
-function closeout(schema: "product-change" | "bugfix"): string {
+function closeout(schema: "product-change" | "bugfix" | "spec-driven"): string {
   const document: Record<string, unknown> = {
     version: 1,
     evidence: [{ id: "EV-TEST-001", type: "test", status: "passed", command: "npm test", artifact: "reports/test.json" }],
@@ -29,16 +29,13 @@ function closeout(schema: "product-change" | "bugfix"): string {
   };
   if (schema === "product-change") {
     Object.assign(document, {
-      prd: "docs/requirements/REQ-001/PRD-001.md",
-      sharedFeature: "docs/requirements/REQ-001/FEATURE.md",
       requirements: [{ id: "AUTH-001", acceptanceIds: ["PA-001"] }],
-      featureResults: [{ id: "FR-001", evidenceIds: ["EV-TEST-001"] }],
     });
   }
   return `${JSON.stringify(document, null, 2)}\n`;
 }
 
-function createChange(root: string, changeId: string, schema: "product-change" | "bugfix"): void {
+function createChange(root: string, changeId: string, schema: "product-change" | "bugfix" | "spec-driven"): void {
   const base = `openspec/changes/${changeId}`;
   write(root, `${base}/.openspec.yaml`, `schema: ${schema}\n`);
   write(root, `${base}/tasks.md`, "- [x] implement\n");
@@ -54,19 +51,12 @@ function createChange(root: string, changeId: string, schema: "product-change" |
       "|---|---|---|",
       "| PA-001 | 登录可用 | test |",
     ].join("\n"));
-    write(root, `${base}/feature.md`, [
-      "## 已交付结果",
-      "",
-      "| 结果 ID | 已交付结论 | Evidence IDs |",
-      "|---|---|---|",
-      "| FR-001 | 用户可以登录 | EV-TEST-001 |",
-    ].join("\n"));
     write(root, "docs/requirements/REQ-001/FEATURE.md", [
       "## 限制与变更",
       "",
-      "| Change | 结果 IDs | 已交付切片 | 版本 / 日期 | 状态 |",
-      "|---|---|---|---|---|",
-      `| ${changeId} | FR-001 | 登录 | 2.1.0 | ready |`,
+      "| Change | 结果 ID | 已交付结论 | Evidence IDs | 版本 / 日期 | 状态 |",
+      "|---|---|---|---|---|---|",
+      `| ${changeId} | FR-001 | 用户可以登录 | EV-TEST-001 | 2.1.0 | ready |`,
     ].join("\n"));
   }
 }
@@ -75,6 +65,7 @@ const root = fs.mkdtempSync(path.join(os.tmpdir(), "closeout-validation-"));
 try {
   createChange(root, "add-login", "product-change");
   createChange(root, "fix-login", "bugfix");
+  createChange(root, "add-cache", "spec-driven");
 
   // Break caught: only an exact, visible directory directly under active changes may be closed.
   for (const changeId of ["missing-change", "archive", ".hidden", "../add-login", "ADD-LOGIN"]) {
@@ -118,19 +109,24 @@ try {
     evidence: Array<{ artifact: string }>;
     gates: { security: { applicable: boolean; reason: string; evidenceIds: string[] } };
     requirements: Array<{ acceptanceIds: string[] }>;
-    featureResults: Array<{ evidenceIds: string[] }>;
   };
   invalidProduct.evidence[0].artifact = "reports/missing.json";
   invalidProduct.gates.security = { applicable: true, reason: "security changed", evidenceIds: ["EV-TEST-001"] };
   invalidProduct.requirements[0].acceptanceIds = ["PA-404"];
-  invalidProduct.featureResults[0].evidenceIds = ["EV-OTHER-001"];
+  write(root, "docs/requirements/REQ-001/FEATURE.md", [
+    "## 限制与变更",
+    "",
+    "| Change | 结果 ID | 已交付结论 | Evidence IDs | 版本 / 日期 | 状态 |",
+    "|---|---|---|---|---|---|",
+    "| add-login | FR-001 | 用户可以登录 | EV-OTHER-001 | 2.1.0 | ready |",
+  ].join("\n"));
   write(root, "openspec/changes/add-login/tasks.md", "- [ ] unfinished\n");
   write(root, "openspec/changes/add-login/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: Login\n");
   write(root, "openspec/changes/add-login/closeout.json", `${JSON.stringify(invalidProduct)}\n`);
   const invalidProductResult = validateCloseoutContent(root, "add-login");
   assert.deepStrictEqual(
     invalidProductResult.diagnostics.map((entry) => entry.code),
-    ["EVIDENCE_INVALID", "GATE_INVALID", "REQUIREMENT_INVALID", "PRD_TRACE_INVALID", "PRD_TRACE_INVALID", "FEATURE_TRACE_INVALID", "FEATURE_TRACE_INVALID"],
+    ["EVIDENCE_INVALID", "GATE_INVALID", "REQUIREMENT_INVALID", "PRD_TRACE_INVALID", "PRD_TRACE_INVALID", "FEATURE_TRACE_INVALID"],
   );
   assert.deepStrictEqual(
     invalidProductResult.warnings.map((entry) => entry.code),
@@ -139,6 +135,13 @@ try {
   write(root, "openspec/changes/add-login/tasks.md", "- [x] complete\n");
   write(root, "openspec/changes/add-login/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: AUTH-001 Login\n");
   write(root, "openspec/changes/add-login/closeout.json", closeout("product-change"));
+  write(root, "docs/requirements/REQ-001/FEATURE.md", [
+    "## 限制与变更",
+    "",
+    "| Change | 结果 ID | 已交付结论 | Evidence IDs | 版本 / 日期 | 状态 |",
+    "|---|---|---|---|---|---|",
+    "| add-login | FR-001 | 用户可以登录 | EV-TEST-001 | 2.1.0 | ready |",
+  ].join("\n"));
 
   // Break caught: bugfixes enforce P0 and stable Requirement IDs but do not need product trace artifacts.
   assert.deepStrictEqual(validateCloseoutContent(root, "fix-login"), {
@@ -166,6 +169,42 @@ try {
   const bugfixDiagnostics = validateCloseoutContent(root, "fix-login").diagnostics;
   assert.ok(hasCode(bugfixDiagnostics, "REQUIREMENT_INVALID"));
   assert.ok(!bugfixDiagnostics.some((entry) => entry.code === "PRD_TRACE_INVALID" || entry.code === "FEATURE_TRACE_INVALID"));
+
+  // Break caught: native spec-driven changes must use non-product closeout and stable delta IDs.
+  assert.deepStrictEqual(validateCloseoutContent(root, "add-cache"), {
+    changeId: "add-cache",
+    schema: "spec-driven",
+    diagnostics: [],
+    warnings: [],
+  });
+  write(root, "openspec/changes/add-cache/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: Cache behavior\n");
+  const systemDiagnostics = validateCloseoutContent(root, "add-cache").diagnostics;
+  assert.ok(hasCode(systemDiagnostics, "REQUIREMENT_INVALID"));
+  assert.ok(!systemDiagnostics.some((entry) => entry.code === "PRD_TRACE_INVALID" || entry.code === "FEATURE_TRACE_INVALID"));
+
+  write(root, "openspec/changes/add-cache/specs/auth/spec.md", "## ADDED Requirements\n\n### Requirement: AUTH-001 Cache behavior\n");
+  fs.rmSync(path.join(root, "openspec", "changes", "add-cache", "tasks.md"));
+  assert.deepStrictEqual(
+    validateCloseoutContent(root, "add-cache").diagnostics.map((entry) => entry.code),
+    ["TASKS_INVALID"],
+  );
+  write(root, "openspec/changes/add-cache/tasks.md", "- [x] complete\n");
+
+  const invalidSystem = JSON.parse(closeout("spec-driven")) as {
+    evidence: Array<{ artifact: string }>;
+    gates: { security: { applicable: boolean; reason: string; evidenceIds: string[] } };
+  };
+  invalidSystem.evidence[0].artifact = "reports/missing-system-test.json";
+  invalidSystem.gates.security = {
+    applicable: true,
+    reason: "Security behavior changed",
+    evidenceIds: ["EV-TEST-001"],
+  };
+  write(root, "openspec/changes/add-cache/closeout.json", `${JSON.stringify(invalidSystem, null, 2)}\n`);
+  const invalidSystemDiagnostics = validateCloseoutContent(root, "add-cache").diagnostics;
+  assert.ok(hasCode(invalidSystemDiagnostics, "EVIDENCE_INVALID"));
+  assert.ok(hasCode(invalidSystemDiagnostics, "GATE_INVALID"));
+  assert.ok(!invalidSystemDiagnostics.some((entry) => entry.code === "PRD_TRACE_INVALID" || entry.code === "FEATURE_TRACE_INVALID"));
 } finally {
   fs.rmSync(root, { recursive: true, force: true });
 }

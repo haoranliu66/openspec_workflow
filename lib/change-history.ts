@@ -39,7 +39,7 @@ export interface ChangeHistory {
   diagnostics: Diagnostic[];
 }
 
-const KNOWN_SCHEMAS = new Set(["bugfix", "product-change"]);
+const KNOWN_SCHEMAS = new Set(["bugfix", "product-change", "spec-driven"]);
 const OPERATIONS = new Set<DeltaOperation>(["ADDED", "MODIFIED", "REMOVED", "RENAMED"]);
 const REQUIREMENT_ID = /^[A-Z][A-Z0-9]*-\d+$/;
 const PATHS: Record<keyof ChangeRecord["paths"], string> = {

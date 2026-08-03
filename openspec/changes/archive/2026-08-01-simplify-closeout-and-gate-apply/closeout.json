@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "requirements": [
+    { "id": "WFG-001", "acceptanceIds": ["PA-001"] },
+    { "id": "WFG-002", "acceptanceIds": ["PA-002"] },
+    { "id": "WFG-003", "acceptanceIds": ["PA-002"] },
+    { "id": "WFG-004", "acceptanceIds": ["PA-003", "PA-007"] },
+    { "id": "WFG-005", "acceptanceIds": ["PA-004"] },
+    { "id": "WFG-006", "acceptanceIds": ["PA-005"] },
+    { "id": "WFG-007", "acceptanceIds": ["PA-006"] }
+  ],
+  "evidence": [
+    {
+      "id": "EV-TEST-001",
+      "type": "test",
+      "status": "passed",
+      "command": "npm run verify",
+      "artifact": "artifacts/closeout/simplify-closeout-and-gate-apply/verification.json"
+    },
+    {
+      "id": "EV-ACCEPTANCE-001",
+      "type": "acceptance",
+      "status": "passed",
+      "artifact": "artifacts/closeout/simplify-closeout-and-gate-apply/acceptance.json"
+    },
+    {
+      "id": "EV-MIGRATION-001",
+      "type": "migration",
+      "status": "passed",
+      "command": "npm run verify",
+      "artifact": "artifacts/closeout/simplify-closeout-and-gate-apply/migration.json"
+    },
+    {
+      "id": "EV-ROLLBACK-001",
+      "type": "rollback",
+      "status": "passed",
+      "artifact": "artifacts/closeout/simplify-closeout-and-gate-apply/rollback.json"
+    }
+  ],
+  "gates": {
+    "security": {
+      "applicable": false,
+      "reason": "No authentication, authorization, secret, privacy, or runtime security boundary changes.",
+      "evidenceIds": []
+    },
+    "migration": {
+      "applicable": true,
+      "reason": "The product-change Schema and installed workflow asset set change for new and upgraded targets.",
+      "evidenceIds": ["EV-MIGRATION-001"]
+    },
+    "browser": {
+      "applicable": false,
+      "reason": "No browser UI or interactive client behavior changes.",
+      "evidenceIds": []
+    },
+    "rollback": {
+      "applicable": true,
+      "reason": "Published workflow assets may need to return to a previously pinned Git revision.",
+      "evidenceIds": ["EV-ROLLBACK-001"]
+    }
+  }
+}
