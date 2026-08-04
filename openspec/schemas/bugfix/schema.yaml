@@ -20,8 +20,11 @@ artifacts:
     instruction: |
       每个受影响 capability 创建一份 delta spec。按需使用 ADDED、MODIFIED、REMOVED 或
       RENAMED；MODIFIED 必须包含修改后的完整 Requirement。每项 Requirement 使用 SHALL/MUST，
-      并至少包含一个四级标题 Scenario 及精确 WHEN/THEN。保持 Requirement ID 稳定，链接当前
-      canonical spec，并引用 `openspec/change-history.json` 中相关历史 change ID。详细本地归档可能不存在；若存在，按团队流程不得修改归档以增加正向链接。该团队流程规则不由 Schema、脚本或 CI 强制。
+      并至少包含一个四级标题 Scenario 及精确 WHEN/THEN。生成或实质修改 Requirement 前，盘点
+      canonical spec、同 capability 的全部活动 changes 和 `openspec/change-history.json` 中的历史 ID。
+      MODIFIED 与只改名称的 RENAMED 保持 ID；纠正确认错误时才允许 RENAMED 更换 ID，并记录冲突来源、
+      新 ID 依据和历史保留方式。链接当前 canonical spec 和相关历史 change ID。详细本地归档可能不存在；
+      若存在，按团队流程不得修改归档以增加正向链接。上述 stable ID 规则由团队审核，不由 Schema、脚本或 CI 强制。
     requires:
       - proposal
 
@@ -31,7 +34,7 @@ artifacts:
     template: tasks.md
     instruction: |
       使用 `- [ ] X.Y ...` 编写按依赖排序、可独立验证的任务。包含根因确认、实现、聚焦测试、
-      适用质量检查、change-local verification、风险适用性、回滚证据和团队关闭审核。不得加入无关重构。
+      stable ID 盘点/冲突结论、适用质量检查、change-local verification、风险适用性、回滚证据和团队关闭审核。不得加入无关重构。
     requires:
       - specs
 
@@ -40,11 +43,11 @@ apply:
   tracks: tasks.md
   instruction: |
     先读 SPEC.md，再读受影响当前规格和本 change。proposal.md、delta specs 与 tasks.md 完成或发生
-    实质修改后，结束当前执行轮次，展示 change ID 与计划摘要，等待用户在后续消息中授权。原始请求、
+    实质修改后，结束当前执行轮次，展示 change ID、计划摘要以及 Requirement ID 分配/沿用/重命名/冲突结论，等待用户在后续消息中授权。原始请求、
     artifact 生成、/opsx:continue、/opsx:ff 或普通“继续”不构成授权；后续 `/opsx:apply <change>`、
     `确认实施 <change>`，或对单一 change 授权问题的无歧义确认，只授权该 change。规划发生实质修改后
     旧授权失效；仅格式、链接修复、证据附加和 checkbox/状态备注不使授权失效。该规则属于 AI/团队治理，
     不创建 approval artifact，也不由 Schema、脚本或 CI 证明。获得授权后只实现有界修复，产出回归证据
     并更新任务状态；如果范围扩大，停止并按行为与治理面重新选择 spec-driven 或 product-change。验证后在 change 内准备 verification，
-    展示未完成项、风险和回滚摘要并结束当前轮次；实施授权不授权关闭，只有后续明确的 change-scoped
+    展示 stable ID 结论、未完成项、风险和回滚摘要并结束当前轮次；实施授权不授权关闭，只有后续明确的 change-scoped
     关闭授权才允许执行正式关闭。该授权仍是团队治理，不创建 approval artifact 或程序/CI 证明。

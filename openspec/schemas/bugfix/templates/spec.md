@@ -16,4 +16,8 @@
 - **WHEN** 触发条件发生
 - **THEN** 系统产生修复后的可观察结果
 
-<!-- For RENAMED Requirements, both FROM and TO must begin with the same stable Requirement ID. -->
+<!--
+Before editing, inventory IDs in the canonical spec, related active changes, and Requirement-level history.
+MODIFIED and name-only RENAMED retain the stable ID. A different TO ID is allowed only to correct a confirmed
+bad assignment; record the conflict source, new-ID basis, and immutable-history treatment for team review.
+-->

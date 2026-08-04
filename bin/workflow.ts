@@ -106,6 +106,7 @@ export function runWorkflow(
     const result = dependencies.install(sourceRoot, options.target, { force: options.force });
     process.stdout.write(`工作流已安装到 ${options.target}\n`);
     process.stdout.write(`已复制：${result.copied.length}；已跳过：${result.skipped.length}；已备份：${result.backedUp.length}；已退役：${result.retired.length}\n`);
+    result.notices.forEach((notice) => process.stdout.write(`提示：${notice}\n`));
     return;
   }
   if (options.command === "index") {

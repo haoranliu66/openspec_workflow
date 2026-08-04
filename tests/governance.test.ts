@@ -79,6 +79,10 @@ test("renders active changes before capability specs exist", () => {
     const rendered = renderIndex(root);
 
     assert.match(rendered, /early-change/);
+    assert.match(
+      rendered,
+      /\[early-change\]\(openspec\/changes\/early-change\/\)/,
+    );
     assert.match(rendered, /product-change/);
     assert.match(rendered, /proposal\.md/);
     assert.doesNotMatch(rendered, /\(null\)/);
@@ -112,7 +116,7 @@ test("renders active capability navigation from the supplied history snapshot", 
 test("escapes active change table cells, link labels, and link targets", () => {
   withProject((root) => {
     const model: ChangeHistory = {
-      version: 2,
+      version: 1,
       diagnostics: [],
       changes: [{
         changeId: "change|draft",
@@ -178,7 +182,7 @@ test("escapes active change table cells, link labels, and link targets", () => {
     };
 
     const rendered = renderIndex(root, model);
-    const safeRow = "| change\\|draft | product\\|change | "
+    const safeRow = "| [change\\|draft](openspec/changes/change%20%7C%5Bactive%5D/) | product\\|change | "
       + "[cap\\|\\[label\\]](openspec/changes/change%20space/specs/cap%20%28one%29%23/spec.md) | "
       + "[proposal.md](openspec/changes/change%20space/%28draft%29%23proposal.md) |";
     const safeCapabilityRow = "| cap\\|[label] (pending sync) | "
@@ -203,7 +207,7 @@ test("rejects missing and stale generated files separately", () => {
     assert.throws(() => checkGeneratedFiles(root), /缺少 openspec\/change-history\.json/);
 
     write(root, "openspec/change-history.json", '{"version":0}\n');
-    assert.throws(() => checkGeneratedFiles(root), /仅支持 version 1 或 version 2/);
+    assert.throws(() => checkGeneratedFiles(root), /仅支持无路径 version 1/);
   });
 });
 

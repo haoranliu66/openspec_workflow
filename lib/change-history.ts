@@ -46,7 +46,7 @@ export interface Diagnostic {
 }
 
 export interface ChangeHistory {
-  version: 2;
+  version: 1;
   changes: ChangeRecord[];
   diagnostics: Diagnostic[];
 }
@@ -116,9 +116,24 @@ function seedError(message: string): Error {
   return new Error(`openspec/change-history.json ${message}`);
 }
 
+function requireExactKeys(
+  value: Record<string, unknown>,
+  expected: readonly string[],
+  label: string,
+): void {
+  const actual = Object.keys(value).sort(compareEnglish);
+  const allowed = [...expected].sort(compareEnglish);
+  if (actual.length !== allowed.length || actual.some((key, index) => key !== allowed[index])) {
+    throw seedError(`${label} 字段必须严格为 ${allowed.join(", ")}。`);
+  }
+}
+
 function normalizeRequirement(value: unknown): RequirementChange {
-  if (!isObject(value)
-    || typeof value.operation !== "string"
+  if (!isObject(value)) {
+    throw seedError("包含无效的 Requirement 摘要。");
+  }
+  requireExactKeys(value, ["operation", "id", "name"], "中的 Requirement");
+  if (typeof value.operation !== "string"
     || !OPERATIONS.has(value.operation as DeltaOperation)
     || (value.id !== null && typeof value.id !== "string")
     || typeof value.name !== "string"
@@ -137,8 +152,11 @@ function normalizeCapabilities(value: unknown): ArchivedCapabilitySummary[] {
     throw seedError("中的 capabilities 必须是数组。");
   }
   return value.map((capability) => {
-    if (!isObject(capability)
-      || typeof capability.name !== "string"
+    if (!isObject(capability)) {
+      throw seedError("包含无效的 capability 摘要。");
+    }
+    requireExactKeys(capability, ["name", "requirements"], "中的 capability");
+    if (typeof capability.name !== "string"
       || capability.name.trim() === ""
       || !Array.isArray(capability.requirements)) {
       throw seedError("包含无效的 capability 摘要。");
@@ -152,8 +170,11 @@ function normalizeCapabilities(value: unknown): ArchivedCapabilitySummary[] {
 }
 
 function normalizeArchivedSummary(value: unknown): ArchivedChangeSummary {
-  if (!isObject(value)
-    || typeof value.changeId !== "string"
+  if (!isObject(value)) {
+    throw seedError("包含无效的 archived change 摘要。");
+  }
+  requireExactKeys(value, ["changeId", "archiveDate", "schema", "capabilities"], "中的 change");
+  if (typeof value.changeId !== "string"
     || value.changeId.trim() === ""
     || (value.archiveDate !== null && typeof value.archiveDate !== "string")
     || (typeof value.archiveDate === "string" && !/^\d{4}-\d{2}-\d{2}$/.test(value.archiveDate))
@@ -179,22 +200,14 @@ function readHistorySeed(root: string): ArchivedChangeSummary[] {
   } catch {
     throw seedError("不是有效 JSON；为避免历史丢失，未生成新索引。");
   }
-  if (!isObject(parsed) || (parsed.version !== 1 && parsed.version !== 2)) {
-    throw seedError("仅支持 version 1 或 version 2；为避免历史丢失，未生成新索引。");
+  if (!isObject(parsed) || parsed.version !== 1) {
+    throw seedError("仅支持无路径 version 1；为避免历史丢失，未生成新索引。");
   }
+  requireExactKeys(parsed, ["version", "changes"], "根对象");
   if (!Array.isArray(parsed.changes)) {
     throw seedError("中的 changes 必须是数组。");
   }
-
-  const archived = parsed.version === 1
-    ? parsed.changes.flatMap((change) => {
-      if (!isObject(change) || (change.state !== "active" && change.state !== "archived")) {
-        throw seedError("包含无效的 version 1 change state。");
-      }
-      return change.state === "archived" ? [change] : [];
-    })
-    : parsed.changes;
-  return archived.map(normalizeArchivedSummary);
+  return parsed.changes.map(normalizeArchivedSummary);
 }
 
 export function parseDeltaSpec(content: string, sourcePath: string): RequirementChange[] {
@@ -425,7 +438,7 @@ export function collectChangeHistory(root: string): ChangeHistory {
       message: `${change.state === "active" ? "Active" : "Archived"} change ${change.directoryName} has unknown schema ${change.schema}`,
     }));
 
-  return { version: 2, changes, diagnostics };
+  return { version: 1, changes, diagnostics };
 }
 
 export function renderChangeHistory(model: ChangeHistory): string {
@@ -433,5 +446,5 @@ export function renderChangeHistory(model: ChangeHistory): string {
     .filter((change) => change.state === "archived")
     .sort(compareArchived)
     .map(archivedSummary);
-  return `${JSON.stringify({ version: 2, changes }, null, 2)}\n`;
+  return `${JSON.stringify({ version: 1, changes }, null, 2)}\n`;
 }

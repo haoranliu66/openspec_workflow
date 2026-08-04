@@ -15,6 +15,7 @@ export interface InstallResult {
   conflicts: string[];
   backedUp: string[];
   retired: string[];
+  notices: string[];
 }
 
 interface ManagedSource {
@@ -70,7 +71,12 @@ const REQUIRED_FILES: ManagedSource[] = [
   },
   { sourcePath: "docs/FULLSTACK_WORKFLOW.md", targetPath: "docs/FULLSTACK_WORKFLOW.md" },
   { sourcePath: "docs/QUALITY_GATES.md", targetPath: "docs/QUALITY_GATES.md" },
+  { sourcePath: "docs/AI_WORKFLOW_AGENTS.md", targetPath: "docs/AI_WORKFLOW_AGENTS.md" },
+  { sourcePath: "docs/AGENTS.root.example.md", targetPath: "AGENTS.ai-workflow.example.md" },
 ];
+
+const ROOT_AGENTS_SOURCE = "docs/AGENTS.root.example.md";
+const ROOT_AGENTS_TARGET = "AGENTS.md";
 
 const REQUIRED_DIRECTORIES = [
   "openspec/schemas/bugfix",
@@ -212,8 +218,11 @@ export function installWorkflow(
   if (!fs.existsSync(source)) throw new Error(`源仓库不存在：${source}`);
   const version = readSourceVersion(source);
   const previousManagedFiles = readPreviousManagedFiles(target);
+  const rootAgentsPath = path.join(target, ROOT_AGENTS_TARGET);
+  const shouldSeedRootAgents = !fs.existsSync(rootAgentsPath);
 
   const operations = buildOperations(source, target);
+  const rootAgentsContent = readFile(path.join(source, ROOT_AGENTS_SOURCE));
   const sourceConflicts = operations
     .filter((operation) => {
       const targetPath = path.join(target, operation.relativePath);
@@ -252,6 +261,7 @@ export function installWorkflow(
     conflicts: [],
     backedUp: [],
     retired: [],
+    notices: [],
   };
   fs.mkdirSync(target, { recursive: true });
   const backupStamp = options.backupStamp || new Date().toISOString().replace(/[:.]/g, "-");
@@ -290,6 +300,18 @@ export function installWorkflow(
   if (fs.existsSync(retiredTemplateDirectory)
     && fs.readdirSync(retiredTemplateDirectory).length === 0) {
     fs.rmdirSync(retiredTemplateDirectory);
+  }
+
+  if (shouldSeedRootAgents) {
+    fs.writeFileSync(rootAgentsPath, rootAgentsContent);
+    result.copied.push(ROOT_AGENTS_TARGET);
+    result.notices.push(
+      "已创建项目自有 AGENTS.md；该文件不由工作流 manifest 管理，后续请由项目维护。",
+    );
+  } else {
+    result.notices.push(
+      "已保留现有 AGENTS.md；请审阅 AGENTS.ai-workflow.example.md 并将适用规则合入项目指引。",
+    );
   }
 
   const manifestPath = path.join(target, ".ai-workflow.json");

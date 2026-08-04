@@ -16,13 +16,13 @@
 
 | Change | Schema | Capabilities | Existing artifacts |
 |---|---|---|---|
-| publish-clean-docs-and-core-example | product-change | [change-lifecycle-governance](openspec/changes/publish-clean-docs-and-core-example/specs/change-lifecycle-governance/spec.md) | [br.md](openspec/changes/publish-clean-docs-and-core-example/br.md)<br>[prd.md](openspec/changes/publish-clean-docs-and-core-example/prd.md)<br>[proposal.md](openspec/changes/publish-clean-docs-and-core-example/proposal.md)<br>[design.md](openspec/changes/publish-clean-docs-and-core-example/design.md)<br>[tasks.md](openspec/changes/publish-clean-docs-and-core-example/tasks.md) |
+| _暂无活动 Change_ | - | - | - |
 
 ## Capability 导航
 
 | 当前规格 | 首次归档 change | 最新归档 change | 活动 changes |
 |---|---|---|---|
-| [change-lifecycle-governance](openspec/specs/change-lifecycle-governance/spec.md) | 2026-08-01-simplify-closeout-and-gate-apply | 2026-08-03-replace-machine-closeout-with-team-review | [publish-clean-docs-and-core-example](openspec/changes/publish-clean-docs-and-core-example/specs/change-lifecycle-governance/spec.md) |
+| _暂无_ | - | - | - |
 
 ## 生命周期
 

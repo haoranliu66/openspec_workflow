@@ -1,41 +1,65 @@
 # AI 全栈 OpenSpec 工作流
 
-一套面向 AI 协作开发的可移植交付工作流：OpenSpec 管理 change 内的可执行行为与本地归档，精简 BR/PRD/FEATURE 管理外层产品目标，change 内 `verification.md` 支持团队审核，确定性索引与无路径历史 v2 保存当前导航和 Requirement 演变。
+一套面向 AI 协作开发的可移植交付工作流：OpenSpec 管理 change 内的可执行行为与本地归档，精简 BR/PRD/FEATURE 管理外层产品目标，change 内 `verification.md` 支持团队审核，确定性索引与无路径历史 v1 保存当前导航和 Requirement 演变。（推荐与gitnexus协同使用）
 
-当前主版本：`3.0.0`。兼容 Node.js `>=20.19.0` 和 OpenSpec `1.5.0`。
+当前首次公开发行：`v0.0.1`。兼容 Node.js `>=20.19.0` 和 OpenSpec `1.5.0`。
 
 ## 目录
 
-- [核心原则](#核心原则)
-- [五分钟安装](#五分钟安装)
-- [选择工作流路径](#选择工作流路径)
-- [Artifact graph 与事实来源](#artifact-graph-与事实来源)
-- [实施授权与关闭授权](#实施授权与关闭授权)
-- [完整生命周期](#完整生命周期)
-- [Bugfix](#bugfix)
-- [System change](#system-change)
-- [Product change](#product-change)
-- [验证记录与团队审核](#验证记录与团队审核)
-- [正式关闭](#正式关闭)
-- [程序门禁与团队治理](#程序门禁与团队治理)
-- [命令参考](#命令参考)
-- [CI 接入](#ci-接入)
-- [安装器与升级](#安装器与升级)
-- [目录结构](#目录结构)
-- [故障排查](#故障排查)
-- [相关文档](#相关文档)
+- [AI 全栈 OpenSpec 工作流](#ai-全栈-openspec-工作流)
+  - [目录](#目录)
+  - [注意事项](#注意事项)
+  - [工作流与技能协作](#工作流与技能协作)
+    - [默认 `/opsx:explore`](#默认-opsxexplore)
+  - [五分钟安装](#五分钟安装)
+    - [前置条件](#前置条件)
+    - [PowerShell](#powershell)
+    - [Bash](#bash)
+  - [选择工作流路径](#选择工作流路径)
+  - [Artifact graph 与事实来源](#artifact-graph-与事实来源)
+  - [实施授权与关闭授权](#实施授权与关闭授权)
+    - [实施授权](#实施授权)
+    - [关闭授权](#关闭授权)
+  - [完整生命周期](#完整生命周期)
+  - [Stable Requirement ID 治理](#stable-requirement-id-治理)
+  - [Bugfix](#bugfix)
+  - [System change](#system-change)
+  - [Product change](#product-change)
+    - [1. 建立共享需求包](#1-建立共享需求包)
+    - [2. 创建和规划](#2-创建和规划)
+    - [3. 实施、验证和交付声明](#3-实施验证和交付声明)
+  - [验证记录与团队审核](#验证记录与团队审核)
+  - [正式关闭](#正式关闭)
+    - [源仓库](#源仓库)
+    - [安装目标](#安装目标)
+    - [已经提前 sync](#已经提前-sync)
+    - [归档后 finalization 失败](#归档后-finalization-失败)
+  - [程序门禁与团队治理](#程序门禁与团队治理)
+  - [命令参考](#命令参考)
+    - [源仓库](#源仓库-1)
+    - [安装目标](#安装目标-1)
+    - [常用 OpenSpec 命令](#常用-openspec-命令)
+  - [CI 接入](#ci-接入)
+  - [安装器与升级](#安装器与升级)
+    - [安装内容](#安装内容)
+    - [冲突与备份](#冲突与备份)
+    - [旧文件退役](#旧文件退役)
+  - [目录结构](#目录结构)
+  - [故障排查](#故障排查)
+  - [相关文档](#相关文档)
 
-## 核心原则
+## 注意事项
 
 1. 当前行为只在 `openspec/specs/<capability>/spec.md` 定义。
 2. change 只描述增量，不复制完整当前规格。
-3. product-change 的 BR/PRD 是 OpenSpec graph 外的产品治理；proposal 仍是原生独立 root。
-4. 规划完成不等于允许实施；必须等待后续明确的 change-scoped 实施授权。
-5. 实施完成不等于允许关闭；必须经过团队审核并等待后续明确的关闭授权。
-6. `verification.md` 是团队材料，不是机器合同或 CI 门禁。
-7. formal close 只负责 strict validation、archive、索引/历史重建和治理检查。
-8. 已归档 change 按团队流程不可变；历史修正使用新的 delta change。
-9. 本工作流源仓库不发布自身的详细开发过程记录；安装目标是否跟踪自己的 change、归档和需求包由目标团队决定。
+3. 新增或实质修改代码、产品行为或系统行为的需求默认先只读 explore，再选择路径与规划 change。
+4. product-change 的 BR/PRD 是 OpenSpec graph 外的产品治理；proposal 仍是原生独立 root。
+5. 规划完成不等于允许实施；必须等待后续明确的 change-scoped 实施授权。
+6. 实施完成不等于允许关闭；必须经过团队审核并等待后续明确的关闭授权。
+7. `verification.md` 是团队材料，不是机器合同或 CI 门禁。
+8. formal close 只负责 strict validation、archive、索引/历史重建和治理检查。
+9. 已归档 change 按团队流程不可变；历史修正使用新的 delta change。
+10. 本工作流源仓库不发布自身的详细开发过程记录；安装目标是否跟踪自己的 change、归档和需求包由目标团队决定。
 
 本项目明确不提供：
 
@@ -44,6 +68,20 @@
 - `closeout.json`、`validate:close` 或 tasks/evidence/gate/trace 关闭校验器；
 - OpenSpec 内置 spec-driven Schema 的本地副本；
 - 对 archive 不可变性的 base-ref/full-history 程序证明。
+
+## 工作流与技能协作
+
+对代码、产品行为或系统行为的变更，本工作流是目标项目唯一的 change 交付生命周期。路径选择、artifacts、实施授权、验证、关闭审核与正式关闭必须保持在同一个 change 上下文中。其他 workflow 或 skill 可以承担调试、影响分析、评审、发布等有界任务，但不能建立平行生命周期或绕过授权。
+
+这不会取消更高优先级指令，也不会替代项目强制的安全、发布、迁移、运维或领域规则。AI 发现实质冲突时，应报告冲突来源、规则、影响、适用优先级和建议方案；无法消解时暂停相关实施并等待用户决定。skills 只在用户、平台或任务需要时加载，不预读无关内容。
+
+GitNexus 推荐用于大型或陌生代码库的探索、影响分析、调试与重构。使用前先检查仓库上下文与索引新鲜度，再选择任务匹配的能力；不可用时回退到代码搜索和测试。其输出只是辅助线索，不替代 specs、代码、测试、verification、团队审核或任何程序门禁。
+
+### 默认 `/opsx:explore`
+
+用户提出新增或实质修改代码、产品行为或系统行为的需求时，AI 默认先进入 `/opsx:explore` 的只读思考姿态，检查活动 change、相关 current specs 与必要代码，比较路线、风险和关键未知项。实际命令拼写是 `/opsx:explore`；不支持 slash command 的平台执行等价只读行为并如实说明。
+
+explore 不是 OpenSpec artifact graph 节点，也不新增确认或程序门禁。路线明确时可以退出 explore 并在同一轮继续规划；关键未知项会影响路径、范围或风险时才先展示选项并等待用户。问答、状态查询、证据附加、checkbox/格式/链接修复、明确的 apply/close/index/check/validate 命令，以及继续已经探索和规划的 change，不重复 explore。
 
 ## 五分钟安装
 
@@ -95,13 +133,15 @@ node scripts/validate-schemas.js
 node scripts/openspec-governance.js check
 ```
 
-安装器复制项目自定义的 bugfix/product-change Schema、共享需求模板、核心指南和 emitted JavaScript。它生成初始 `SPEC.md` 与 `openspec/change-history.json`。system-change 直接使用 OpenSpec 内置 spec-driven。
+安装器复制项目自定义的 bugfix/product-change Schema、共享需求模板、核心指南和 emitted JavaScript，并分发受管的 AI 治理指南与根合并样例。它生成初始 `SPEC.md` 与 `openspec/change-history.json`；根 `AGENTS.md` 缺失时只创建为项目自有种子。system-change 直接使用 OpenSpec 内置 spec-driven。
 
 ## 选择工作流路径
 
 ```mermaid
 flowchart TD
-    A["发现需要变更"] --> B{"是否改变产品目标、用户旅程、角色权限、业务规则、公共契约或共享验收？"}
+    R["用户提出或实质修改变更需求"] --> E["默认只读 /opsx:explore"]
+    E --> A["路线与关键未知项已明确"]
+    A --> B{"是否改变产品目标、用户旅程、角色权限、业务规则、公共契约或共享验收？"}
     B -- "是或无法确认" --> P["product-change"]
     B -- "否" --> C{"是否只是恢复已确认行为且不新增 Requirement？"}
     C -- "是" --> F["bugfix"]
@@ -145,15 +185,15 @@ flowchart LR
 | 实现计划和状态 | 源代码与 `tasks.md` |
 | 测试、风险、限制和证据 | 当前 change 的 `verification.md`、可选 `evidence/` |
 | 产品交付结论 | 共享 `FEATURE.md` |
-| 导航与历史 | 自动生成的 `SPEC.md`、`openspec/change-history.json` v2；后者只保存已归档 change 的无路径摘要 |
+| 导航与历史 | 自动生成的 `SPEC.md`、`openspec/change-history.json` v1；后者只保存已归档 change 的无路径摘要 |
 
-本仓库自身的 `docs/requirements/REQ-*`、活动/归档 change 详情与验证 evidence 是本地开发记录，受根目录 `.gitignore` 排除。这个上游发布策略不由安装器复制到目标项目。
+本仓库自身的 `docs/requirements/REQ-*`、活动/归档 change 详情、验证 evidence、GitNexus 索引、AI 规划记录、工作流备份、隔离 worktree、测试临时输出和日志均属于本地开发资料，受根目录 `.gitignore` 排除。该规则保证正常 Git staging 不会加入这些内容；维护者提交前仍须检查 tracked/staged 路径，不得通过 `git add -f` 主动发布被排除资料。本项目不新增 CI、脚本或 hook 来强制阻止这种显式绕过。这个上游策略不由安装器复制到目标项目。
 
 ## 实施授权与关闭授权
 
 ### 实施授权
 
-当前 Schema 的 apply-required artifacts 及依赖闭包完成或实质修改后，AI 必须展示准确 change ID、范围、可观察行为、关键决策、风险和任务摘要，然后结束当前轮次。
+当前 Schema 的 apply-required artifacts 及依赖闭包完成或实质修改后，AI 必须展示准确 change ID、范围、可观察行为、关键决策、风险和任务摘要；包含 Requirement delta 时还必须展示新增、沿用、重命名和冲突的 stable ID 结论。然后结束当前轮次。
 
 后续 `/opsx:apply <change>`、`确认实施 <change>`，或针对唯一明确 change 的无歧义确认才构成实施授权。原始开发请求、创建 change、artifact 生成、`/opsx:continue`、`/opsx:ff` 或普通“继续”不构成授权。
 
@@ -168,6 +208,7 @@ flowchart LR
 - 测试与 evidence 摘要；
 - 未完成 tasks、限制和交付影响；
 - security、migration、browser、rollback 的审核结论；
+- Requirement stable ID 的分配、沿用、重命名和冲突结论；
 - 产品声明和回滚情况；
 - formal close 将执行的步骤。
 
@@ -194,6 +235,17 @@ flowchart TD
     K --> L["strict -> archive -> index -> check"]
 ```
 
+## Stable Requirement ID 治理
+
+生成或实质修改 delta Requirement 前，AI 与团队必须盘点三类来源：当前 canonical capability spec、修改同一 capability 的全部活动 changes，以及 `openspec/change-history.json` 中的 Requirement-level 历史。详细 archive 不是必需输入。
+
+- **ADDED**：不得复用已分配给其他逻辑 Requirement 的 ID；数字后缀默认使用同 capability/prefix 历史最大值加一，不填补旧空洞。
+- **MODIFIED**：必须沿用现有 stable ID。
+- **RENAMED**：只修改名称时必须沿用 stable ID。只有纠正确认错误时才允许更换，并记录冲突来源、新 ID 依据和历史保留方式。
+- **授权与审核**：计划摘要和关闭审核都必须展示新分配、沿用、重命名及冲突结论。发现冲突后对 delta 的实质修正会使旧实施授权失效。
+
+这些规则依靠 AI 与团队评审执行。OpenSpec strict validation、Schema、脚本、CLI、CI 和 formal close 不解析或证明 stable ID 的语义唯一性；验证通过不能替代该审核。
+
 ## Bugfix
 
 ```bash
@@ -201,7 +253,7 @@ openspec new change fix-login-timeout --schema bugfix
 ```
 
 1. 在 `proposal.md` 说明缺陷、已确认预期行为、范围、非目标、风险和回滚。
-2. delta spec 使用稳定 Requirement ID，写完整修改后 Requirement 和 WHEN/THEN 场景。
+2. 先按上述三源规则盘点 stable ID，再让 delta spec 沿用受影响 Requirement ID，并写完整修改后 Requirement 和 WHEN/THEN 场景。
 3. `tasks.md` 只包含根因、修复、聚焦回归、验证和交付工作。
 4. 完整规划后等待明确实施授权。
 5. 实施后在 `verification.md` 记录回归用例、实际结果、风险和限制。
@@ -332,7 +384,7 @@ node bin/workflow.js close <change> --target .
 
 formal close 不读取 `tasks.md`、`verification.md`、`evidence/`、BR/PRD/FEATURE 或历史 `closeout.json`。
 
-索引器将本地新归档合并到 `change-history.json` v2。v2 仅保留 change ID、归档日期、Schema、capability 与 Requirement operation/ID/name；即使详细归档目录随后不在公开 checkout 中，重复 index 也不会丢失历史。无效 JSON 或未知 history 版本会中止生成，避免静默覆盖历史。
+索引器将本地新归档合并到 `change-history.json` v1。v1 仅保留 change ID、归档日期、Schema、capability 与 Requirement operation/ID/name；即使详细归档目录随后不在公开 checkout 中，重复 index 也不会丢失历史。只接受严格无路径 v1 seed；legacy 完整 v1、v2、无效 JSON、未知版本或结构漂移都会在写入前中止，避免静默覆盖历史。
 
 ### 已经提前 sync
 
@@ -379,7 +431,7 @@ node bin/workflow.js check --target .
 | `npm run build` | 编译 TypeScript 到不跟踪的 `dist/` |
 | `npm test` | 构建并运行 compiled tests |
 | `npm run verify` | 完整构建、测试、索引、治理、Schema 和活动 change 校验 |
-| `npm run index` | 重建导航与 compact history v2 |
+| `npm run index` | 重建导航与 compact history v1 |
 | `npm run check` | 治理检查 |
 | `npm run validate:schemas` | 校验 bugfix、product-change 和内置 spec-driven |
 | `npm run validate:changes` | 对全部活动 change 执行 strict validation |
@@ -441,6 +493,7 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 - bugfix/product-change Schema 与 templates；
 - requirements templates；
 - full workflow 与 quality gates 指南；
+- 安装目标 AI 治理指南 `docs/AI_WORKFLOW_AGENTS.md` 与根合并样例 `AGENTS.ai-workflow.example.md`；
 - `SPEC.md` 和 `openspec/change-history.json`。
 
 不安装 closeout validator、`validate-close.js`、closeout JSON templates 或本地 spec-driven Schema。
@@ -452,8 +505,11 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 - 内容冲突：默认在写入前整体失败。
 - `--force`：在 `.ai-workflow-backup/<timestamp>/` 备份后覆盖。
 - 已有 OpenSpec config：保留，并生成 merge example。
+- 根 `AGENTS.md` 不存在：从合并样例创建项目自有种子，但不写入 workflow manifest。
+- 根 `AGENTS.md` 已存在：包括 `--force` 在内始终原样保留，并提示团队审阅最新合并样例。
+- 任意嵌套 `AGENTS.md`：安装器不枚举、不备份、不覆盖也不删除。
 
-### 3.0 旧文件退役
+### 旧文件退役
 
 升级时读取旧 `.ai-workflow.json`。只有同时满足以下条件的文件才会退役：
 
@@ -479,6 +535,8 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 │   ├── requirements/
 │   │   └── _templates/             # 公开模板；上游自己的编号 REQ 不发布
 │   ├── ADOPTION.md
+│   ├── AGENTS.root.example.md      # 上游种子源；安装为根合并样例
+│   ├── AI_WORKFLOW_AGENTS.md       # 安装器维护的完整 AI 治理指南
 │   ├── DOCUMENTATION_MAP.md
 │   ├── FULLSTACK_WORKFLOW.md
 │   ├── OPERATIONS.md
@@ -494,7 +552,7 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
         └── archive/.gitkeep
 ```
 
-`dist/` 只在构建时生成且不跟踪。上游维护者本地仍会在 `openspec/changes/<change>/` 与 `archive/` 下工作，但这些详细记录不进入最新发布快照；旧提交中的历史文件没有被改写，仍可能从 Git 历史恢复。安装目标接收需要的 JavaScript，并可按自己的仓库政策跟踪完整过程记录。
+`dist/` 只在构建时生成且不跟踪。上游维护者本地仍会产生 change、archive、编号 REQ、验证材料和其他工具/规划输出；根 `.gitignore` 在正常 Git 操作中排除这些内容，团队在提交前复核 tracked/staged 路径。该边界不承诺通过 CI 阻止有权限的维护者故意强制暂存。旧提交中的历史文件没有被改写，仍可能从 Git 历史恢复。安装目标接收需要的 JavaScript，并可按自己的仓库政策跟踪完整过程记录。
 
 ## 故障排查
 
@@ -505,7 +563,7 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 | archive delta 与当前规格冲突 | 是 | 解决 delta/canonical spec 冲突后重试 |
 | archive 成功但 index/check 失败 | 已归档 | 修复后单独运行 index/check |
 | `SPEC.md` 或 history 过期 | 治理失败 | 运行 index 并提交生成文件 |
-| history JSON 无效或版本不受支持 | 是 | 从可信备份恢复 v1/v2 台账后再运行 index；命令不会强制覆盖 |
+| history JSON 无效、不是严格无路径 v1 或包含旧格式字段 | 是 | 从可信备份恢复当前 pathless v1 台账后再运行 index；命令不会强制覆盖 |
 | active change 使用未知 Schema | 治理失败 | 使用 bugfix、product-change 或内置 spec-driven |
 | 安装发现冲突 | 安装停止 | 人工合并或确认后使用 `--force` 备份覆盖 |
 | 旧 closeout 文件没有自动删除 | 否 | 确认旧 manifest 是否拥有该路径；未受管文件需人工判断 |
@@ -524,6 +582,7 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 ## 相关文档
 
 - [完整执行流程](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md)
+- [AI 工作流权威与技能协作](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/AI_WORKFLOW_AGENTS.md)
 - [质量门禁](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/QUALITY_GATES.md)
 - [接入指南](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/ADOPTION.md)
 - [维护手册](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/OPERATIONS.md)

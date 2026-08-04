@@ -108,7 +108,7 @@ function createOpenSpecProbe(base: string): {
 }
 
 function makeSource(root: string): void {
-  write(root, "package.json", '{"version":"1.0.0"}\n');
+  write(root, "package.json", '{"version":"0.0.1"}\n');
   write(root, "dist/scripts/openspec-governance.js", "module.exports = {};\n");
   write(root, "dist/scripts/validate-schemas.js", "module.exports = {};\n");
   write(root, "dist/scripts/validate-changes.js", "module.exports = {};\n");
@@ -129,6 +129,8 @@ function makeSource(root: string): void {
   write(root, "docs/requirements/_templates/FEATURE.md", "# FEATURE\n");
   write(root, "docs/FULLSTACK_WORKFLOW.md", "# Workflow\n");
   write(root, "docs/QUALITY_GATES.md", "# Gates\n");
+  write(root, "docs/AI_WORKFLOW_AGENTS.md", "# Managed AI governance\n");
+  write(root, "docs/AGENTS.root.example.md", "# Project AI governance\n");
 }
 
 function withRoots(fn: (roots: { source: string; target: string }) => void): void {
@@ -188,25 +190,80 @@ test("installs versioned assets and required OpenSpec structure", () => {
     assert.ok(fs.existsSync(path.join(target, "openspec/changes/archive/.gitkeep")));
     assert.ok(fs.existsSync(path.join(target, ".ai-workflow.json")));
     assert.ok(!fs.existsSync(path.join(target, ".gitignore")));
+    assert.strictEqual(read(target, "docs/AI_WORKFLOW_AGENTS.md"), "# Managed AI governance\n");
+    assert.strictEqual(read(target, "AGENTS.ai-workflow.example.md"), "# Project AI governance\n");
+    assert.strictEqual(read(target, "AGENTS.md"), "# Project AI governance\n");
     assert.strictEqual(read(target, "lib/schema-alignment.js"), "exports.schemaAlignment = true;\n");
     assert.strictEqual(read(target, "lib/change-history.js"), "exports.changeHistory = true;\n");
     assert.strictEqual(read(target, "scripts/validate-changes.js"), "module.exports = {};\n");
     assert.strictEqual(read(target, "lib/openspec-cli.js"), "exports.openSpecCli = true;\n");
     assert.strictEqual(read(target, "lib/project-root.js"), "exports.projectRoot = true;\n");
     assert.match(read(target, "SPEC.md"), /openspec\/change-history\.json/);
-    assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 2,/);
+    assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 1,/);
     assert.doesNotMatch(read(target, "openspec/change-history.json"), /999/);
     const manifest = JSON.parse(read(target, ".ai-workflow.json")) as {
       managedFiles: string[];
     };
     assert.ok(manifest.managedFiles.includes("SPEC.md"));
     assert.ok(manifest.managedFiles.includes("openspec/change-history.json"));
+    assert.ok(manifest.managedFiles.includes("docs/AI_WORKFLOW_AGENTS.md"));
+    assert.ok(manifest.managedFiles.includes("AGENTS.ai-workflow.example.md"));
+    assert.ok(!manifest.managedFiles.includes("AGENTS.md"));
     assert.ok(!manifest.managedFiles.includes(".gitignore"));
     assert.deepStrictEqual(result.retired, []);
+    assert.deepStrictEqual(result.notices, [
+      "已创建项目自有 AGENTS.md；该文件不由工作流 manifest 管理，后续请由项目维护。",
+    ]);
   });
 });
 
-test("installs the 3.0 release manifest and minimal emitted JavaScript runtime", () => {
+test("preserves project-owned root and nested AGENTS files even in force mode", () => {
+  withRoots(({ source, target }) => {
+    write(target, "AGENTS.md", "# Team-owned root rules\n");
+    write(target, "packages/service/AGENTS.md", "# Service rules\n");
+
+    const result = installWorkflow(source, target, {
+      force: true,
+      backupStamp: "agents-preserved",
+    });
+
+    assert.strictEqual(read(target, "AGENTS.md"), "# Team-owned root rules\n");
+    assert.strictEqual(read(target, "packages/service/AGENTS.md"), "# Service rules\n");
+    assert.strictEqual(read(target, "AGENTS.ai-workflow.example.md"), "# Project AI governance\n");
+    assert.ok(!result.backedUp.some((relativePath) => /(^|\/)AGENTS\.md$/.test(relativePath)));
+    assert.deepStrictEqual(result.notices, [
+      "已保留现有 AGENTS.md；请审阅 AGENTS.ai-workflow.example.md 并将适用规则合入项目指引。",
+    ]);
+    const manifest = JSON.parse(read(target, ".ai-workflow.json")) as {
+      managedFiles: string[];
+    };
+    assert.ok(!manifest.managedFiles.includes("AGENTS.md"));
+  });
+});
+
+test("upgrades managed governance assets without reclaiming the root AGENTS seed", () => {
+  withRoots(({ source, target }) => {
+    installWorkflow(source, target);
+    write(target, "AGENTS.md", "# Project customization\n");
+    write(source, "docs/AI_WORKFLOW_AGENTS.md", "# Managed AI governance v2\n");
+    write(source, "docs/AGENTS.root.example.md", "# Project AI governance v2\n");
+
+    const result = installWorkflow(source, target, {
+      force: true,
+      backupStamp: "agents-upgrade",
+    });
+
+    assert.strictEqual(read(target, "AGENTS.md"), "# Project customization\n");
+    assert.strictEqual(read(target, "docs/AI_WORKFLOW_AGENTS.md"), "# Managed AI governance v2\n");
+    assert.strictEqual(read(target, "AGENTS.ai-workflow.example.md"), "# Project AI governance v2\n");
+    assert.ok(!result.backedUp.some((relativePath) => /(^|\/)AGENTS\.md$/.test(relativePath)));
+    assert.deepStrictEqual(result.notices, [
+      "已保留现有 AGENTS.md；请审阅 AGENTS.ai-workflow.example.md 并将适用规则合入项目指引。",
+    ]);
+  });
+});
+
+test("installs the v0.0.1 release manifest and minimal emitted JavaScript runtime", () => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-release-install-"));
   const target = path.join(base, "target");
   try {
@@ -228,7 +285,7 @@ test("installs the 3.0 release manifest and minimal emitted JavaScript runtime",
       "scripts/validate-schemas.js",
     ].sort();
 
-    assert.strictEqual(manifest.version, "3.0.0");
+    assert.strictEqual(manifest.version, "0.0.1");
     assert.deepStrictEqual(
       [
         ...listRelativeFiles(target, "bin"),
@@ -246,6 +303,13 @@ test("installs the 3.0 release manifest and minimal emitted JavaScript runtime",
     });
     assert.ok(manifest.managedFiles.includes("SPEC.md"));
     assert.ok(manifest.managedFiles.includes("openspec/change-history.json"));
+    assert.ok(manifest.managedFiles.includes("docs/AI_WORKFLOW_AGENTS.md"));
+    assert.ok(manifest.managedFiles.includes("AGENTS.ai-workflow.example.md"));
+    assert.ok(!manifest.managedFiles.includes("AGENTS.md"));
+    assert.strictEqual(
+      fs.readFileSync(path.join(target, "AGENTS.md"), "utf8"),
+      fs.readFileSync(path.join(releaseRoot, "docs", "AGENTS.root.example.md"), "utf8"),
+    );
     [
       "scripts/validate-close.js",
       "lib/closeout-contract.js",
@@ -451,33 +515,59 @@ test("install and upgrade preserve historical archived feature and closeout reco
   });
 });
 
-test("force upgrade migrates a valid version 1 seed without a detailed archive", () => {
+test("force upgrade preserves a valid pathless version 1 seed without a detailed archive", () => {
   withRoots(({ source, target }) => {
     write(target, "openspec/change-history.json", `${JSON.stringify({
       version: 1,
       changes: [{
         changeId: "old-change",
-        directoryName: "2026-01-01-old-change",
-        state: "archived",
         archiveDate: "2026-01-01",
         schema: "bugfix",
-        paths: { proposal: "openspec/changes/archive/2026-01-01-old-change/proposal.md" },
         capabilities: [{
           name: "auth",
-          canonicalSpec: "openspec/specs/auth/spec.md",
-          deltaSpec: "openspec/changes/archive/2026-01-01-old-change/specs/auth/spec.md",
           requirements: [{ operation: "MODIFIED", id: "AUTH-001", name: "Password login" }],
         }],
       }],
     }, null, 2)}\n`);
 
-    installWorkflow(source, target, { force: true, backupStamp: "v1-migration" });
+    installWorkflow(source, target, { force: true, backupStamp: "v1-preserve" });
 
     const history = read(target, "openspec/change-history.json");
-    assert.match(history, /^\{\n  "version": 2,/);
+    assert.match(history, /^\{\n  "version": 1,/);
     assert.match(history, /"changeId": "old-change"/);
-    assert.doesNotMatch(history, /directoryName|deltaSpec|proposal\.md/);
     assert.ok(!fs.existsSync(path.join(target, "openspec/changes/archive/2026-01-01-old-change")));
+  });
+});
+
+test("rejects legacy version 1 and version 2 history before force installation mutates files", () => {
+  const unsupported = [{
+    version: 1,
+    changes: [{
+      changeId: "old-change",
+      directoryName: "2026-01-01-old-change",
+      state: "archived",
+      archiveDate: "2026-01-01",
+      schema: "bugfix",
+      paths: {},
+      capabilities: [],
+    }],
+  }, {
+    version: 2,
+    changes: [],
+  }];
+  unsupported.forEach((history) => {
+    withRoots(({ source, target }) => {
+      write(target, "sentinel.txt", "keep\n");
+      write(target, "openspec/change-history.json", `${JSON.stringify(history)}\n`);
+      const before = snapshot(target);
+
+      assert.throws(
+        () => installWorkflow(source, target, { force: true, backupStamp: "must-not-exist" }),
+        /仅支持无路径 version 1|change 字段必须严格/,
+      );
+      assert.deepStrictEqual(snapshot(target), before);
+      assert.ok(!fs.existsSync(path.join(target, ".ai-workflow-backup")));
+    });
   });
 });
 
@@ -497,7 +587,7 @@ test("retires only prior-manifest-owned legacy closeout assets with backups", ()
     ];
     retiredFiles.forEach((relativePath) => write(target, relativePath, `legacy:${relativePath}\n`));
     write(target, ".ai-workflow.json", `${JSON.stringify({
-      version: "2.1.0",
+      version: "legacy",
       managedFiles: retiredFiles,
     }, null, 2)}\n`);
     write(target, "openspec/changes/active/closeout.json", '{"active":true}\n');
@@ -524,7 +614,7 @@ test("retires only prior-manifest-owned legacy closeout assets with backups", ()
 test("preserves unowned legacy-named files", () => {
   withRoots(({ source, target }) => {
     write(target, "lib/closeout-contract.js", "user-owned\n");
-    write(target, ".ai-workflow.json", '{"version":"2.1.0","managedFiles":[]}\n');
+    write(target, ".ai-workflow.json", '{"version":"legacy","managedFiles":[]}\n');
 
     const result = installWorkflow(source, target, { backupStamp: "unused" });
 
@@ -556,6 +646,7 @@ test("refuses conflicts before overwriting target content", () => {
     assert.throws(() => installWorkflow(source, target), /冲突的工作流文件/);
     assert.strictEqual(read(target, "docs/QUALITY_GATES.md"), "# local customization\n");
     assert.ok(!fs.existsSync(path.join(target, "scripts/openspec-governance.js")));
+    assert.ok(!fs.existsSync(path.join(target, "AGENTS.md")));
   });
 });
 
@@ -576,11 +667,11 @@ test("force mode backs up conflicts before overwrite", () => {
 test("generated files participate in conflict preflight and force backup", () => {
   withRoots(({ source, target }) => {
     write(target, "SPEC.md", "# local spec\n");
-    write(target, "openspec/change-history.json", '{"version":2,"changes":[]}\n');
+    write(target, "openspec/change-history.json", '{"version":1,"changes":[]}\n');
 
     assert.throws(() => installWorkflow(source, target), /冲突的工作流文件/);
     assert.strictEqual(read(target, "SPEC.md"), "# local spec\n");
-    assert.strictEqual(read(target, "openspec/change-history.json"), '{"version":2,"changes":[]}\n');
+    assert.strictEqual(read(target, "openspec/change-history.json"), '{"version":1,"changes":[]}\n');
     assert.ok(!fs.existsSync(path.join(target, "scripts/openspec-governance.js")));
 
     const result = installWorkflow(source, target, {
@@ -594,13 +685,13 @@ test("generated files participate in conflict preflight and force backup", () =>
     );
     assert.strictEqual(
       read(target, ".ai-workflow-backup/generated-backup/openspec/change-history.json"),
-      '{"version":2,"changes":[]}\n',
+      '{"version":1,"changes":[]}\n',
     );
     assert.ok(result.backedUp.includes(".ai-workflow-backup/generated-backup/SPEC.md"));
     assert.ok(result.backedUp.includes(
       ".ai-workflow-backup/generated-backup/openspec/change-history.json",
     ));
-    assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 2,/);
+    assert.match(read(target, "openspec/change-history.json"), /^\{\n  "version": 1,/);
   });
 });
 
@@ -612,7 +703,7 @@ test("rejects an unsupported existing history before force installation mutates 
 
     assert.throws(
       () => installWorkflow(source, target, { force: true, backupStamp: "must-not-exist" }),
-      /仅支持 version 1 或 version 2/,
+      /仅支持无路径 version 1/,
     );
     assert.deepStrictEqual(snapshot(target), before);
     assert.ok(!fs.existsSync(path.join(target, ".ai-workflow-backup")));

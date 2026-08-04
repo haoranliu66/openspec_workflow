@@ -8,9 +8,14 @@
 
 路径决定产品治理材料，但不代替风险判断。团队仍应按真实改动面评估 security、migration、browser 和 rollback。
 
+本工作流是代码、产品行为和系统行为变更的唯一 change 交付生命周期。其他 workflow/skill 只可作为当前 change 内的辅助步骤；相关冲突披露、skill 选择和 GitNexus 使用方式属于团队/AI 治理，不新增 Schema、脚本、CI 或 formal-close 门禁。
+
+新变更需求默认先采用 `/opsx:explore` 或等价只读行为，属于 AI/团队的需求澄清治理。它不进入 artifact graph，不由 Schema、脚本或 CI 证明，也不要求为问答、状态查询、非实质调整、明确生命周期命令或已规划 change 重复执行。
+
 ## 所有变更
 
 - 对受影响 capability 执行 OpenSpec strict validation。
+- 生成或实质修改 Requirement delta 前，盘点 canonical、相关活动 changes 和 Requirement-level history 的 stable ID 归属；在计划摘要与关闭审核展示分配、沿用、重命名和冲突结论。
 - 为新增或修改行为提供聚焦测试，并保留失败路径和回归覆盖。
 - 在 `verification.md` 记录详细测试用例、预期/实际结果和证据引用。
 - 披露未完成 tasks、已知限制、回滚方式和对交付声明的影响。
@@ -52,15 +57,15 @@
 CI 使用 Node.js 20.19 和 22 执行：
 
 - TypeScript source layout、build 和 compiled tests；
-- `SPEC.md` 与 pathless `openspec/change-history.json` v2 漂移、v1 迁移、archive 缺失持久性和非法 seed 保护；
+- `SPEC.md` 与 pathless `openspec/change-history.json` v1 漂移、严格结构、archive 缺失持久性，以及 legacy v1/v2/非法 seed 的写入前保护；
 - bugfix/product-change 项目 Schema 和内置 spec-driven 校验；
 - 全部活动 changes 的逐项 `openspec validate <change> --strict`；
 - 安装器、最小 formal close 和真实 OpenSpec 集成测试。
-- 公开仓库 tracked-file 结构检查：保留 canonical specs、模板、示例和 compact history，同时排除上游自身的详细 change/archive、编号 REQ 与 artifacts。
+- 公开仓库现有 tracked-file 结构检查：保留 canonical specs、模板、示例和 compact history，同时检查上游自身的详细 change/archive、编号 REQ 与 artifacts。
 
 formal close 自身只强制：显式 change 的 OpenSpec strict validation、archive 成功、索引/历史重建和治理检查。
 
-归档不可变仍由团队治理，治理命令不读取 Git diff 作程序证明。上游 tracked-file 检查只约束本工作流源仓库的发布边界；安装器不把该忽略策略施加给下游项目。
+归档不可变仍由团队治理，治理命令不读取 Git diff 作程序证明。上游开发资料主要由根 `.gitignore` 在正常 Git 操作中排除并由团队提交前复核；现有 tracked-file 检查保持原范围，不扩展为对全部排除族或显式强制暂存的 CI 保证。安装器不把该忽略策略施加给下游项目。
 
 ## 团队评审边界
 
@@ -70,7 +75,12 @@ formal close 自身只强制：显式 change 的 OpenSpec strict validation、ar
 - 测试和 evidence 是否真实、充分；
 - security、migration、browser、rollback 的适用性和结论；
 - Requirement 与 PRD 验收、共享 FEATURE 之间的引用和语义是否正确；
-- stable Requirement ID、N/A 理由、限制和回滚是否合理；
+- stable Requirement ID 是否按 ADDED 不复用、MODIFIED/普通 RENAMED 沿用、纠错 RENAMED 留痕的规则分配，所有冲突是否已解决；
 - 是否授权关闭当前 change。
+- 其他 workflow 或 skill 是否与本流程冲突，冲突的优先级与兼容方案是否已经明确；
+- 是否确有需要加载专项 skill，以及 GitNexus 索引/分析结果是否仅作为辅助线索使用。
+- 新变更需求是否经过与复杂度相称的只读探索，关键未知项是否在路径与范围确定前得到披露。
 
 项目不再生成或解析 `closeout.json`，不再发出 `TASKS_INCOMPLETE`、`TASKS_INVALID`、`GATE_INVALID`、`EVIDENCE_INVALID` 或产品 trace 关闭诊断，也不再提供 `validate:close`。这不会免除团队的质量责任，只是明确程序不擅自替代人工完成性判断。
+
+stable ID 也遵循同一边界：strict validation 按完整 Requirement 标题工作，不证明标题中的项目 ID 语义唯一。团队必须结合 canonical、活动 delta 和 history 判断 ID 与逻辑 Requirement 的归属，不能把简单重复计数当作完成性门禁。

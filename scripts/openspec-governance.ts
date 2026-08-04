@@ -169,7 +169,7 @@ function renderActiveChange(change: ChangeHistory["changes"][number]): string {
     }
   });
   return [
-    change.changeId,
+    markdownLink(change.changeId, `openspec/changes/${change.directoryName}/`),
     change.schema,
     capabilities,
     artifacts.length > 0 ? artifacts.join("<br>") : "-",

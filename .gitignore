@@ -17,3 +17,4 @@ docs/superpowers/specs/
 !/openspec/changes/archive/.gitkeep
 /docs/requirements/REQ-[0-9]*/
 /artifacts/
+openspec/specs/

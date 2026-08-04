@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 1,
   "changes": [
     {
       "changeId": "simplify-closeout-and-gate-apply",
@@ -76,6 +76,99 @@
       ]
     },
     {
+      "changeId": "govern-workflow-authority-and-skills",
+      "archiveDate": "2026-08-03",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "ADDED",
+              "id": "WFG-019",
+              "name": "Authoritative change-delivery workflow and skill coordination"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-020",
+              "name": "Non-destructive installed AGENTS governance"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-021",
+              "name": "Optional task-aware GitNexus assistance"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "link-spec-active-changes",
+      "archiveDate": "2026-08-03",
+      "schema": "spec-driven",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "ADDED",
+              "id": "WFG-016",
+              "name": "Clickable active change entries"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "publish-clean-docs-and-core-example",
+      "archiveDate": "2026-08-03",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-011",
+              "name": "Change-local team verification record"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-015",
+              "name": "Current documentation and comprehensive core example"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-014",
+              "name": "Durable pathless change history"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-016",
+              "name": "Upstream development artifact exclusion"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "publish-v0-0-1-release",
+      "archiveDate": "2026-08-03",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "release-governance",
+          "requirements": [
+            {
+              "operation": "ADDED",
+              "id": "REL-001",
+              "name": "Initial public release identity"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "changeId": "replace-machine-closeout-with-team-review",
       "archiveDate": "2026-08-03",
       "schema": "product-change",
@@ -117,6 +210,72 @@
               "operation": "MODIFIED",
               "id": "WFG-010",
               "name": "System-change closeout and archive governance"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "resolve-duplicate-wfg-016",
+      "archiveDate": "2026-08-03",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "RENAMED",
+              "id": null,
+              "name": "### Requirement: WFG-016 Clickable active change entries -> ### Requirement: WFG-017 Clickable active change entries"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-018",
+              "name": "Team-governed stable Requirement ID allocation"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "audit-docs-and-harden-public-boundary",
+      "archiveDate": "2026-08-04",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-015",
+              "name": "Current documentation and comprehensive core example"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-016",
+              "name": "Upstream development artifact exclusion"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "changeId": "reset-pathless-history-to-v1",
+      "archiveDate": "2026-08-04",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-014",
+              "name": "Durable pathless change history"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-016",
+              "name": "Upstream development artifact exclusion"
             }
           ]
         }

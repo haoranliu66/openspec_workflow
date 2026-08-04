@@ -29,6 +29,8 @@ assert.deepStrictEqual(
 
 for (const required of [
   "CHANGELOG.md",
+  "docs/AGENTS.root.example.md",
+  "docs/AI_WORKFLOW_AGENTS.md",
   "docs/requirements/_templates/README.md",
   "examples/core-workflow/README.md",
   "openspec/change-history.json",

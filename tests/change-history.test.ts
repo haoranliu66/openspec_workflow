@@ -243,10 +243,10 @@ test("sorts active and archived discovery, capabilities, and requirements", () =
   });
 });
 
-test("preserves version 2 seed history when detailed archives are absent", () => {
+test("preserves pathless version 1 seed history when detailed archives are absent", () => {
   withProject((root) => {
     const seed = {
-      version: 2,
+      version: 1,
       changes: [{
         changeId: "add-auth",
         archiveDate: "2026-01-03",
@@ -268,7 +268,7 @@ test("preserves version 2 seed history when detailed archives are absent", () =>
   });
 });
 
-test("migrates archived version 1 data and omits active records and paths", () => {
+test("rejects legacy full-record version 1 data", () => {
   withProject((root) => {
     write(root, "openspec/change-history.json", `${JSON.stringify({
       version: 1,
@@ -296,18 +296,17 @@ test("migrates archived version 1 data and omits active records and paths", () =
       }],
     }, null, 2)}\n`);
 
-    const rendered = renderChangeHistory(collectChangeHistory(root));
-
-    assert.match(rendered, /^\{\n  "version": 2,/);
-    assert.match(rendered, /"changeId": "retire-auth"/);
-    assert.doesNotMatch(rendered, /active-only|directoryName|paths|deltaSpec|canonicalSpec/);
+    assert.throws(
+      () => collectChangeHistory(root),
+      /change 字段必须严格为 archiveDate, capabilities, changeId, schema/,
+    );
   });
 });
 
 test("merges local archives over seeded summaries by stable identity", () => {
   withProject((root) => {
     write(root, "openspec/change-history.json", `${JSON.stringify({
-      version: 2,
+      version: 1,
       changes: [{
         changeId: "add-auth",
         archiveDate: "2026-01-03",
@@ -337,11 +336,15 @@ test("rejects invalid or unsupported history seeds before regeneration", () => {
   });
   withProject((root) => {
     write(root, "openspec/change-history.json", '{"version":99,"changes":[]}\n');
-    assert.throws(() => collectChangeHistory(root), /仅支持 version 1 或 version 2/);
+    assert.throws(() => collectChangeHistory(root), /仅支持无路径 version 1/);
+  });
+  withProject((root) => {
+    write(root, "openspec/change-history.json", '{"version":2,"changes":[]}\n');
+    assert.throws(() => collectChangeHistory(root), /仅支持无路径 version 1/);
   });
   withProject((root) => {
     write(root, "openspec/change-history.json", `${JSON.stringify({
-      version: 2,
+      version: 1,
       changes: [{
         changeId: "bad-date",
         archiveDate: "yesterday",
@@ -353,17 +356,58 @@ test("rejects invalid or unsupported history seeds before regeneration", () => {
   });
 });
 
+test("rejects forbidden fields at every pathless history level", () => {
+  const validRequirement = { operation: "ADDED", id: "AUTH-001", name: "Password login" };
+  const validCapability = { name: "auth", requirements: [validRequirement] };
+  const validChange = {
+    changeId: "add-auth",
+    archiveDate: "2026-01-03",
+    schema: "product-change",
+    capabilities: [validCapability],
+  };
+  const invalidSeeds = [
+    { expected: /根对象 字段必须严格/, value: { version: 1, changes: [], diagnostics: [] } },
+    { expected: /change 字段必须严格/, value: { version: 1, changes: [{ ...validChange, state: "archived" }] } },
+    {
+      expected: /capability 字段必须严格/,
+      value: {
+        version: 1,
+        changes: [{ ...validChange, capabilities: [{ ...validCapability, canonicalSpec: "spec.md" }] }],
+      },
+    },
+    {
+      expected: /Requirement 字段必须严格/,
+      value: {
+        version: 1,
+        changes: [{
+          ...validChange,
+          capabilities: [{
+            ...validCapability,
+            requirements: [{ ...validRequirement, deltaSpec: "delta.md" }],
+          }],
+        }],
+      },
+    },
+  ];
+  invalidSeeds.forEach(({ expected, value }) => {
+    withProject((root) => {
+      write(root, "openspec/change-history.json", `${JSON.stringify(value)}\n`);
+      assert.throws(() => collectChangeHistory(root), expected);
+    });
+  });
+});
+
 
 test("renders exact deterministic JSON without diagnostics or input mutation", () => {
   const model = {
-    version: 2 as const,
+    version: 1 as const,
     changes: [],
     diagnostics: [{ severity: "error" as const, message: "excluded diagnostic" }],
   };
   const before = structuredClone(model);
   const expected = [
     "{",
-    '  "version": 2,',
+    '  "version": 1,',
     '  "changes": []',
     "}",
     "",

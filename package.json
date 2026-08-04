@@ -1,6 +1,6 @@
 {
   "name": "ai-fullstack-openspec-workflow",
-  "version": "3.0.0",
+  "version": "0.0.1",
   "description": "基于 OpenSpec 的可复用 AI 全栈交付工作流",
   "private": true,
   "license": "MIT",

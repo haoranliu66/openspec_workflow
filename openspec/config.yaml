@@ -1,13 +1,33 @@
 schema: product-change
 
 context: |
-  Shared BR, PRD, and FEATURE records live in docs/requirements/REQ-<id>-<slug>/ and can govern multiple OpenSpec changes. SPEC.md is generated navigation; pathless openspec/change-history.json v2 retains archived Requirement evolution without artifact paths. Current behavior lives in openspec/specs/<capability>/spec.md, while a change only owns its deltas under openspec/changes/<change>/specs/<capability>/spec.md.
+  Shared BR, PRD, and FEATURE records live in docs/requirements/REQ-<id>-<slug>/ and can govern multiple OpenSpec changes. SPEC.md is generated navigation; pathless openspec/change-history.json v1 retains archived Requirement evolution without artifact paths. Current behavior lives in openspec/specs/<capability>/spec.md, while a change only owns its deltas under openspec/changes/<change>/specs/<capability>/spec.md.
   Select bugfix only to restore confirmed behavior without a new Requirement. Select the
   system-change governance path by writing schema: spec-driven for bounded observable system
   behavior that changes no product goal, user journey, role permission, business rule, public
   contract, or shared product acceptance. Select product-change for every product-governed
   change regardless of implementation size. OpenSpec 1.5.0 supplies spec-driven; this project
   does not copy that built-in Schema.
+  For code, product-behavior, or system-behavior changes, this workflow is the project's sole
+  change-delivery lifecycle. Other workflows and skills may be loaded only when the user, platform,
+  or current task requires them, and then only as bounded helpers inside the active change. They must
+  not create a parallel delivery lifecycle or bypass artifacts and change-scoped authorization.
+  Higher-priority instructions and mandatory project security, release, migration, operations, and
+  domain rules remain effective. AI must report material conflicts with their source, impact,
+  priority, and proposed resolution, and stop for user direction when the conflict cannot be resolved.
+  GitNexus is recommended but optional for large or unfamiliar repositories. Check repository context
+  and index freshness first, select only the task-matched capability, and fall back to code search and
+  tests when unavailable. GitNexus results do not replace specs, code, tests, verification, team review,
+  or any Schema, CI, or formal-close gate.
+  When a user introduces or materially changes a request affecting code, product behavior, or system
+  behavior, AI defaults to the read-only `/opsx:explore` stance before selecting a path or creating or
+  modifying a change. It checks active OpenSpec context, relevant current specs, necessary code, viable
+  routes, risks, and material unknowns without implementing. Clear routes may proceed to planning in the
+  same turn; unknowns that materially affect path, scope, or risk require a user-facing exploration
+  summary and direction first. This is not an artifact, approval, Schema, script, or CI gate. Q&A, status
+  reads, evidence or non-material text edits, explicit apply/close/index/check/validate actions, and an
+  already explored and planned change do not repeat exploration. When slash commands are unavailable,
+  AI performs equivalent read-only exploration and must not claim the command actually ran.
   Completing shared BR/PRD before starting a product change is team process governance.
   It is not enforced by the schema, scripts, or CI; proposal remains an independent
   root in the native OpenSpec artifact graph. Archived changes are treated as immutable

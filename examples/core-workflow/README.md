@@ -29,16 +29,18 @@ node scripts/openspec-governance.js check
 
 ```text
 report-export-service/
-├── AGENTS.md                         # 项目可自行维护；若存在应合并工作流规则
+├── AGENTS.md                         # 项目自有；缺失时由安装器创建种子
+├── AGENTS.ai-workflow.example.md     # 受管的根治理合并样例
 ├── SPEC.md                           # 自动生成导航
 ├── bin/workflow.js
 ├── docs/
 │   ├── FULLSTACK_WORKFLOW.md
 │   ├── QUALITY_GATES.md
+│   ├── AI_WORKFLOW_AGENTS.md         # 受管的完整 AI 治理指南
 │   └── requirements/_templates/
 ├── openspec/
 │   ├── config.yaml                   # 已存在时安装器改写 example 供人工合并
-│   ├── change-history.json           # pathless v2 历史
+│   ├── change-history.json           # pathless v1 历史
 │   ├── schemas/{bugfix,product-change}/
 │   ├── specs/
 │   └── changes/archive/.gitkeep
@@ -47,7 +49,19 @@ report-export-service/
 
 安装器不会复制 `spec-driven` Schema；system-change 直接使用 OpenSpec 自带版本。
 
-## 1. 先选路径，不按代码行数选
+如果安装前已有根 `AGENTS.md`，安装器即使在 `--force` 下也会原样保留，并提示团队对照 `AGENTS.ai-workflow.example.md` 人工合并；所有嵌套 `AGENTS.md` 同样不受安装器管理。对代码、产品行为或系统行为的更改，本工作流是唯一 change 交付生命周期，其他 workflow/skill 只在当前 change 内按需辅助。实质冲突必须报告来源、影响、优先级与建议方案，无法消解时等待用户决定。
+
+例如，面对陌生的报表服务，可先检查 GitNexus 仓库上下文与索引新鲜度，再按任务加载探索或影响分析能力；如果 GitNexus 不可用，则用代码搜索、调用关系检查和测试继续。分析结果帮助定位风险，但不替代下文的 specs、测试、verification 和团队审核。
+
+## 1. 先默认 explore，再选路径
+
+收到新的代码、产品行为或系统行为变更需求后，AI 先采用 `/opsx:explore` 的只读姿态检查活动 changes、current specs 和必要代码。例如：
+
+```text
+/opsx:explore 报表导出服务收到以下三个改动请求，分别应采用哪条路径？
+```
+
+explore 只比较路线、风险和未知项，不实施代码，也不新增 artifact 或审批。下列请求边界明确时可在同一轮退出 explore 并进入规划；如果是否改变公共契约仍不明确，则先向用户展示分歧并等待决定。平台不支持 slash command 时执行等价只读探索并如实说明。问答、状态查询、明确 apply/close/维护命令和继续已规划 change 不重复 explore。
 
 报表服务收到三个请求：
 
@@ -85,6 +99,8 @@ The service SHALL set a timed-out export to `failed` and expose the failure reas
 3. 修改相同 capability 的活动 changes；
 4. 需要 Requirement 级历史时读取 `openspec/change-history.json`；
 5. 只有本地详细 archive 确实存在且有必要时才读取它。
+
+写入任何 delta Requirement 前，再做一次 stable ID 归属盘点：canonical spec、修改同 capability 的活动 changes、Requirement-level history。后续三个示例的计划摘要应分别报告：bugfix 沿用 `RPT-001`；system-change 新增 `CLEAN-001`，且三源中没有既有 `CLEAN-*`；product-change 新增 `SCHED-001`，且三源中没有既有 `SCHED-*`。ADDED 不复用其他逻辑 Requirement 的 ID，MODIFIED/普通 RENAMED 沿用 ID，纠错 RENAMED 必须解释新 ID 和历史保留。相同结论在关闭审核再次展示，但不由 strict validation 或 CI 代替团队判断。
 
 ## 3. 路径一：有界 bugfix
 
@@ -499,11 +515,11 @@ AI 展示完整 close review 后结束轮次。用户后续发送：
 node bin/workflow.js close add-daily-export-schedule --target .
 ```
 
-成功后 canonical specs 包含新行为，活动 change 被 OpenSpec 移入本地 archive，`SPEC.md` 重建，history v2 增加无路径摘要：
+成功后 canonical specs 包含新行为，活动 change 被 OpenSpec 移入本地 archive，`SPEC.md` 重建，history v1 增加无路径摘要：
 
 ```json
 {
-  "version": 2,
+  "version": 1,
   "changes": [
     {
       "changeId": "add-daily-export-schedule",
@@ -549,7 +565,7 @@ node bin/workflow.js index --target .
 node bin/workflow.js check --target .
 ```
 
-不要再次运行 archive。若 `openspec/change-history.json` 是无效 JSON 或未知版本，先从可信 Git/备份恢复有效 v1/v2；index 与 `--force` 安装都不会静默覆盖它。
+不要再次运行 archive。若 `openspec/change-history.json` 不是严格 pathless v1、含有 legacy 字段或 JSON 无效，先从可信 Git/备份恢复受支持的 v1；index 与 `--force` 安装都不会静默转换或覆盖它。
 
 ## 7. 安装器升级
 
@@ -574,7 +590,7 @@ Pop-Location
 node dist/bin/workflow.js install --target $targetProject --force
 ```
 
-`--force` 先备份冲突的受管文件。旧版本 manifest 明确拥有且位于退役清单的 closeout 脚本/模板会先备份再删除；未受管同名文件和所有项目 change/archive/REQ/verification/evidence 都不属于退役目标。
+`--force` 先备份冲突的受管文件。受管的 AI 治理指南与根合并样例会升级，但项目自己的根/嵌套 `AGENTS.md` 保持不变。旧版本 manifest 明确拥有且位于退役清单的 closeout 脚本/模板会先备份再删除；未受管同名文件和所有项目 change/archive/REQ/verification/evidence 都不属于退役目标。
 
 ## 8. Git 保留边界
 
@@ -582,10 +598,10 @@ node dist/bin/workflow.js install --target $targetProject --force
 
 | 仓库 | 默认策略 |
 |---|---|
-| 本工作流上游源仓库 | 最新公开 checkout 不跟踪自身的活动/归档 change 详情、编号 REQ 或 artifacts；保留 canonical specs、模板、示例、CHANGELOG 和 history v2 |
+| 本工作流上游源仓库 | 根 `.gitignore` 在正常 Git 操作中排除自身的活动/归档 change 详情、编号 REQ、artifacts 及工具/规划输出；团队提交前复核 staged/tracked 路径；保留 canonical specs、模板、示例、CHANGELOG 和 history v1 |
 | 安装后的业务项目 | 工作流不设置 `.gitignore`；团队自行决定是否跟踪完整 change、archive、REQ 和安全 evidence |
 
-上游的清理不重写既有 Git commits。因此普通最新 checkout 没有完整开发过程文档，但显式查看旧提交仍可能恢复它们。若要从所有 Git 对象中永久清除，需要单独评估 filter-repo 和 force-push；这不属于工作流安装或 close。
+上游的排除策略不增加 CI、脚本或 hook 来阻止有权限的维护者故意使用 `git add -f`；维护者不得主动绕过根规则。它也不重写既有 Git commits。因此普通最新 checkout 没有完整开发过程文档，但显式查看旧提交仍可能恢复它们。若要从所有 Git 对象中永久清除，需要单独评估 filter-repo 和 force-push；这不属于工作流安装或 close。
 
 ## 9. 提交前检查
 

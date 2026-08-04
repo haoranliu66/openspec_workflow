@@ -27,7 +27,14 @@ assert.deepStrictEqual(
 
 const calls: string[] = [];
 runWorkflow(["close", "add-login", "--skip-specs", "--target", root], {
-  install: () => ({ copied: [], skipped: [], backedUp: [], conflicts: [], retired: [] }),
+  install: () => ({
+    copied: [],
+    skipped: [],
+    backedUp: [],
+    conflicts: [],
+    retired: [],
+    notices: [],
+  }),
   index: () => [],
   check: () => [],
   close: (_target, changeId, options) => {
@@ -37,6 +44,31 @@ runWorkflow(["close", "add-login", "--skip-specs", "--target", root], {
 });
 // Recovery-only --skip-specs must reach the OpenSpec archive wrapper unchanged.
 assert.deepStrictEqual(calls, ["close:add-login:true"]);
+
+let installOutput = "";
+const originalWrite = process.stdout.write;
+process.stdout.write = ((chunk: string | Uint8Array): boolean => {
+  installOutput += chunk.toString();
+  return true;
+}) as typeof process.stdout.write;
+try {
+  runWorkflow(["install", "--target", root], {
+    install: () => ({
+      copied: ["AGENTS.md"],
+      skipped: [],
+      backedUp: [],
+      conflicts: [],
+      retired: [],
+      notices: ["保留项目自有治理文件。"],
+    }),
+    index: () => [],
+    check: () => [],
+    close: (_target, changeId) => ({ changeId, archived: true }),
+  });
+} finally {
+  process.stdout.write = originalWrite;
+}
+assert.match(installOutput, /提示：保留项目自有治理文件。/);
 
 const imported = childProcess.execFileSync(process.execPath, [
   "-e",

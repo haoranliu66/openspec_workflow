@@ -137,7 +137,7 @@ try {
   assert.ok(fs.existsSync(path.join(product, "openspec/changes/archive", productArchive, "closeout.json")));
   assert.doesNotMatch(output(result), /TASKS_INCOMPLETE|CLOSEOUT_/);
   const productHistory = fs.readFileSync(path.join(product, "openspec/change-history.json"), "utf8");
-  assert.match(productHistory, /^\{\n  "version": 2,/);
+  assert.match(productHistory, /^\{\n  "version": 1,/);
   assert.match(productHistory, /"changeId": "add-probe"/);
   assert.doesNotMatch(productHistory, /directoryName|deltaSpec|proposal\.md|verification\.md/);
   fs.rmSync(path.join(product, "openspec/changes/archive", productArchive), {

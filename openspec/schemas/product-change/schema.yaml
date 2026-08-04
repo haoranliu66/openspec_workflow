@@ -25,6 +25,13 @@ artifacts:
     generates: "specs/**/*.md"
     description: Executable behavior deltas
     template: spec.md
+    instruction: |
+      Before generating or materially modifying a Requirement, inventory stable ID ownership in the canonical
+      capability spec, every active change modifying that capability, and Requirement-level change history.
+      ADDED must not reuse an ID owned by a different logical Requirement and should default to the highest seen
+      numeric suffix plus one. MODIFIED and name-only RENAMED retain the ID. A corrective RENAMED may change the ID
+      only when the erroneous assignment, new-ID basis, and immutable-history treatment are recorded for team review.
+      This is team governance and is not Schema, script, CLI, CI, or formal-close semantic proof.
     requires:
       - proposal
 
@@ -49,11 +56,13 @@ apply:
   instruction: |
     Apply is an implementation action, not an artifact-completion action. After br.md, prd.md, proposal.md,
     delta specs, design.md, and tasks.md are complete or materially changed, end the current execution turn,
-    show this change ID and the implementation-plan summary, and wait for a later user message. The original
+    show this change ID, the implementation-plan summary, and any Requirement ID allocation/retention/rename/conflict
+    conclusions, then wait for a later user message. The original
     request, artifact generation, /opsx:continue, /opsx:ff, or an unqualified "continue" is not authorization.
     A later `/opsx:apply <change>`, `确认实施 <change>`, or an unambiguous confirmation to a single-change
     authorization prompt authorizes only that change. Material planning changes invalidate prior authorization;
     formatting, link repair, evidence attachment, and checkbox/status notes do not. This is AI/team governance,
     not an approval artifact or a Schema, script, or CI proof. After implementation, prepare change-local
     verification material for team review. Implementation authorization does not authorize formal close; present
-    the verification summary and wait for later explicit close authorization before running workflow close.
+    the verification summary including stable-ID conclusions and wait for later explicit close authorization before
+    running workflow close.
