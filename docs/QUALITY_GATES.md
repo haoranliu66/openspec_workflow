@@ -10,7 +10,7 @@
 
 本工作流是代码、产品行为和系统行为变更的唯一 change 交付生命周期。其他 workflow/skill 只可作为当前 change 内的辅助步骤；相关冲突披露、skill 选择和 GitNexus 使用方式属于团队/AI 治理，不新增 Schema、脚本、CI 或 formal-close 门禁。
 
-新变更需求默认先采用 `/opsx:explore` 或等价只读行为，属于 AI/团队的需求澄清治理。它不进入 artifact graph，不由 Schema、脚本或 CI 证明，也不要求为问答、状态查询、非实质调整、明确生命周期命令或已规划 change 重复执行。
+Explore 是[统一生命周期](FULLSTACK_WORKFLOW.md#4-统一生命周期)中的只读需求澄清阶段，不是程序质量门禁。本文件不重复其触发、退出或豁免规则；Schema、脚本和 CI 也不证明该团队治理是否充分。
 
 ## 所有变更
 
@@ -79,7 +79,7 @@ formal close 自身只强制：显式 change 的 OpenSpec strict validation、ar
 - 是否授权关闭当前 change。
 - 其他 workflow 或 skill 是否与本流程冲突，冲突的优先级与兼容方案是否已经明确；
 - 是否确有需要加载专项 skill，以及 GitNexus 索引/分析结果是否仅作为辅助线索使用。
-- 新变更需求是否经过与复杂度相称的只读探索，关键未知项是否在路径与范围确定前得到披露。
+- 是否遵循主流程的 explore 规则，并在路径与范围确定前披露关键未知项。
 
 项目不再生成或解析 `closeout.json`，不再发出 `TASKS_INCOMPLETE`、`TASKS_INVALID`、`GATE_INVALID`、`EVIDENCE_INVALID` 或产品 trace 关闭诊断，也不再提供 `validate:close`。这不会免除团队的质量责任，只是明确程序不擅自替代人工完成性判断。
 

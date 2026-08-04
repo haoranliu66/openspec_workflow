@@ -6,6 +6,7 @@
 
 ### 核心工作流
 
+- 将唯一生命周期固定为“需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close”，并把完整 `/opsx:explore` 规则融入主流程而非独立悬挂。
 - 提供互斥的 `bugfix`、原生 `system-change`（`schema: spec-driven`）和 `product-change` 三条路径，按行为与产品治理面选择，不按代码量选择。
 - product-change 保留共享 BR/PRD/FEATURE 外层治理和 change-local BR/PRD 绑定，并对齐原生 `proposal -> {specs, design} -> tasks` 核心 graph。
 - 规划 artifacts 完成或发生实质修改后，AI 必须展示 change ID 与计划摘要，结束当前轮次并等待后续 change-scoped 实施授权。
@@ -24,6 +25,8 @@
 
 ### 历史与公开仓库
 
+- 明确 current docs 只描述当前使用方式，`CHANGELOG.md` 记录人类可读发行与能力演变，pathless history v1 记录归档 change/Requirement 操作摘要，本地 archive 保存不可变详细记录且不公开。
+- 文档权威地图增加新文档准入：仅在受众或职责实质不同且完成登记时新增；不得用“最新规则”文件绕过既有权威文档更新。
 - `SPEC.md` 提供确定性最小导航；`openspec/change-history.json` v1 只持久化 archived change 的日期、Schema、capability 和 Requirement operation/ID/name，不保存 active change 或 artifact 路径。
 - history index 只接受严格 pathless v1 seed，支持本地 archive 合并、archive 缺失持久化、稳定去重排序，并在 legacy 完整 v1、v2、非法版本或结构漂移时写入前失败。
 - 上游根 `.gitignore` 在正常 Git 操作中排除自身的活动/归档 change 详情、编号 REQ 开发包、artifacts、工具索引、AI 规划记录、备份、worktree、测试临时输出和日志；维护者提交前负责复核 staged/tracked 路径，不新增 CI/hook 对显式强制暂存的保证。公开 checkout 保留 canonical specs、requirements 模板、完整示例、CHANGELOG 和 compact history。

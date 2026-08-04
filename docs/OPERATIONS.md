@@ -87,7 +87,7 @@ node bin/workflow.js close <change> --skip-specs --target .
 
 archive 成功但 index/check 失败时，不要重复 archive；修复原因后分别运行 `workflow index` 和 `workflow check`。
 
-对本工作流源仓库，close 生成的详细 archive 保留在本地且受上游 `.gitignore` 排除，只有 v1 摘要和同步后的 canonical spec 进入正常发布候选。维护者仍应在提交前复核 staged/tracked 路径，不得强制加入被排除资料；不新增 CI 或 hook 来阻止显式绕过。下游安装目标不继承这条 Git 规则。
+对本工作流源仓库，close 生成的详细 archive 是本地不可变过程记录，受上游 `.gitignore` 排除且不进入公开发布内容；其归档 change 与 Requirement 操作摘要进入 pathless history v1。维护者仍应在提交前复核 staged/tracked 路径，不得强制加入被排除资料；不新增 CI 或 hook 来阻止显式绕过。下游安装目标不继承这条 Git 规则。
 
 ## 升级已接入项目
 
@@ -101,7 +101,7 @@ archive 成功但 index/check 失败时，不要重复 archive；修复原因后
 
 ## 历史修正策略
 
-已归档 change 按团队流程不可变。发现历史错误时创建新的 delta change 修正当前规格，并在新记录中向后追踪；不要修改旧本地 archive 或 history 摘要来伪造演变。公开上游 checkout 只提供 `CHANGELOG.md` 和 history v1，旧详细记录可能仍能从未重写的 Git 旧提交恢复。
+已归档 change 按团队流程不可变。发现历史错误时创建新的 delta change 修正当前规格，并在新记录中向后追踪；不要修改旧本地 archive 或 history 摘要来伪造演变。公开历史由 `CHANGELOG.md` 的人类可读发行/能力演变和 history v1 的归档操作摘要承担；current docs 只说明当前使用方式。旧详细记录可能仍能从未重写的 Git 旧提交恢复。
 
 ## 版本策略
 

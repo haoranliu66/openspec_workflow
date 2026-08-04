@@ -8,7 +8,9 @@
 
 若辅助 workflow、skill 或项目指引与本流程实质冲突，AI 必须说明冲突来源、具体规则、交付影响、适用优先级和建议方案。可以兼容时把专项步骤纳入当前 change；无法消解或选择会改变范围、风险或结果时，停止相关实施并等待用户决定。
 
-## 2. 文档分层
+## 2. 文档权威与分层
+
+`README.md` 和 `docs/` 是下游开发者理解、安装和使用本工作流的唯一文档表面。开发者从 README 进入本文件即可完成完整旅程，不需要阅读 `SPEC.md`、`openspec/specs/**`、活动 change 或本地 archive。后述规格与过程记录是 AI、OpenSpec 和交付团队使用的事实或证据，不是另一套使用手册。
 
 | 层级 | 位置 | 责任 |
 |---|---|---|
@@ -18,9 +20,18 @@
 | 技术设计 | `openspec/changes/<change>/design.md` | 本次技术决策 |
 | 实现计划 | `openspec/changes/<change>/tasks.md` | 实施与验证任务 |
 | 验证记录 | `openspec/changes/<change>/verification.md`、可选 `evidence/` | 团队审核使用的测试、证据、风险和限制 |
-| 导航与历史 | `SPEC.md`、`openspec/change-history.json` v1 | 自动生成的当前导航和已归档 Requirement 演变摘要，不依赖详细 archive 路径 |
+| 导航与归档摘要 | `SPEC.md`、`openspec/change-history.json` v1 | AI 导航以及已归档 change/Requirement 操作摘要，不是下游使用文档 |
 
-`verification.md` 不是 OpenSpec artifact，也不是机器合同；Schema、脚本、CLI 和 CI 不强制其存在、格式或充分性。
+`verification.md` 不是 OpenSpec artifact，也不是机器合同；Schema、脚本、CLI 和 CI 不强制其存在、格式或充分性。公开历史与当前文档的职责固定为：
+
+| 载体 | 唯一职责 |
+|---|---|
+| `README.md` 与 `docs/` current docs | 描述当前安装和使用方式，不承担完整历史 |
+| `CHANGELOG.md` | 人类可读的发行记录与能力演变 |
+| `openspec/change-history.json` | 已归档 change 与 Requirement operation/ID/name 的无路径摘要 |
+| 本地 `openspec/changes/archive/**` | 团队不可变的详细过程记录，不进入公开发布内容 |
+
+完整的受众、权威范围、同步关系与新增文档准入规则见 [`DOCUMENTATION_MAP.md`](DOCUMENTATION_MAP.md)。
 
 ## 3. 路径选择
 
@@ -38,27 +49,63 @@
 
 路径按行为和治理面选择，不按代码行数选择。范围扩大时，bugfix 升级为 system-change 或 product-change；system-change 触及任何产品治理面时升级为 product-change。
 
-## 4. 标准执行循环
+## 4. 统一生命周期
 
-1. 对新增或实质修改代码、产品行为或系统行为的需求，默认先采用 `/opsx:explore` 的只读姿态；检查活动 OpenSpec 上下文、相关 current specs 与必要代码，比较路线、风险和关键未知项。
-2. 若关键未知项会影响路径、范围或风险，展示探索结论并等待用户；若路线明确，退出 explore 并在同一轮继续。explore 不实施代码，也不是 artifact 或新授权门禁。
-3. 读取 `SPEC.md`，定位受影响 capability 和活动 changes，并选择 bugfix、system-change 或 product-change。
-4. 按路径加载当前规格、相关活动 change 和必要的历史依据。
-5. 生成当前 Schema 的完整规划包。
-6. 规划包完成或实质修改后，展示 change ID 与计划摘要；存在 Requirement delta 时同时展示新增、沿用、重命名和冲突的 stable ID 结论。然后结束当前轮次。
-7. 用户在后续消息中明确授权实施该 change。
-8. 按 `tasks.md` 实施并运行与真实改动面匹配的测试和质量检查。
-9. 在 change 内编写 `verification.md`，必要时增加 `evidence/`。
-10. product-change 只把有实现和验证依据的结论更新到共享 `FEATURE.md`。
-11. AI 展示关闭审核摘要，包括 Requirement stable ID 分配/沿用/重命名/冲突结论、未完成 tasks、限制、风险适用性和回滚信息，然后结束当前轮次。
-12. 团队在后续消息中明确授权关闭该 change。
-13. 运行 `workflow close <change>` 完成 strict validation、archive、索引/历史重建和治理检查。
+唯一顺序固定为：
 
-单纯问答、解释、阅读、状态查询、证据或非实质文案调整、明确的 apply/close/index/check/validate 命令，以及继续已经探索和规划的 change，不重复进入 explore。不支持 slash command 的平台执行等价只读探索，不得伪称命令已被实际调用。
+> 需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close
 
-实现中的调试、影响分析、代码评审或发布 skill 都只能服务于上述循环，不能另起 artifacts、授权或关闭路径。GitNexus 推荐用于大型或陌生代码库：先确认仓库上下文与索引新鲜度，再选择任务匹配的探索、影响分析、调试或重构能力；不可用时使用代码搜索、调用关系检查与测试继续。其结果不替代 specs、代码、测试、verification 或团队判断，也不构成程序门禁。
+任何指南、示例、AI 指引、配置或 skill 都不得改变顺序、跳过授权停点或建立平行生命周期。
 
-实施授权和关闭授权相互独立，且都只适用于明确的 change。它们属于团队/AI 治理，不创建 approval artifact，也不由 CI 证明。
+### 4.1 需求进入
+
+用户提出新增或实质修改代码、产品行为或系统行为的需求后，AI 先识别请求目标、现有上下文以及是否属于明确的后续生命周期动作。原始开发请求本身既不是实施授权，也不是关闭授权。
+
+### 4.2 Explore
+
+对于新的或发生实质变化的代码、产品行为或系统行为需求，AI 默认进入只读 `/opsx:explore` 思考姿态，然后才选择路径或创建、实质修改 change。探索应与请求复杂度相称，并至少检查：
+
+- 活动 OpenSpec change 与可能冲突的并行工作；
+- 相关 current specs、必要的 Requirement history 与共享产品上下文；
+- 为判断可行路线必须读取的代码、配置、接口或测试；
+- 可行路线、行为边界、影响面、风险和会改变路径、范围或风险的关键未知项。
+
+Explore 期间不得实施代码。它不是 artifact graph 阶段，不生成审批记录，也不新增 Schema、脚本、CLI、CI 或 formal-close 门禁。
+
+- **路线明确**：AI 可以结束 explore，在同一执行轮次继续路径选择与规划；后续仍必须执行实施授权停点。
+- **存在实质未知项**：如果不同答案会改变路径、交付范围或风险，AI 展示探索结论、可行路线及影响，然后等待用户决定，不得先假定并规划。
+- **无需重复 explore**：纯问答、解释、阅读、状态查询、证据附加、checkbox/格式/链接等非实质调整、明确的 apply/close/index/check/validate 动作，以及继续已完成探索和规划且范围未实质改变的 change。
+- **命令不可用**：AI 平台不能直接调用 slash command 时，执行等价只读探索并如实说明；不得声称 `/opsx:explore` 已实际运行。
+
+### 4.3 路径选择
+
+按第 3 节的行为与治理面规则选择 bugfix、system-change 或 product-change。代码量、文件数和预计工时不是主要判据。随后读取 `SPEC.md` 定位受影响 capability 和活动 changes，并按需加载当前规格、相关 change 与历史依据。
+
+### 4.4 规划
+
+生成所选 Schema 的完整 apply-required artifact 及其依赖闭包。product-change 还必须生成 change-local `br.md` 与 `prd.md`。存在 Requirement delta 时，盘点 stable ID 并记录新增、沿用、重命名和冲突结论。
+
+### 4.5 实施授权
+
+规划包生成完成或发生实质修改后，AI 展示准确 change ID、范围、可观察行为、关键决策、风险、任务摘要及 stable ID 结论，然后结束当前轮次。只有用户在后续消息中通过 `/opsx:apply <change>`、`确认实施 <change>` 或针对唯一明确 change 的无歧义确认，才授权实施该 change。普通“继续”和 artifact 生成不构成授权；规划发生实质修改后必须重新授权。
+
+### 4.6 实施
+
+获得 change-scoped 授权后，按 `tasks.md` 实施，并运行与真实改动面匹配的测试和质量检查。调试、影响分析、代码评审或发布 skill 只能作为本 change 内的有界辅助，不能建立新的 artifacts、授权或关闭路径。
+
+### 4.7 验证与团队审核
+
+在 change 内编写 `verification.md`，必要时增加 `evidence/`；披露实际交付范围、测试结果、风险适用性、未完成 tasks、限制和回滚。product-change 只把有实现、验证和团队审核依据的结论更新到共享 `FEATURE.md`。团队负责判断证据和声明是否真实充分。
+
+### 4.8 关闭授权
+
+AI 展示准确 change ID、已交付与测试范围、证据摘要、stable ID 结论、未完成 tasks、限制、security/migration/browser/rollback 决策、产品声明和收尾计划，然后结束当前轮次。只有用户在后续消息中明确表达 `确认关闭 <change>` 或等价指令，才授权关闭该 change。实施授权、tasks 完成、verification 生成、提前 sync 或普通“继续”都不构成关闭授权。
+
+### 4.9 Formal close
+
+获得关闭授权后运行 `workflow close <change>`，按第 6 节完成 strict validation、archive、索引/历史重建和治理检查。formal close 不重复团队的完成性或证据充分性判断。
+
+实施授权和关闭授权相互独立，且都只适用于明确的 change。它们属于团队/AI 治理，不创建 approval artifact，也不由 CI 证明。GitNexus 仍是大型或陌生代码库中的可选辅助：先检查仓库上下文与索引新鲜度，按任务使用；不可用时回退到代码搜索、调用关系检查和测试。
 
 ## 5. 验证记录与团队审核
 
@@ -127,7 +174,9 @@ archive 成功但 index/check 失败时，change 已经归档；修复问题后�
 ## 8. 升级与历史边界
 
 - 新规则通过新的 delta change 演进，不改写历史摘要或已有本地 archive。
+- current docs 只描述当前安装与使用；人类可读的发行和能力演变写入 `CHANGELOG.md`，不得把旧条目当作现行操作手册。
 - `change-history.json` v1 只发布 archived change ID、日期、Schema、capability 和 Requirement operation/ID/name；legacy 完整 v1 与 v2 不再兼容，活动 change 和 artifact 路径不会持久化。
+- 本地 archive 是不可变的详细过程记录，不公开；历史错误通过新的 delta change 修正，不改写既有 archive。
 - 本工作流源仓库的详细 change/archive、编号 REQ、evidence 及其他工具/规划输出由根 `.gitignore` 在正常 Git 操作中排除；维护者提交前复核 staged/tracked 路径，不得主动强制加入。本项目不新增 CI、脚本或 hook 来阻止显式绕过，旧 Git 提交也不重写。下游项目若保留历史 `closeout.json`、local FEATURE 或 evidence，新命令会忽略但安装器不会删除这些项目记录。
 - 安装器升级只退役旧 manifest 明确拥有的 closeout 脚本、库和模板；退役前创建备份。
 - 未受管同名文件以及 `openspec/changes/**`、`artifacts/**` 永不进入退役目标。

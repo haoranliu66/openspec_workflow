@@ -58,11 +58,11 @@ node dist/bin/workflow.js install --target "$target_project"
 
 ## 合并项目配置
 
-先让根 `AGENTS.md` 引用 `docs/AI_WORKFLOW_AGENTS.md`，或审阅 `AGENTS.ai-workflow.example.md` 后把适用内容合入现有项目指引。对代码、产品行为或系统行为的变更，本工作流应作为唯一 change 交付生命周期；其他 workflow/skill 只作为按需的有界辅助。发现实质冲突时记录来源、影响、优先级和建议方案，无法消解时等待用户决定。
+先让根 `AGENTS.md` 引用 `docs/AI_WORKFLOW_AGENTS.md` 和 `docs/FULLSTACK_WORKFLOW.md`，或审阅 `AGENTS.ai-workflow.example.md` 后把适用的 AI 执行约束合入现有项目指引。完整流程及 `/opsx:explore` 的全部规则只以 [`FULLSTACK_WORKFLOW.md`](FULLSTACK_WORKFLOW.md#4-统一生命周期) 为准，不要在根 AGENTS 中复制另一套流程。
 
-同时合入默认 explore 边界：新增或实质修改代码、产品行为或系统行为的需求先执行 `/opsx:explore` 或等价只读探索；路线明确时可直接继续规划，关键未知项影响路径、范围或风险时才等待用户；问答、状态查询、非实质调整、明确生命周期命令和已规划 change 不重复探索。explore 不成为 artifact、审批或 CI 门禁。
+对代码、产品行为或系统行为的变更，本工作流应作为唯一 change 交付生命周期；其他 workflow/skill 只作为按需的有界辅助。发现实质冲突时记录来源、影响、优先级和建议方案，无法消解时等待用户决定。
 
-再将 OpenSpec 示例中的 context/rules 合入项目实际 `openspec/config.yaml`，保留团队自己的领域约束。重点确保：路径选择、apply 前授权停顿、change 内 verification、团队关闭审核、独立关闭授权和 archive 不可变边界没有冲突。
+再将 OpenSpec 示例中的 context/rules 合入项目实际 `openspec/config.yaml`，保留团队自己的领域约束。配置只补充 OpenSpec 上下文和执行约束，不维护第二套生命周期；重点确保 apply 前授权停顿、change 内 verification、团队关闭审核、独立关闭授权和 archive 不可变边界没有冲突。
 
 GitNexus 是可选推荐工具，尤其适合大型或陌生仓库。使用前检查仓库上下文和索引新鲜度，只加载与探索、影响分析、调试或重构任务匹配的能力；不可用时回退到代码搜索与测试。不要把 GitNexus 结果当成 specs、验证证据、CI 或 close 门禁。
 

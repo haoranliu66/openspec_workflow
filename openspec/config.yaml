@@ -19,15 +19,11 @@ context: |
   and index freshness first, select only the task-matched capability, and fall back to code search and
   tests when unavailable. GitNexus results do not replace specs, code, tests, verification, team review,
   or any Schema, CI, or formal-close gate.
-  When a user introduces or materially changes a request affecting code, product behavior, or system
-  behavior, AI defaults to the read-only `/opsx:explore` stance before selecting a path or creating or
-  modifying a change. It checks active OpenSpec context, relevant current specs, necessary code, viable
-  routes, risks, and material unknowns without implementing. Clear routes may proceed to planning in the
-  same turn; unknowns that materially affect path, scope, or risk require a user-facing exploration
-  summary and direction first. This is not an artifact, approval, Schema, script, or CI gate. Q&A, status
-  reads, evidence or non-material text edits, explicit apply/close/index/check/validate actions, and an
-  already explored and planned change do not repeat exploration. When slash commands are unavailable,
-  AI performs equivalent read-only exploration and must not claim the command actually ran.
+  The sole complete lifecycle is the Unified Lifecycle in docs/FULLSTACK_WORKFLOW.md: request intake,
+  explore, path selection, planning, implementation authorization, implementation, verification and team
+  review, close authorization, and formal close. Follow that section for the complete `/opsx:explore`
+  contract and do not create a parallel lifecycle in this config. This config only adds OpenSpec-specific
+  context and execution constraints.
   Completing shared BR/PRD before starting a product change is team process governance.
   It is not enforced by the schema, scripts, or CI; proposal remains an independent
   root in the native OpenSpec artifact graph. Archived changes are treated as immutable

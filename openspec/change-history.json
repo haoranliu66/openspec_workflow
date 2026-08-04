@@ -280,6 +280,38 @@
           ]
         }
       ]
+    },
+    {
+      "changeId": "unify-lifecycle-and-document-authority",
+      "archiveDate": "2026-08-04",
+      "schema": "product-change",
+      "capabilities": [
+        {
+          "name": "change-lifecycle-governance",
+          "requirements": [
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-019",
+              "name": "Authoritative change-delivery workflow and skill coordination"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-015",
+              "name": "Current documentation and comprehensive core example"
+            },
+            {
+              "operation": "MODIFIED",
+              "id": "WFG-022",
+              "name": "Default exploration before change planning"
+            },
+            {
+              "operation": "ADDED",
+              "id": "WFG-023",
+              "name": "Unified lifecycle and downstream documentation authority"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

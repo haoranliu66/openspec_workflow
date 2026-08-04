@@ -4,13 +4,14 @@
 
 当前首次公开发行：`v0.0.1`。兼容 Node.js `>=20.19.0` 和 OpenSpec `1.5.0`。
 
+`README.md` 和 `docs/` 是下游开发者理解、安装和使用本工作流的唯一文档表面。`SPEC.md`、`openspec/specs/**`、活动 change 和本地 archive 服务于 AI、OpenSpec 或交付过程；使用者不需要阅读它们来拼接工作流。
+
 ## 目录
 
 - [AI 全栈 OpenSpec 工作流](#ai-全栈-openspec-工作流)
   - [目录](#目录)
   - [注意事项](#注意事项)
   - [工作流与技能协作](#工作流与技能协作)
-    - [默认 `/opsx:explore`](#默认-opsxexplore)
   - [五分钟安装](#五分钟安装)
     - [前置条件](#前置条件)
     - [PowerShell](#powershell)
@@ -20,7 +21,7 @@
   - [实施授权与关闭授权](#实施授权与关闭授权)
     - [实施授权](#实施授权)
     - [关闭授权](#关闭授权)
-  - [完整生命周期](#完整生命周期)
+  - [统一生命周期](#统一生命周期)
   - [Stable Requirement ID 治理](#stable-requirement-id-治理)
   - [Bugfix](#bugfix)
   - [System change](#system-change)
@@ -52,7 +53,7 @@
 
 1. 当前行为只在 `openspec/specs/<capability>/spec.md` 定义。
 2. change 只描述增量，不复制完整当前规格。
-3. 新增或实质修改代码、产品行为或系统行为的需求默认先只读 explore，再选择路径与规划 change。
+3. 所有变更遵循固定统一生命周期：需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close。
 4. product-change 的 BR/PRD 是 OpenSpec graph 外的产品治理；proposal 仍是原生独立 root。
 5. 规划完成不等于允许实施；必须等待后续明确的 change-scoped 实施授权。
 6. 实施完成不等于允许关闭；必须经过团队审核并等待后续明确的关闭授权。
@@ -77,11 +78,7 @@
 
 GitNexus 推荐用于大型或陌生代码库的探索、影响分析、调试与重构。使用前先检查仓库上下文与索引新鲜度，再选择任务匹配的能力；不可用时回退到代码搜索和测试。其输出只是辅助线索，不替代 specs、代码、测试、verification、团队审核或任何程序门禁。
 
-### 默认 `/opsx:explore`
-
-用户提出新增或实质修改代码、产品行为或系统行为的需求时，AI 默认先进入 `/opsx:explore` 的只读思考姿态，检查活动 change、相关 current specs 与必要代码，比较路线、风险和关键未知项。实际命令拼写是 `/opsx:explore`；不支持 slash command 的平台执行等价只读行为并如实说明。
-
-explore 不是 OpenSpec artifact graph 节点，也不新增确认或程序门禁。路线明确时可以退出 explore 并在同一轮继续规划；关键未知项会影响路径、范围或风险时才先展示选项并等待用户。问答、状态查询、证据附加、checkbox/格式/链接修复、明确的 apply/close/index/check/validate 命令，以及继续已经探索和规划的 change，不重复 explore。
+完整生命周期和 `/opsx:explore` 的触发、读取范围、退出条件、停点、豁免及命令不可用时的等价行为，以[统一生命周期](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)为准；本页不维护第二份完整规则。
 
 ## 五分钟安装
 
@@ -139,8 +136,7 @@ node scripts/openspec-governance.js check
 
 ```mermaid
 flowchart TD
-    R["用户提出或实质修改变更需求"] --> E["默认只读 /opsx:explore"]
-    E --> A["路线与关键未知项已明确"]
+    R["统一生命周期完成需求进入与 explore"] --> A["路线与关键未知项已明确"]
     A --> B{"是否改变产品目标、用户旅程、角色权限、业务规则、公共契约或共享验收？"}
     B -- "是或无法确认" --> P["product-change"]
     B -- "否" --> C{"是否只是恢复已确认行为且不新增 Requirement？"}
@@ -185,7 +181,7 @@ flowchart LR
 | 实现计划和状态 | 源代码与 `tasks.md` |
 | 测试、风险、限制和证据 | 当前 change 的 `verification.md`、可选 `evidence/` |
 | 产品交付结论 | 共享 `FEATURE.md` |
-| 导航与历史 | 自动生成的 `SPEC.md`、`openspec/change-history.json` v1；后者只保存已归档 change 的无路径摘要 |
+| AI 导航与归档摘要 | 自动生成的 `SPEC.md`、`openspec/change-history.json` v1；不是下游使用文档 |
 
 本仓库自身的 `docs/requirements/REQ-*`、活动/归档 change 详情、验证 evidence、GitNexus 索引、AI 规划记录、工作流备份、隔离 worktree、测试临时输出和日志均属于本地开发资料，受根目录 `.gitignore` 排除。该规则保证正常 Git staging 不会加入这些内容；维护者提交前仍须检查 tracked/staged 路径，不得通过 `git add -f` 主动发布被排除资料。本项目不新增 CI、脚本或 hook 来强制阻止这种显式绕过。这个上游策略不由安装器复制到目标项目。
 
@@ -216,23 +212,24 @@ flowchart LR
 
 两类授权都属于团队/AI 协作治理，不生成 approval 文件，也不由 Schema 或 CI 证明。
 
-## 完整生命周期
+## 统一生命周期
+
+固定顺序是：
+
+> 需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close
+
+以下图示仅为入口摘要。每个阶段的完整规则，特别是 `/opsx:explore` 的适用与豁免边界，以 [`docs/FULLSTACK_WORKFLOW.md` 的统一生命周期章节](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)为准。
 
 ```mermaid
 flowchart TD
-    A["读取 SPEC.md 和受影响规格"] --> B["选择路径并生成规划 artifacts"]
-    B --> C["展示规划摘要并停止"]
-    C --> D{"后续明确实施授权？"}
-    D -- "否" --> C
-    D -- "是" --> E["实施 tasks"]
-    E --> F["运行适用测试和质量检查"]
-    F --> G["编写 change-local verification"]
-    G --> H["product-change 更新共享 FEATURE"]
-    H --> I["展示关闭审核摘要并停止"]
-    I --> J{"后续明确关闭授权？"}
-    J -- "否" --> I
-    J -- "是" --> K["workflow close <change>"]
-    K --> L["strict -> archive -> index -> check"]
+    A["需求进入"] --> B["explore"]
+    B --> C["路径选择"]
+    C --> D["规划"]
+    D --> E["实施授权"]
+    E --> F["实施"]
+    F --> G["验证与团队审核"]
+    G --> H["关闭授权"]
+    H --> I["formal close"]
 ```
 
 ## Stable Requirement ID 治理
@@ -536,7 +533,7 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 │   │   └── _templates/             # 公开模板；上游自己的编号 REQ 不发布
 │   ├── ADOPTION.md
 │   ├── AGENTS.root.example.md      # 上游种子源；安装为根合并样例
-│   ├── AI_WORKFLOW_AGENTS.md       # 安装器维护的完整 AI 治理指南
+│   ├── AI_WORKFLOW_AGENTS.md       # 安装器维护的 AI 执行约束
 │   ├── DOCUMENTATION_MAP.md
 │   ├── FULLSTACK_WORKFLOW.md
 │   ├── OPERATIONS.md

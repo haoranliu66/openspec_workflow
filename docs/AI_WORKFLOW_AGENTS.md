@@ -2,6 +2,8 @@
 
 本文件是安装器维护的 AI 治理指南。目标项目的根 `AGENTS.md` 应引用或合入这些规则；项目可以增加领域约束，但不得静默绕过本工作流的 change 交付生命周期。
 
+面向团队和下游开发者的唯一完整流程是 [`FULLSTACK_WORKFLOW.md`](FULLSTACK_WORKFLOW.md) 的“统一生命周期”。本文件只保留 AI 执行约束；`/opsx:explore`、路径选择、规划、实施、审核与 formal close 的完整语义均以该主流程为准。
+
 ## 适用范围与优先级
 
 - 对代码、产品行为或系统行为的变更，本工作流是项目唯一的 change 交付生命周期：路径选择、OpenSpec artifacts、实施授权、验证、关闭审核与正式关闭都在本流程内完成。
@@ -16,13 +18,12 @@
 3. 使用 skill 前明确它在当前 change 中承担的有界任务，例如调试、影响分析、代码评审或文档生成。
 4. skill 输出属于辅助分析，不自动成为需求事实、实施授权、测试结果或关闭结论。
 
-## 默认需求探索
+## 生命周期执行停点
 
-- 当用户提出新增或实质修改代码、产品行为或系统行为的需求时，默认先采用 `/opsx:explore` 的只读思考姿态，再选择 bugfix、system-change 或 product-change，并创建或修改对应 change。
-- 探索应快速检查 OpenSpec 活动上下文，读取相关 current specs 与必要代码，比较可行路线、风险和关键未知项。explore 中不得实施代码；它不是 artifact graph 节点，也不产生新的审批或程序门禁。
-- 路线明确时，可以退出 explore 并在同一轮继续规划；完整规划包仍受既有实施授权停顿约束。关键未知项会改变路径、范围或风险时，先向用户展示结论与选项并等待决定。
-- 问答、解释、阅读、状态查询、证据或非实质文案调整、明确的 apply/close/index/check/validate 命令，以及继续已经探索和规划的 change，不重复执行默认 explore。
-- 某些 AI 平台不能直接调用 slash command；此时执行等价只读行为并如实说明，不得伪称 `/opsx:explore` 已被实际调用。
+- 严格按主流程顺序执行，不得把 explore 独立悬挂、跳过 change-scoped 实施授权或把实施授权当作关闭授权。
+- planning artifacts 生成完成或发生实质修改后，展示 change ID、计划与 stable ID 结论，结束当前轮次并等待后续明确实施授权。
+- 验证与团队审核完成后，展示交付、证据、未完成项、风险、stable ID 与收尾摘要，结束当前轮次并等待后续明确关闭授权。
+- 授权只适用于明确 change；artifact 生成、普通“继续”、tasks 完成或 verification 生成均不自动构成相应授权。
 
 ## 冲突处理
 

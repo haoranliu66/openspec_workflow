@@ -2,6 +2,8 @@
 
 本示例以同一个 `report-export` 服务为背景，依次演示 bugfix、原生 system-change 和 product-change。它展示的是可复制的工作方法，不是仓库根目录下的活动 OpenSpec change。
 
+规范规则以 [`docs/FULLSTACK_WORKFLOW.md`](../../docs/FULLSTACK_WORKFLOW.md#4-统一生命周期) 为准。本示例只展示其应用，不定义第二套流程。
+
 示例假设团队在 Windows PowerShell 中操作一个已经使用 Git 的目标项目；Bash 只需替换路径和环境变量写法。目标项目可以按自己的审计政策提交完整的 change、archive、REQ 和 verification，安装器不会替它设置 `.gitignore`。
 
 ## 0. 安装工作流
@@ -36,7 +38,7 @@ report-export-service/
 ├── docs/
 │   ├── FULLSTACK_WORKFLOW.md
 │   ├── QUALITY_GATES.md
-│   ├── AI_WORKFLOW_AGENTS.md         # 受管的完整 AI 治理指南
+│   ├── AI_WORKFLOW_AGENTS.md         # 受管的 AI 执行约束
 │   └── requirements/_templates/
 ├── openspec/
 │   ├── config.yaml                   # 已存在时安装器改写 example 供人工合并
@@ -53,7 +55,9 @@ report-export-service/
 
 例如，面对陌生的报表服务，可先检查 GitNexus 仓库上下文与索引新鲜度，再按任务加载探索或影响分析能力；如果 GitNexus 不可用，则用代码搜索、调用关系检查和测试继续。分析结果帮助定位风险，但不替代下文的 specs、测试、verification 和团队审核。
 
-## 1. 先默认 explore，再选路径
+## 1. 统一生命周期中的 explore 与路径选择
+
+完整顺序是：需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close。本节只演示其中的 explore 与路径选择；完整适用和豁免边界见[主流程](../../docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)。
 
 收到新的代码、产品行为或系统行为变更需求后，AI 先采用 `/opsx:explore` 的只读姿态检查活动 changes、current specs 和必要代码。例如：
 
@@ -61,7 +65,7 @@ report-export-service/
 /opsx:explore 报表导出服务收到以下三个改动请求，分别应采用哪条路径？
 ```
 
-explore 只比较路线、风险和未知项，不实施代码，也不新增 artifact 或审批。下列请求边界明确时可在同一轮退出 explore 并进入规划；如果是否改变公共契约仍不明确，则先向用户展示分歧并等待决定。平台不支持 slash command 时执行等价只读探索并如实说明。问答、状态查询、明确 apply/close/维护命令和继续已规划 change 不重复 explore。
+在这个示例中，AI 只读检查服务上下文并形成下列路径结论；是否继续同轮规划、何时等待用户以及 slash command 不可用时的行为均按主流程处理。
 
 报表服务收到三个请求：
 

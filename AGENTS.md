@@ -1,5 +1,10 @@
 # AI 交付指引
 
+## 主流程权威
+
+- 面向团队和下游开发者的唯一完整生命周期是 [`docs/FULLSTACK_WORKFLOW.md`](docs/FULLSTACK_WORKFLOW.md) 的“统一生命周期”：需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close。
+- 本文件只规定本仓库 AI 的上下文加载、冲突处理、授权停点、证据、工具和发布边界，不独立定义生命周期。`/opsx:explore` 的完整触发、范围、退出、停点、豁免和命令回退规则以主流程为准。
+
 ## 上下文加载顺序
 
 1. 先读取根目录 `SPEC.md` 定位受影响 capability 与活动 change。
@@ -7,13 +12,6 @@
 3. 加载修改相同 capability 的活动 changes；需要 Requirement 级历史时读取 `openspec/change-history.json`。
 4. 需要历史依据时优先读取无路径 `openspec/change-history.json`；只有本地详细 archive 存在且回归、冲突或设计依据确有需要时才读取它。
 5. BR/PRD 表达外层产品目标，specs 表达可执行行为。
-
-## 需求进入与默认探索
-
-- 用户提出新增或实质修改代码、产品行为或系统行为的需求时，AI 默认先采用正确拼写的 `/opsx:explore` 进行只读探索，再选择路径、创建或修改 change。探索至少结合 OpenSpec 活动上下文、相关 current specs 与必要代码，识别可行路线、风险和关键未知项；不得在 explore 姿态中实施代码。
-- `/opsx:explore` 是思考姿态，不是 artifact graph 阶段，也不新增审批、Schema、脚本或 CI 门禁。若路线已明确，AI 可退出 explore 并在同一轮继续生成规划 artifacts，之后仍执行既有实施授权停顿；若关键未知项会实质影响路径、范围或风险，则先展示探索结论并等待用户决定。
-- 单纯问答、解释、文档阅读、状态查询、证据附加、checkbox/格式/链接修复，以及明确的 `/opsx:apply <change>`、关闭授权、index/check/validate 或继续已完成探索和规划的 change，不重复触发默认 explore。更高优先级指令可覆盖该默认行为。
-- AI 平台无法直接调用 slash command 时，应执行等价的只读 explore 行为并如实说明，不得伪称命令已实际运行。
 
 ## 工作流与技能协作
 
@@ -23,15 +21,11 @@
 - 发现其他 workflow、skill 或项目指引与本流程实质冲突时，AI 必须及时说明冲突来源、具体规则、影响、适用优先级和建议方案。无法按优先级消解或选择会实质改变交付时，停止相关实施并等待用户决定。
 - GitNexus 推荐但可选。用于大型或陌生仓库的探索、影响分析、调试或重构前，先确认仓库上下文与索引新鲜度，再按任务加载匹配能力；不可用时回退到代码搜索、调用关系检查和测试。GitNexus 结果不替代 specs、源代码、测试、verification 或团队审核，也不构成 CI 或 formal close 门禁。
 
-## 工作流选择与 artifact graph
+## 路径与规划执行约束
 
-- 只有 Bug 边界明确、预期行为已确认、只恢复既有行为且不新增 Requirement 时，才使用 `bugfix`。
-- 有限的可观察系统行为变化，若不改变产品目标、用户旅程、角色权限、业务规则、公共契约，也不需要共享产品验收，使用治理路径 `system-change`；实际 change metadata 必须写 `schema: spec-driven`。
-- 新功能、管理台、跨角色流程，以及任何产品目标、用户旅程、角色权限、业务规则、公共契约或共享产品验收变化，使用 `product-change`，即使代码改动很小。
-- 路径选择以行为和治理面为准，不以代码行数、文件数或预计工时为主要依据；无法确认是否涉及产品治理面时使用 `product-change`。
-- 团队应在启动 product change 前完成并确认共享 BR/PRD。该顺序属于 change 外的流程治理，不进入 OpenSpec 原生 artifact graph，也不由 Schema、脚本或 CI 校验；`proposal` 仍是原生 graph 的独立 root。change 内 `proposal` 完成后，`specs` 与 `design` 并行解锁；`tasks` 等待二者，`apply` 跟踪 `tasks.md`。
-- `system-change` 直接使用 OpenSpec `1.5.0` 内置 `spec-driven` graph：`proposal` 后并行解锁 `specs` 与 `design`，`tasks` 等待二者，`apply` 跟踪 `tasks.md`。本仓库不复制或安装 `spec-driven` Schema。
-- 调研发现范围扩大时，从 bugfix 升级为 system-change 或 product-change；system-change 一旦触及产品治理面即升级为 product-change。
+- 按主流程第 3、4 节选择 bugfix、system-change 或 product-change，并使用对应 Schema graph；不得用代码量替代行为与治理面判断。
+- product-change 启动前完成共享 BR/PRD 属于团队流程治理，不由 Schema、脚本或 CI 强制；change-local BR/PRD、planning artifacts 和 artifact graph 仍按主流程与 Schema 执行。
+- 调研导致范围跨越路径边界时，先调整路径和规划；如果 planning artifacts 已实质修改，必须重新执行实施授权停点。
 
 ## 实施授权治理
 
