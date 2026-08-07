@@ -2,7 +2,7 @@
 
 一套面向 AI 协作开发的可移植交付工作流：OpenSpec 管理 change 内的可执行行为与本地归档，精简 BR/PRD/FEATURE 管理外层产品目标，change 内 `verification.md` 支持团队审核，确定性索引与无路径历史 v1 保存当前导航和 Requirement 演变。（推荐与gitnexus协同使用）
 
-当前首次公开发行：`v0.0.1`。兼容 Node.js `>=20.19.0` 和 OpenSpec `1.5.0`。
+当前首次公开发行：`v0.0.1`。兼容 Node.js `>=20.19.0`，使用 OpenSpec `1.8.0`（官方 commit `d57889664cab4f2f061d236ec3ff82a5578701bb`）。
 
 `README.md` 和 `docs/` 是下游开发者理解、安装和使用本工作流的唯一文档表面。`SPEC.md`、`openspec/specs/**`、活动 change 和本地 archive 服务于 AI、OpenSpec 或交付过程；使用者不需要阅读它们来拼接工作流。
 
@@ -53,7 +53,7 @@
 
 1. 当前行为只在 `openspec/specs/<capability>/spec.md` 定义。
 2. change 只描述增量，不复制完整当前规格。
-3. 所有变更遵循固定统一生命周期：需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close。
+3. 所有变更遵循固定统一生命周期：需求进入 → OpenSpec 原生 explore → 路径选择 → OpenSpec 原生规划 → 实施授权 → OpenSpec 原生 apply → 验证与团队审核 → 关闭授权 → 本项目 formal close。
 4. product-change 的 BR/PRD 是 OpenSpec graph 外的产品治理；proposal 仍是原生独立 root。
 5. 规划完成不等于允许实施；必须等待后续明确的 change-scoped 实施授权。
 6. 实施完成不等于允许关闭；必须经过团队审核并等待后续明确的关闭授权。
@@ -67,18 +67,18 @@
 - 用户批准的哈希或 approval artifact；
 - evidence 充分性、测试真实性或 N/A 合理性的自动判定；
 - `closeout.json`、`validate:close` 或 tasks/evidence/gate/trace 关闭校验器；
-- OpenSpec 内置 spec-driven Schema 的本地副本；
+- 项目级 fork 的 OpenSpec 内置 spec-driven Schema；
 - 对 archive 不可变性的 base-ref/full-history 程序证明。
 
 ## 工作流与技能协作
 
-对代码、产品行为或系统行为的变更，本工作流是目标项目唯一的 change 交付生命周期。路径选择、artifacts、实施授权、验证、关闭审核与正式关闭必须保持在同一个 change 上下文中。其他 workflow 或 skill 可以承担调试、影响分析、评审、发布等有界任务，但不能建立平行生命周期或绕过授权。
+对代码、产品行为或系统行为的变更，本工作流是目标项目唯一的 change 交付生命周期。OpenSpec 原生 `explore/propose/update/apply/sync` skills 是该生命周期的主要执行引擎，不属于外部并行 workflow；路径选择、实施授权、验证、关闭审核与正式关闭仍由本项目治理。其他 workflow 或 skill 可以承担调试、影响分析、评审、发布等有界任务，但不能建立平行生命周期或绕过授权。
 
 这不会取消更高优先级指令，也不会替代项目强制的安全、发布、迁移、运维或领域规则。AI 发现实质冲突时，应报告冲突来源、规则、影响、适用优先级和建议方案；无法消解时暂停相关实施并等待用户决定。skills 只在用户、平台或任务需要时加载，不预读无关内容。
 
 GitNexus 推荐用于大型或陌生代码库的探索、影响分析、调试与重构。使用前先检查仓库上下文与索引新鲜度，再选择任务匹配的能力；不可用时回退到代码搜索和测试。其输出只是辅助线索，不替代 specs、代码、测试、verification、团队审核或任何程序门禁。
 
-完整生命周期和 `/opsx:explore` 的触发、读取范围、退出条件、停点、豁免及命令不可用时的等价行为，以[统一生命周期](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)为准；本页不维护第二份完整规则。
+完整生命周期和原生 `openspec-explore`（不同平台可显示为 `/opsx:explore`、`/openspec-explore` 或 `$openspec-explore`）的触发、读取范围、退出条件、停点与豁免，以[统一生命周期](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)为准；本页不维护第二份完整规则。
 
 ## 五分钟安装
 
@@ -87,7 +87,8 @@ GitNexus 推荐用于大型或陌生代码库的探索、影响分析、调试�
 - Git
 - Node.js `>=20.19.0`
 - npm
-- OpenSpec `1.5.0`
+
+无需预装全局 OpenSpec。仓库的 `vendor/openspec` submodule 是固定 commit 的官方源码 checkout；`npm ci` 安装同版本官方运行时，安装器向目标项目分发固定运行时和核心 skills。
 
 ### PowerShell
 
@@ -98,7 +99,7 @@ $repoUrl = "https://github.com/haoranliu66/openspec_workflow.git"
 $targetProject = "D:\path\to\your-project"
 $download = Join-Path ([System.IO.Path]::GetTempPath()) ("openspec-workflow-" + [guid]::NewGuid())
 
-git clone --depth 1 $repoUrl $download
+git clone --depth 1 --recurse-submodules $repoUrl $download
 Push-Location $download
 npm ci
 npm run build
@@ -106,6 +107,7 @@ node dist/bin/workflow.js install --target $targetProject
 Pop-Location
 
 Set-Location $targetProject
+node bin/openspec.js --version
 node scripts/validate-schemas.js
 node scripts/openspec-governance.js check
 ```
@@ -119,18 +121,19 @@ repo_url="https://github.com/haoranliu66/openspec_workflow.git"
 target_project="/path/to/your-project"
 download="$(mktemp -d)"
 
-git clone --depth 1 "$repo_url" "$download"
+git clone --depth 1 --recurse-submodules "$repo_url" "$download"
 cd "$download"
 npm ci
 npm run build
 node dist/bin/workflow.js install --target "$target_project"
 
 cd "$target_project"
+node bin/openspec.js --version
 node scripts/validate-schemas.js
 node scripts/openspec-governance.js check
 ```
 
-安装器复制项目自定义的 bugfix/product-change Schema、共享需求模板、核心指南和 emitted JavaScript，并分发受管的 AI 治理指南与根合并样例。它生成初始 `SPEC.md` 与 `openspec/change-history.json`；根 `AGENTS.md` 缺失时只创建为项目自有种子。system-change 直接使用 OpenSpec 内置 spec-driven。
+安装器复制 OpenSpec `1.8.0` 生产运行时、`bin/openspec.js`、`.agents/skills` 下的原生核心 skills、项目治理版 archive skill、bugfix/product-change Schema、共享需求模板、核心指南和 emitted JavaScript。它生成初始 `SPEC.md` 与 `openspec/change-history.json`；根 `AGENTS.md` 缺失时只创建为项目自有种子。system-change 使用固定运行时内置 spec-driven，product-change 使用项目 Schema，但二者都由同一套原生核心 skills 读取 artifact graph。
 
 ## 选择工作流路径
 
@@ -218,7 +221,7 @@ flowchart LR
 
 > 需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close
 
-以下图示仅为入口摘要。每个阶段的完整规则，特别是 `/opsx:explore` 的适用与豁免边界，以 [`docs/FULLSTACK_WORKFLOW.md` 的统一生命周期章节](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)为准。
+以下图示仅为入口摘要。每个阶段的完整规则，特别是原生 `openspec-explore` 的适用与豁免边界，以 [`docs/FULLSTACK_WORKFLOW.md` 的统一生命周期章节](https://github.com/haoranliu66/openspec_workflow/blob/main/docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)为准。
 
 ```mermaid
 flowchart TD
@@ -246,7 +249,7 @@ flowchart TD
 ## Bugfix
 
 ```bash
-openspec new change fix-login-timeout --schema bugfix
+node bin/openspec.js new change fix-login-timeout --schema bugfix
 ```
 
 1. 在 `proposal.md` 说明缺陷、已确认预期行为、范围、非目标、风险和回滚。
@@ -264,10 +267,10 @@ openspec new change fix-login-timeout --schema bugfix
 system-change 是治理名称，实际创建时使用原生 Schema：
 
 ```bash
-openspec new change add-cache-policy --schema spec-driven
+node bin/openspec.js new change add-cache-policy --schema spec-driven
 ```
 
-完成 proposal、specs、design、tasks 后等待实施授权。实施和验证后使用同样的 change-local verification 与关闭审核，不创建共享 BR/PRD/FEATURE，也不创建 `closeout.json`。原生 spec-driven Schema 目录不会被复制到仓库或安装目标。
+通过 `openspec-propose` 生成 proposal、specs、design、tasks 后等待实施授权，再由 `openspec-apply-change` 实施。实施和验证后使用同样的 change-local verification 与关闭审核，不创建共享 BR/PRD/FEATURE，也不创建 `closeout.json`。spec-driven 来自受管 OpenSpec runtime，不在项目的 `openspec/schemas/` 下创建 fork。
 
 ## Product change
 
@@ -286,7 +289,7 @@ docs/requirements/REQ-123-operations-console/
 ### 2. 创建和规划
 
 ```bash
-openspec new change add-operations-console --schema product-change
+node bin/openspec.js new change add-operations-console --schema product-change
 ```
 
 1. `br.md` 绑定共享 BR 与业务目标。
@@ -374,8 +377,8 @@ node bin/workflow.js close <change> --target .
 
 固定执行顺序：
 
-1. `openspec validate <change> --strict`；
-2. `openspec archive <change> --yes --json`；
+1. 受管 OpenSpec runtime 执行 `validate <change> --strict`；
+2. 受管 OpenSpec runtime 执行 `archive <change> --yes --json`；
 3. 重建 `SPEC.md` 和 `openspec/change-history.json`；
 4. 运行治理检查。
 
@@ -426,6 +429,7 @@ node bin/workflow.js check --target .
 |---|---|
 | `npm ci` | 安装锁定依赖 |
 | `npm run build` | 编译 TypeScript 到不跟踪的 `dist/` |
+| `npm run skills:adapt` | 将重新生成的上游 core skills 接到本地 launcher，并恢复 archive 治理 wrapper |
 | `npm test` | 构建并运行 compiled tests |
 | `npm run verify` | 完整构建、测试、索引、治理、Schema 和活动 change 校验 |
 | `npm run index` | 重建导航与 compact history v1 |
@@ -433,6 +437,7 @@ node bin/workflow.js check --target .
 | `npm run validate:schemas` | 校验 bugfix、product-change 和内置 spec-driven |
 | `npm run validate:changes` | 对全部活动 change 执行 strict validation |
 | `node dist/bin/workflow.js install --target <project>` | 安装或升级目标项目 |
+| `node dist/bin/openspec.js <args>` | 使用源码仓库固定的 OpenSpec runtime |
 | `node dist/bin/workflow.js close <change> --target .` | 正式关闭单个 change |
 
 ### 安装目标
@@ -443,6 +448,7 @@ node bin/workflow.js check --target .
 | `node scripts/openspec-governance.js check` | 治理检查 |
 | `node scripts/validate-schemas.js` | Schema 校验 |
 | `node scripts/validate-changes.js` | 全部活动 change strict validation |
+| `node bin/openspec.js <args>` | 使用安装目标固定的 OpenSpec runtime |
 | `node bin/workflow.js close <change> --target .` | strict/archive/index/check |
 
 项目不再提供 `validate:close`。
@@ -450,11 +456,11 @@ node bin/workflow.js check --target .
 ### 常用 OpenSpec 命令
 
 ```bash
-openspec new change <change> --schema bugfix
-openspec new change <change> --schema spec-driven
-openspec new change <change> --schema product-change
-openspec status --change <change>
-openspec validate <change> --strict
+node bin/openspec.js new change <change> --schema bugfix
+node bin/openspec.js new change <change> --schema spec-driven
+node bin/openspec.js new change <change> --schema product-change
+node bin/openspec.js status --change <change>
+node bin/openspec.js validate <change> --strict
 ```
 
 ## CI 接入
@@ -484,6 +490,9 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 
 ### 安装内容
 
+- `.ai-workflow/openspec-runtime/` 中的固定 OpenSpec 生产依赖闭包；
+- `bin/openspec.js` 项目内 launcher；
+- `.agents/skills/` 下的 OpenSpec core skills，以及接管关闭授权/formal close 的 archive wrapper；
 - `bin/workflow.js`；
 - governance、Schema validation 和 active-change validation scripts；
 - close workflow、installer、OpenSpec runner、history 和 Schema alignment JavaScript；
@@ -493,7 +502,7 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 - 安装目标 AI 治理指南 `docs/AI_WORKFLOW_AGENTS.md` 与根合并样例 `AGENTS.ai-workflow.example.md`；
 - `SPEC.md` 和 `openspec/change-history.json`。
 
-不安装 closeout validator、`validate-close.js`、closeout JSON templates 或本地 spec-driven Schema。
+不安装 closeout validator、`validate-close.js`、closeout JSON templates，也不在 `openspec/schemas/` 下 fork spec-driven。
 安装器也不复制本源仓库的 `.gitignore`，不会删除、忽略或停止跟踪目标项目自己的 change、archive、REQ、verification、evidence 或 `artifacts/**`。
 
 ### 冲突与备份
@@ -524,6 +533,8 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 ├── SPEC.md                         # 自动生成
 ├── README.md
 ├── bin/                            # TypeScript CLI source
+├── .agents/skills/                 # 固定上游 core skills 与 archive 治理 wrapper
+├── vendor/openspec/                # pinned OpenSpec 官方源码 submodule
 ├── lib/                            # TypeScript runtime source
 ├── scripts/                        # TypeScript maintenance source
 ├── tests/                          # compiled test source
@@ -555,7 +566,8 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 
 | 现象 | 是否阻止 | 处理 |
 |---|---|---|
-| `openspec validate <change> --strict` 失败 | 是 | 修复 artifact/delta 结构和场景 |
+| `node bin/openspec.js validate <change> --strict` 失败 | 是 | 修复 artifact/delta 结构和场景 |
+| `node bin/openspec.js --version` 不是 `1.8.0` | 是 | 重新执行当前版本安装器；不要调用 PATH 中的全局 OpenSpec |
 | formal close 找不到 change | 是 | 确认活动 change ID 和路径 |
 | archive delta 与当前规格冲突 | 是 | 解决 delta/canonical spec 冲突后重试 |
 | archive 成功但 index/check 失败 | 已归档 | 修复后单独运行 index/check |

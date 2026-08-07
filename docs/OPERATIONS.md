@@ -3,9 +3,9 @@
 ## 运行环境
 
 - Node.js `>=20.19.0`
-- OpenSpec `1.5.0`
+- 固定 OpenSpec `1.8.0`，来源 commit `d57889664cab4f2f061d236ec3ff82a5578701bb`
 - 源码仓库执行 `npm ci`、`npm run build` 和 `npm run verify`
-- 安装目标只运行 emitted JavaScript，不依赖 TypeScript
+- 安装目标使用 `node bin/openspec.js` 调用受管运行时，只运行 emitted JavaScript，不依赖 TypeScript 或全局 OpenSpec
 
 维护和排障时先按行为与治理面识别 bugfix、system-change 或 product-change，不用代码量替代路径判断。
 
@@ -51,11 +51,15 @@ npm run validate:changes
 node scripts/validate-changes.js
 ```
 
-命令从文件系统枚举全部活动 changes，并逐项执行 `openspec validate <change> --strict`。单项失败不会阻止继续枚举，其结果最终汇总。
+命令从文件系统枚举全部活动 changes，并逐项通过项目内运行时执行 `node bin/openspec.js validate <change> --strict`。单项失败不会阻止继续枚举，其结果最终汇总。
 
 ## Schema 校验与 system-change
 
-`node scripts/validate-schemas.js` 校验项目自定义 bugfix/product-change，以及 OpenSpec `1.5.0` 内置 spec-driven。仓库和安装目标不得复制 `openspec/schemas/spec-driven/`。
+`node scripts/validate-schemas.js` 校验项目自定义 bugfix/product-change，以及固定 OpenSpec `1.8.0` 内置 spec-driven。仓库和安装目标不得 fork 项目级 `openspec/schemas/spec-driven/`。
+
+## 更新 OpenSpec 核心 skills
+
+`vendor/openspec` 是官方仓库 submodule；更新时必须同时固定新的 gitlink commit 和相同版本的 `@fission-ai/openspec` npm 依赖，不能让源码基准与运行时漂移。随后用新版 CLI 重新生成 `.agents/skills` 的 core profile，再运行 `npm run skills:adapt`。该命令只把官方 core skills 的 CLI 调用改为 `node bin/openspec.js`，并用本项目关闭授权/formal-close wrapper 覆盖 `openspec-archive-change`。最后运行完整 `npm run verify`，并检查 system-change 的 `spec-driven` 与 product-change Schema 都能完成 propose、status、instructions 和 apply 指令解析。
 
 ## 团队关闭审核
 

@@ -28,6 +28,10 @@ interface FileOperation {
   content: Buffer;
 }
 
+const OPENSPEC_PACKAGE = "@fission-ai/openspec";
+const OPENSPEC_VERSION = "1.8.0";
+const OPENSPEC_RUNTIME_ROOT = ".ai-workflow/openspec-runtime/node_modules";
+
 const REQUIRED_FILES: ManagedSource[] = [
   {
     sourcePath: "dist/scripts/openspec-governance.js",
@@ -44,6 +48,10 @@ const REQUIRED_FILES: ManagedSource[] = [
   {
     sourcePath: "dist/bin/workflow.js",
     targetPath: "bin/workflow.js",
+  },
+  {
+    sourcePath: "dist/bin/openspec.js",
+    targetPath: "bin/openspec.js",
   },
   {
     sourcePath: "dist/lib/openspec-cli.js",
@@ -79,6 +87,7 @@ const ROOT_AGENTS_SOURCE = "docs/AGENTS.root.example.md";
 const ROOT_AGENTS_TARGET = "AGENTS.md";
 
 const REQUIRED_DIRECTORIES = [
+  ".agents/skills",
   "openspec/schemas/bugfix",
   "openspec/schemas/product-change",
   "docs/requirements/_templates",
@@ -119,6 +128,107 @@ function listFiles(directory: string): string[] {
     });
 }
 
+function packagePath(parent: string, packageName: string): string {
+  return path.join(parent, ...packageName.split("/"));
+}
+
+function resolveDependencyPackage(
+  packageDirectory: string,
+  packageName: string,
+  sourceRoot: string,
+): string | undefined {
+  let cursor = packageDirectory;
+  const boundary = path.dirname(sourceRoot);
+  while (cursor !== boundary) {
+    const candidate = packagePath(path.join(cursor, "node_modules"), packageName);
+    if (fs.existsSync(path.join(candidate, "package.json"))) return candidate;
+    const parent = path.dirname(cursor);
+    if (parent === cursor) break;
+    cursor = parent;
+  }
+  return undefined;
+}
+
+function readPackageMetadata(packageDirectory: string): {
+  name: string;
+  version: string;
+  dependencies: Record<string, string>;
+  optionalDependencies: Record<string, string>;
+} {
+  const packageFile = path.join(packageDirectory, "package.json");
+  const metadata = JSON.parse(fs.readFileSync(packageFile, "utf8")) as {
+    name?: unknown;
+    version?: unknown;
+    dependencies?: unknown;
+    optionalDependencies?: unknown;
+  };
+  if (typeof metadata.name !== "string" || typeof metadata.version !== "string") {
+    throw new Error(`OpenSpec 运行时依赖包含无效 package.json：${packageFile}`);
+  }
+  const dependencies = typeof metadata.dependencies === "object" && metadata.dependencies !== null
+    ? metadata.dependencies as Record<string, string>
+    : {};
+  const optionalDependencies = typeof metadata.optionalDependencies === "object"
+    && metadata.optionalDependencies !== null
+    ? metadata.optionalDependencies as Record<string, string>
+    : {};
+  return { name: metadata.name, version: metadata.version, dependencies, optionalDependencies };
+}
+
+function runtimePackageDirectories(sourceRoot: string): string[] {
+  const nodeModulesRoot = path.join(sourceRoot, "node_modules");
+  const entry = packagePath(nodeModulesRoot, OPENSPEC_PACKAGE);
+  if (!fs.existsSync(path.join(entry, "package.json"))) {
+    throw new Error(`缺少固定 OpenSpec 运行时，请先在工作流源仓库执行 npm ci：${entry}`);
+  }
+
+  const pending = [entry];
+  const visited = new Map<string, string>();
+  while (pending.length > 0) {
+    const current = pending.pop()!;
+    const relative = toPosix(path.relative(nodeModulesRoot, current));
+    if (relative === ".." || relative.startsWith("../") || path.isAbsolute(relative)) {
+      throw new Error(`OpenSpec 运行时依赖越出源仓库 node_modules：${current}`);
+    }
+    if (visited.has(relative)) continue;
+    const metadata = readPackageMetadata(current);
+    if (current === entry && metadata.name !== OPENSPEC_PACKAGE) {
+      throw new Error(`OpenSpec 运行时入口包名无效：${metadata.name}`);
+    }
+    if (current === entry && metadata.version !== OPENSPEC_VERSION) {
+      throw new Error(`OpenSpec 运行时版本必须为 ${OPENSPEC_VERSION}，实际为 ${metadata.version}`);
+    }
+    visited.set(relative, current);
+
+    const dependencies = {
+      ...metadata.dependencies,
+      ...metadata.optionalDependencies,
+    };
+    Object.keys(dependencies).sort().forEach((dependency) => {
+      const resolved = resolveDependencyPackage(current, dependency, sourceRoot);
+      if (resolved !== undefined) pending.push(resolved);
+    });
+  }
+  return Array.from(visited.entries())
+    .sort(([left], [right]) => left.localeCompare(right, "en"))
+    .map(([, directory]) => directory);
+}
+
+function runtimeOperations(sourceRoot: string): FileOperation[] {
+  const nodeModulesRoot = path.join(sourceRoot, "node_modules");
+  return runtimePackageDirectories(sourceRoot).flatMap((packageDirectory) => {
+    const packageRelative = toPosix(path.relative(nodeModulesRoot, packageDirectory));
+    return listFiles(packageDirectory).map((sourcePath) => ({
+      relativePath: path.posix.join(
+        OPENSPEC_RUNTIME_ROOT,
+        packageRelative,
+        toPosix(path.relative(packageDirectory, sourcePath)),
+      ),
+      content: readFile(sourcePath),
+    }));
+  });
+}
+
 export function buildOperations(sourceRoot: string, targetRoot: string): FileOperation[] {
   const managedSources: ManagedSource[] = [...REQUIRED_FILES];
   REQUIRED_DIRECTORIES.forEach((relativeDirectory) => {
@@ -151,6 +261,8 @@ export function buildOperations(sourceRoot: string, targetRoot: string): FileOpe
     { relativePath: "openspec/specs/.gitkeep", content: Buffer.from("") },
     { relativePath: "openspec/changes/archive/.gitkeep", content: Buffer.from("") },
   );
+
+  operations.push(...runtimeOperations(sourceRoot));
 
   return operations.sort((left, right) => left.relativePath.localeCompare(right.relativePath, "en"));
 }

@@ -12,6 +12,7 @@ const tracked = childProcess.execFileSync(
   encoding: "utf8",
   },
 ).split("\0").filter(Boolean);
+const normalizedTracked = tracked.map((relativePath) => relativePath.replace(/\/$/, ""));
 
 const prohibited = tracked.filter((relativePath) => {
   if (!fs.existsSync(path.join(root, relativePath))) return false;
@@ -28,6 +29,14 @@ assert.deepStrictEqual(
 );
 
 for (const required of [
+  ".gitmodules",
+  "vendor/openspec",
+  ".agents/skills/openspec-apply-change/SKILL.md",
+  ".agents/skills/openspec-archive-change/SKILL.md",
+  ".agents/skills/openspec-explore/SKILL.md",
+  ".agents/skills/openspec-propose/SKILL.md",
+  ".agents/skills/openspec-sync-specs/SKILL.md",
+  ".agents/skills/openspec-update-change/SKILL.md",
   "CHANGELOG.md",
   "docs/AGENTS.root.example.md",
   "docs/AI_WORKFLOW_AGENTS.md",
@@ -35,9 +44,8 @@ for (const required of [
   "examples/core-workflow/README.md",
   "openspec/change-history.json",
   "openspec/changes/archive/.gitkeep",
-  "openspec/specs/change-lifecycle-governance/spec.md",
 ]) {
-  assert.ok(tracked.includes(required), `Expected public distribution file is not tracked: ${required}`);
+  assert.ok(normalizedTracked.includes(required), `Expected public distribution file is not tracked: ${required}`);
 }
 
 process.stdout.write("PASS repository distribution excludes upstream process records and retains public history surfaces.\n");

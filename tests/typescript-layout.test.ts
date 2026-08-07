@@ -27,6 +27,7 @@ assert.strictEqual(packageJson.bin["ai-fullstack-workflow"], "dist/bin/workflow.
 
 [
   "dist/bin/workflow.js",
+  "dist/bin/openspec.js",
   "dist/lib/installer.js",
   "dist/lib/openspec-cli.js",
   "dist/lib/project-root.js",

@@ -15,7 +15,7 @@
 
 ## 工作流与技能协作
 
-- 对代码、产品行为或系统行为的变更，本工作流是本项目唯一的 change 交付生命周期。其他 workflow 或 skill 只能作为当前 change 内按需加载的有界辅助，不得建立并行的需求、实施或关闭流程，也不得绕过 artifacts 与 change-scoped 授权。
+- 对代码、产品行为或系统行为的变更，本工作流是本项目唯一的 change 交付生命周期。安装的 OpenSpec 原生 explore/propose/update/apply/sync skills 是该生命周期的主要执行机制；其他 workflow 或 skill 只能作为当前 change 内按需加载的有界辅助，不得建立并行的需求、实施或关闭流程，也不得绕过 artifacts 与 change-scoped 授权。
 - 系统、开发者、用户指令以及项目强制的安全、发布、迁移、运维和领域规则继续按既有优先级生效；专项规则需要的步骤与证据应纳入当前 change。
 - 只在用户明确要求、平台规则触发或当前任务确有需要时读取对应 skill，不预加载无关 skills。skill 输出是辅助分析，不自动成为需求事实、验证证据或授权。
 - 发现其他 workflow、skill 或项目指引与本流程实质冲突时，AI 必须及时说明冲突来源、具体规则、影响、适用优先级和建议方案。无法按优先级消解或选择会实质改变交付时，停止相关实施并等待用户决定。
@@ -24,6 +24,7 @@
 ## 路径与规划执行约束
 
 - 按主流程第 3、4 节选择 bugfix、system-change 或 product-change，并使用对应 Schema graph；不得用代码量替代行为与治理面判断。
+- 新的实质需求优先使用 `.agents/skills/openspec-explore`；system-change 通过原生 propose skill 显式选择 `spec-driven`，product-change 显式选择 `product-change`，二者的规划更新和实施分别使用原生 update/apply skill。所有 OpenSpec CLI 调用使用项目内 launcher，不使用 PATH 中版本不明的全局命令。
 - product-change 启动前完成共享 BR/PRD 属于团队流程治理，不由 Schema、脚本或 CI 强制；change-local BR/PRD、planning artifacts 和 artifact graph 仍按主流程与 Schema 执行。
 - 调研导致范围跨越路径边界时，先调整路径和规划；如果 planning artifacts 已实质修改，必须重新执行实施授权停点。
 
@@ -56,12 +57,13 @@
 - `verification.md` 和 `evidence/` 是团队评审材料，不加入 OpenSpec artifact graph，也不由 Schema、脚本、CLI 或 CI 强制存在、解析或判断充分性。不得创建新的 `closeout.json`；下游项目若仍有历史 `closeout.json`，新流程会忽略但不会由安装器删除其 change 记录。
 - 团队负责审核 tasks 完成情况、证据充分性、四项风险适用性、Requirement/PRD/FEATURE 真实性和稳定 ID。AI 应继续所有可实现 task；无法实现、取消或延期的项必须说明原因、交付影响、相关声明影响和后续安排，并先修正不再真实的声明。
 - 实施授权不构成关闭授权。AI 代为关闭前必须展示准确 change ID、已交付/验证范围、Requirement stable ID 分配/沿用/重命名/冲突结论、证据摘要、未完成 tasks、限制、风险决策和收尾计划，然后结束当前轮次并等待后续明确的“确认关闭 <change>”或等价授权。该规则不创建 approval artifact，也不由程序或 CI 证明。
-- `node dist/bin/workflow.js close <change> --target .` 是源码仓库唯一正式关闭入口；安装目标使用 `node bin/workflow.js close <change> --target .`。它只执行 `openspec validate <change> --strict`、OpenSpec archive、索引/历史重建和治理检查，不读取 tasks、verification、evidence、BR/PRD/FEATURE 或历史 closeout。正常路径由 archive 应用 delta；只有已经提前 sync 的恢复场景才传入 `--skip-specs`。
+- 安装的 `openspec-archive-change` skill 是本项目治理 wrapper；正常关闭不得直接运行原生 archive skill、`node bin/openspec.js archive` 或手工移动 change。
+- `node dist/bin/workflow.js close <change> --target .` 是源码仓库唯一正式关闭入口；安装目标使用 `node bin/workflow.js close <change> --target .`。它只通过固定运行时执行 strict validation 与 OpenSpec archive，再做索引/历史重建和治理检查；不读取 tasks、verification、evidence、BR/PRD/FEATURE 或历史 closeout。正常路径由 archive 应用 delta；只有已经提前 sync 的恢复场景才传入 `--skip-specs`。
 - 本项目不再提供 `validate:close` 或独立关闭预检。`validate:changes` 仍枚举全部活动 change 并逐项执行 OpenSpec strict validation；它不判断 change 是否完成或是否应关闭。
-- 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项执行 `openspec validate <change> --strict`。
+- 提交前运行 `npm run validate:changes`；安装目标运行 `node scripts/validate-changes.js`。该命令从文件系统枚举全部活动 change，并逐项通过项目内固定运行时执行 strict validation。
 - 已归档 change 的内容按团队流程不得修改。该规则依靠团队评审与协作执行；本项目不要求、也不承诺通过 base ref、full history、hash、脚本或 CI 强制证明归档不可变。
 - 本工作流源仓库的活动/归档 change 详情、编号 `docs/requirements/REQ-*`、`artifacts/**`、GitNexus 索引、AI 规划记录、工作流备份、隔离 worktree、测试临时输出和日志受根 `.gitignore` 排除，不进入正常 staged/tracked 集合；正式关闭仍会先把本地归档摘要合入 history v1。维护者提交前应复核 staged/tracked 路径，不得故意强制加入这些资料；本项目不要求 CI、脚本或 hook 阻止有权限的维护者显式绕过。安装器不得复制该排除策略，下游项目自行决定是否跟踪完整过程记录。旧 Git 提交不在本变更中重写。
 
 ## 工具边界
 
-本工作流源码统一为 TypeScript，`dist/` 只作为不跟踪的构建产物。贡献者使用 Node.js `>=20.19.0`、OpenSpec `1.5.0`、`npm ci`、`npm run build` 与 `npm run verify`；安装目标只运行 emitted JavaScript，不依赖 TypeScript。
+本工作流源码统一为 TypeScript，`dist/` 只作为不跟踪的构建产物。贡献者使用 Node.js `>=20.19.0`、固定 OpenSpec `1.8.0`、`npm ci`、`npm run build` 与 `npm run verify`；安装目标通过 `node bin/openspec.js` 使用受管运行时，只运行 emitted JavaScript，不依赖 TypeScript 或全局 OpenSpec。

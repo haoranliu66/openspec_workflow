@@ -8,7 +8,7 @@
 
 ## 0. 安装工作流
 
-目标环境需要 Git、Node.js `>=20.19.0`、npm 和 OpenSpec `1.5.0`。
+目标环境需要 Git、Node.js `>=20.19.0` 和 npm；安装器提供固定 OpenSpec `1.8.0`，无需全局安装。
 
 ```powershell
 $repoUrl = "https://github.com/haoranliu66/openspec_workflow.git"
@@ -59,10 +59,10 @@ report-export-service/
 
 完整顺序是：需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close。本节只演示其中的 explore 与路径选择；完整适用和豁免边界见[主流程](../../docs/FULLSTACK_WORKFLOW.md#4-统一生命周期)。
 
-收到新的代码、产品行为或系统行为变更需求后，AI 先采用 `/opsx:explore` 的只读姿态检查活动 changes、current specs 和必要代码。例如：
+收到新的代码、产品行为或系统行为变更需求后，AI 先调用安装的 OpenSpec 原生 `openspec-explore` skill，以只读姿态检查活动 changes、current specs 和必要代码。例如：
 
 ```text
-/opsx:explore 报表导出服务收到以下三个改动请求，分别应采用哪条路径？
+/openspec-explore 报表导出服务收到以下三个改动请求，分别应采用哪条路径？
 ```
 
 在这个示例中，AI 只读检查服务上下文并形成下列路径结论；是否继续同轮规划、何时等待用户以及 slash command 不可用时的行为均按主流程处理。
@@ -111,7 +111,7 @@ The service SHALL set a timed-out export to `failed` and expose the failure reas
 ### 3.1 创建 change
 
 ```powershell
-openspec new change fix-export-timeout-status --schema bugfix
+node bin/openspec.js new change fix-export-timeout-status --schema bugfix
 ```
 
 `openspec/changes/fix-export-timeout-status/.openspec.yaml`：
@@ -185,7 +185,7 @@ The service SHALL atomically set a timed-out export to `failed` and expose the t
 - [ ] 3.3 展示关闭摘要并等待独立关闭授权。
 ```
 
-用 `openspec status --change fix-export-timeout-status` 和 `openspec validate fix-export-timeout-status --strict` 检查规划结构。
+用 `node bin/openspec.js status --change fix-export-timeout-status` 和 `node bin/openspec.js validate fix-export-timeout-status --strict` 检查规划结构。
 
 ### 3.2 第一次强制停顿：等待实施授权
 
@@ -268,7 +268,7 @@ node bin/workflow.js close fix-export-timeout-status --target .
 ### 4.1 创建与规划
 
 ```powershell
-openspec new change add-orphan-export-cleanup --schema spec-driven
+node bin/openspec.js new change add-orphan-export-cleanup --schema spec-driven
 ```
 
 这里没有 `system-change` 自定义 Schema 目录。`.openspec.yaml` 必须是：
@@ -402,7 +402,7 @@ docs/requirements/REQ-120-scheduled-exports/
 ### 5.2 创建完整 product planning package
 
 ```powershell
-openspec new change add-daily-export-schedule --schema product-change
+node bin/openspec.js new change add-daily-export-schedule --schema product-change
 ```
 
 product-change graph 同时保留外层绑定和原生核心：

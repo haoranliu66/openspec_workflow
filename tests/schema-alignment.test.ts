@@ -8,9 +8,19 @@ import { checkProductSchemaAlignment } from "../lib/schema-alignment";
 const repositoryRoot = path.resolve(__dirname, "..", "..");
 const productSchemaRoot = path.join(repositoryRoot, "openspec", "schemas", "product-change");
 
+function copyDirectory(source: string, target: string): void {
+  fs.mkdirSync(target, { recursive: true });
+  fs.readdirSync(source, { withFileTypes: true }).forEach((entry) => {
+    const sourcePath = path.join(source, entry.name);
+    const targetPath = path.join(target, entry.name);
+    if (entry.isDirectory()) copyDirectory(sourcePath, targetPath);
+    else fs.copyFileSync(sourcePath, targetPath);
+  });
+}
+
 const legacyFeatureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-feature-"));
 try {
-  fs.cpSync(productSchemaRoot, legacyFeatureRoot, { recursive: true });
+  copyDirectory(productSchemaRoot, legacyFeatureRoot);
   const schemaPath = path.join(legacyFeatureRoot, "schema.yaml");
   const schema = fs.readFileSync(schemaPath, "utf8");
   fs.writeFileSync(schemaPath, schema.replace(
@@ -30,7 +40,7 @@ assert.deepStrictEqual(repositoryResult.warnings, []);
 
 const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-"));
 try {
-  fs.cpSync(productSchemaRoot, temporaryRoot, { recursive: true });
+  copyDirectory(productSchemaRoot, temporaryRoot);
 
   const schemaPath = path.join(temporaryRoot, "schema.yaml");
   const schema = fs.readFileSync(schemaPath, "utf8");
@@ -51,7 +61,7 @@ try {
 
 const productBindingRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-product-binding-"));
 try {
-  fs.cpSync(productSchemaRoot, productBindingRoot, { recursive: true });
+  copyDirectory(productSchemaRoot, productBindingRoot);
   const schemaPath = path.join(productBindingRoot, "schema.yaml");
   const schema = fs.readFileSync(schemaPath, "utf8");
   const mutated = schema.replace(
@@ -81,7 +91,7 @@ try {
 
 const applyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-apply-"));
 try {
-  fs.cpSync(productSchemaRoot, applyRoot, { recursive: true });
+  copyDirectory(productSchemaRoot, applyRoot);
   const schemaPath = path.join(applyRoot, "schema.yaml");
   const schema = fs.readFileSync(schemaPath, "utf8");
   const movedTracks = schema.replace(
@@ -101,7 +111,7 @@ try {
 
 const templateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-templates-"));
 try {
-  fs.cpSync(productSchemaRoot, templateRoot, { recursive: true });
+  copyDirectory(productSchemaRoot, templateRoot);
   const proposalPath = path.join(templateRoot, "templates", "proposal.md");
   const designPath = path.join(templateRoot, "templates", "design.md");
   const specPath = path.join(templateRoot, "templates", "spec.md");
@@ -161,7 +171,7 @@ try {
 
 const verificationTemplateRoot = fs.mkdtempSync(path.join(os.tmpdir(), "openspec-schema-alignment-verification-"));
 try {
-  fs.cpSync(productSchemaRoot, verificationTemplateRoot, { recursive: true });
+  copyDirectory(productSchemaRoot, verificationTemplateRoot);
   const tasksPath = path.join(verificationTemplateRoot, "templates", "tasks.md");
   const tasks = fs.readFileSync(tasksPath, "utf8");
   const withoutVerificationRecord = tasks.replace(

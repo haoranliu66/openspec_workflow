@@ -6,7 +6,7 @@
 
 1. `openspec/specs/<capability>/spec.md`：当前可执行行为。
 2. CLI、Schema、模板和 TypeScript 实现：实际程序接口与 artifact graph。
-3. `docs/FULLSTACK_WORKFLOW.md`：唯一完整的下游生命周期，包括 `/opsx:explore` 全部规则。
+3. `docs/FULLSTACK_WORKFLOW.md`：唯一完整的下游生命周期，包括 OpenSpec 原生 `openspec-explore` 的全部治理规则。
 4. `README.md`、`docs/QUALITY_GATES.md`、`docs/ADOPTION.md`、`docs/OPERATIONS.md`：入门摘要与专项说明；不得定义另一套完整生命周期。
 5. `CHANGELOG.md` 与 `openspec/change-history.json`：历史演变摘要，不是当前操作手册。
 
@@ -17,7 +17,7 @@ BR/PRD 仍是 product-change 的外层产品事实；它们不覆盖 capability 
 | 文档 | 受众 / 分类 | 权威范围 | 变更时必须联动检查 |
 |---|---|---|---|
 | `README.md` | 下游开发者 / 入门 | 安装入口、统一生命周期摘要、三路径总览、命令和文档导航 | 所有下游指南、示例、链接 |
-| `docs/FULLSTACK_WORKFLOW.md` | 下游开发者与团队 / 主流程 | 唯一完整的九阶段生命周期，以及 `/opsx:explore` 的触发、范围、退出、停点、豁免和命令回退规则 | README、AI 指引、质量门禁、采用、运维、示例、config |
+| `docs/FULLSTACK_WORKFLOW.md` | 下游开发者与团队 / 主流程 | 唯一完整的九阶段生命周期，以及原生 `openspec-explore` 的触发、范围、退出、停点和豁免规则 | README、AI 指引、质量门禁、采用、运维、示例、config、受管 skills |
 | `docs/QUALITY_GATES.md` | 当前 / 质量边界 | 程序门禁与团队审核职责 | tests、CI、关闭实现 |
 | `docs/ADOPTION.md` | 当前 / 接入 | 从 GitHub 安装、升级与下游所有权 | installer、README 安装段 |
 | `docs/OPERATIONS.md` | 当前 / 运维 | index/check/validate/close、恢复和历史维护 | CLI、history generator、installer |
@@ -27,6 +27,7 @@ BR/PRD 仍是 product-change 的外层产品事实；它们不覆盖 capability 
 | `AGENTS.md` | AI / 上游项目约束 | 本仓库上下文加载、冲突、授权停点、验证、工具和发布边界；引用主流程 | 受管 AI 指引、config、Schema apply instructions |
 | `examples/core-workflow/README.md` | 下游开发者 / 示例 | 一套贯穿三条路径的可复制演练；不独立定义生命周期 | 主流程、所有命令、Schema graph、授权和恢复变化 |
 | `openspec/config.yaml` | AI / 上下文样例 | 安装目标可合并的项目事实与执行约束；引用主流程 | AGENTS、Schema instructions |
+| `.agents/skills/openspec-*` | AI / 执行契约 | 固定 OpenSpec core skills 的项目内调用适配，以及 archive 治理 wrapper | OpenSpec 固定 commit、installer、主流程、AI 指引、运维 |
 | `openspec/schemas/**` | 机器与 AI / 契约 | bugfix/product-change artifact graph、模板和 apply 指令 | canonical specs、tests、流程指南 |
 | `docs/requirements/_templates/**` | 下游团队 / 模板 | 共享 BR/PRD/FEATURE 包结构，不是独立流程 | product-change 指南和示例 |
 

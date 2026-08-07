@@ -6,23 +6,26 @@
 
 ## 适用范围与优先级
 
-- 对代码、产品行为或系统行为的变更，本工作流是项目唯一的 change 交付生命周期：路径选择、OpenSpec artifacts、实施授权、验证、关闭审核与正式关闭都在本流程内完成。
+- 对代码、产品行为或系统行为的变更，本工作流是项目唯一的 change 交付生命周期；OpenSpec 1.8.0 原生核心 skills 是 explore、规划、更新和 apply 的首选执行机制，不视为外部并行 workflow。
 - “唯一”不表示废除安全响应、发布、迁移、运维、代码评审、厂商工具或其他专项规则。系统、开发者、用户指令以及项目强制规则继续按其既有优先级生效。
-- 其他 workflow 或 skill 只能作为当前 change 中的有界辅助步骤使用，不得创建并行的需求/实施/关闭生命周期，不得替代 OpenSpec artifacts，也不得绕过 change-scoped 授权。
+- 除已安装的 OpenSpec 核心 skills 外，其他 workflow 或 skill 只能作为当前 change 中的有界辅助步骤使用，不得创建并行的需求/实施/关闭生命周期，不得替代 OpenSpec artifacts，也不得绕过 change-scoped 授权。
 - 若专项规则要求额外证据、审批或操作，应把它们纳入本 change 的 tasks、验证与团队审核，而不是另起一个相互竞争的交付流程。
 
 ## 上下文与技能加载
 
 1. 先按项目根 `AGENTS.md` 与本工作流规定的顺序读取 `SPEC.md`、受影响规格、相关活动 changes 和必要历史。
-2. 只在用户明确要求、平台规则触发或当前任务确有需要时读取对应 skill；不要预加载与任务无关的 skills。
-3. 使用 skill 前明确它在当前 change 中承担的有界任务，例如调试、影响分析、代码评审或文档生成。
-4. skill 输出属于辅助分析，不自动成为需求事实、实施授权、测试结果或关闭结论。
+2. 新的实质需求先使用 `openspec-explore`；路径明确后，system-change 通过 `openspec-propose` 选择 `spec-driven`，product-change 选择 `product-change`。规划修订和实施分别使用 `openspec-update-change` 与 `openspec-apply-change`。
+3. 原生 skills 中所有 CLI 调用使用项目内 `node bin/openspec.js`，不得回退到 PATH 中版本未知的全局 `openspec`。
+4. 只在用户明确要求、平台规则触发或当前任务确有需要时读取其他 skill；不要预加载与任务无关的 skills。
+5. 使用其他 skill 前明确它在当前 change 中承担的有界任务，例如调试、影响分析、代码评审或文档生成。
+6. skill 输出属于辅助分析，不自动成为需求事实、实施授权、测试结果或关闭结论。
 
 ## 生命周期执行停点
 
 - 严格按主流程顺序执行，不得把 explore 独立悬挂、跳过 change-scoped 实施授权或把实施授权当作关闭授权。
 - planning artifacts 生成完成或发生实质修改后，展示 change ID、计划与 stable ID 结论，结束当前轮次并等待后续明确实施授权。
 - 验证与团队审核完成后，展示交付、证据、未完成项、风险、stable ID 与收尾摘要，结束当前轮次并等待后续明确关闭授权。
+- `openspec-archive-change` 是本项目安装的 archive 治理 wrapper；获得关闭授权前不得执行，正常关闭不得直接运行 `node bin/openspec.js archive` 或手工移动 change。
 - 授权只适用于明确 change；artifact 生成、普通“继续”、tasks 完成或 verification 生成均不自动构成相应授权。
 
 ## 冲突处理

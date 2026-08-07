@@ -12,7 +12,7 @@
     "build": "npm run clean && tsc -b",
     "prepare": "npm run build",
     "prepack": "npm run build",
-    "test:compiled": "node dist/tests/typescript-layout.test.js && node dist/tests/project-root.test.js && node dist/tests/openspec-cli.test.js && node dist/tests/close-workflow.test.js && node dist/tests/workflow-cli.test.js && node dist/tests/governance.test.js && node dist/tests/installer.test.js && node dist/tests/openspec-integration.test.js && node dist/tests/close-workflow-integration.test.js && node dist/tests/validate-schemas.test.js && node dist/tests/validate-changes.test.js && node dist/tests/schema-alignment.test.js && node dist/tests/change-history.test.js && node dist/tests/repository-distribution.test.js",
+    "test:compiled": "node dist/tests/typescript-layout.test.js && node dist/tests/project-root.test.js && node dist/tests/openspec-cli.test.js && node dist/tests/openspec-core-skills.test.js && node dist/tests/close-workflow.test.js && node dist/tests/workflow-cli.test.js && node dist/tests/governance.test.js && node dist/tests/installer.test.js && node dist/tests/openspec-integration.test.js && node dist/tests/close-workflow-integration.test.js && node dist/tests/validate-schemas.test.js && node dist/tests/validate-changes.test.js && node dist/tests/schema-alignment.test.js && node dist/tests/change-history.test.js && node dist/tests/repository-distribution.test.js",
     "test": "npm run build && npm run test:compiled",
     "index:compiled": "node dist/scripts/openspec-governance.js index",
     "index": "npm run build && npm run index:compiled",
@@ -22,6 +22,7 @@
     "validate:schemas": "npm run build && npm run validate:schemas:compiled",
     "validate:changes:compiled": "node dist/scripts/validate-changes.js",
     "validate:changes": "npm run build && npm run validate:changes:compiled",
+    "skills:adapt": "npm run build && node dist/scripts/adapt-openspec-skills.js",
     "verify": "npm run build && npm run test:compiled && npm run index:compiled && npm run check:compiled && npm run validate:schemas:compiled && npm run validate:changes:compiled"
   },
   "engines": {
@@ -30,5 +31,8 @@
   "devDependencies": {
     "@types/node": "20.19.43",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "@fission-ai/openspec": "1.8.0"
   }
 }

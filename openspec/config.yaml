@@ -6,8 +6,8 @@ context: |
   system-change governance path by writing schema: spec-driven for bounded observable system
   behavior that changes no product goal, user journey, role permission, business rule, public
   contract, or shared product acceptance. Select product-change for every product-governed
-  change regardless of implementation size. OpenSpec 1.5.0 supplies spec-driven; this project
-  does not copy that built-in Schema.
+  change regardless of implementation size. The project-local OpenSpec 1.8.0 runtime supplies
+  spec-driven; this project does not fork that built-in Schema.
   For code, product-behavior, or system-behavior changes, this workflow is the project's sole
   change-delivery lifecycle. Other workflows and skills may be loaded only when the user, platform,
   or current task requires them, and then only as bounded helpers inside the active change. They must
@@ -21,7 +21,7 @@ context: |
   or any Schema, CI, or formal-close gate.
   The sole complete lifecycle is the Unified Lifecycle in docs/FULLSTACK_WORKFLOW.md: request intake,
   explore, path selection, planning, implementation authorization, implementation, verification and team
-  review, close authorization, and formal close. Follow that section for the complete `/opsx:explore`
+  review, close authorization, and formal close. Follow that section for the complete native `openspec-explore`
   contract and do not create a parallel lifecycle in this config. This config only adds OpenSpec-specific
   context and execution constraints.
   Completing shared BR/PRD before starting a product change is team process governance.
@@ -42,6 +42,17 @@ context: |
   archives, verification, evidence, and ad-hoc artifacts from the public tracked checkout after their
   summaries are captured. The installer does not copy that Git policy; downstream repositories own
   their retention policy.
+operations:
+  apply:
+    guidance:
+      - Use the native OpenSpec apply workflow for both spec-driven system changes and product-change changes, following the selected schema's contextFiles and task state.
+      - Artifact readiness is not implementation authorization. Stop after planning is complete or materially changed and wait for later explicit authorization scoped to the exact change.
+      - Implementation authorization never authorizes archive or formal close; prepare change-local verification for team review after implementation.
+  archive:
+    guidance:
+      - Normal finalization is owned by the installed openspec-archive-change governance wrapper and workflow close command, not by direct OpenSpec archive or manual directory moves.
+      - Require later explicit close authorization for the exact change, then let workflow close perform strict validation, OpenSpec archive, index/history rebuild, and governance checks.
+      - Do not run an early sync in the normal path; use skip-specs only for an explicitly identified already-synced recovery case.
 rules:
   br:
     - Link the single shared BR instead of copying it into a change.

@@ -1,7 +1,6 @@
 import assert from "node:assert";
 import childProcess from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 import { installWorkflow } from "../lib/installer";
@@ -73,7 +72,9 @@ function writeChange(
   write(changeRoot, "specs/probe-capability/spec.md", delta);
 }
 
-const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-real-openspec-"));
+const testTemporaryRoot = path.join(releaseRoot, ".test-tmp");
+fs.mkdirSync(testTemporaryRoot, { recursive: true });
+const base = fs.mkdtempSync(path.join(testTemporaryRoot, "ai-workflow-real-openspec-"));
 const target = path.join(base, "target");
 
 try {

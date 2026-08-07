@@ -6,14 +6,14 @@
 
 ### 核心工作流
 
-- 将唯一生命周期固定为“需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close”，并把完整 `/opsx:explore` 规则融入主流程而非独立悬挂。
+- 将唯一生命周期固定为“需求进入 → explore → 路径选择 → 规划 → 实施授权 → 实施 → 验证与团队审核 → 关闭授权 → formal close”，并把 OpenSpec 原生 `openspec-explore` 完整规则融入主流程而非独立悬挂。
 - 提供互斥的 `bugfix`、原生 `system-change`（`schema: spec-driven`）和 `product-change` 三条路径，按行为与产品治理面选择，不按代码量选择。
 - product-change 保留共享 BR/PRD/FEATURE 外层治理和 change-local BR/PRD 绑定，并对齐原生 `proposal -> {specs, design} -> tasks` 核心 graph。
 - 规划 artifacts 完成或发生实质修改后，AI 必须展示 change ID 与计划摘要，结束当前轮次并等待后续 change-scoped 实施授权。
 - 实施后使用 change-local `verification.md` 和可选 `evidence/` 进行团队审核；实施授权不构成关闭授权，AI 必须再次展示验证、未完成项、风险与回滚摘要并等待明确关闭授权。
 - `workflow close <change>` 只执行显式 change 的 OpenSpec strict validation、archive、SPEC/history 重建和治理检查；`--skip-specs` 仅用于 delta 已提前 sync 的恢复场景。
 - 明确本工作流是代码、产品行为和系统行为变更的唯一 change 交付生命周期；其他 workflow/skill 仅作为按需的有界辅助，并要求披露无法静默消解的实质冲突。
-- 新增或实质修改代码、产品行为或系统行为的需求默认先采用 `/opsx:explore` 或等价只读探索；路线明确时可同轮继续规划，关键未知项才等待用户，且问答、明确生命周期命令和已规划 change 不重复探索。
+- 新增或实质修改代码、产品行为或系统行为的需求默认先采用固定上游版本的原生 `openspec-explore`；system-change 与 product-change 共同使用原生 propose/update/apply skills，路径只通过 Schema 选择区分。
 
 ### 质量与治理边界
 
@@ -36,7 +36,8 @@
 ### 实现、安装与兼容性
 
 - 维护源码统一为 TypeScript，`dist/` 是不跟踪的构建产物；安装目标只接收普通 Node.js 可运行的 emitted JavaScript。
-- 支持 Node.js `>=20.19.0` 和 OpenSpec `1.5.0`；system-change 直接使用 OpenSpec 内置 `spec-driven`，仓库和安装目标不复制该 Schema。
+- 支持 Node.js `>=20.19.0`；OpenSpec 固定为 `1.8.0` 和官方 commit `d57889664cab4f2f061d236ec3ff82a5578701bb`。`vendor/openspec` 直接保存 pinned 官方源码 checkout，官方 npm 包提供可分发运行时；安装器分发项目内 launcher、生产运行时和原生 core skills，system-change 使用内置 `spec-driven`，product-change 使用项目 Schema，二者共用相同 skill 引擎。
+- OpenSpec core skills 仅将 CLI 调用适配到 `node bin/openspec.js`；`openspec-archive-change` 由本项目治理 wrapper 接管，在关闭授权后调用 formal close，避免原生 archive 绕过团队审核和历史治理。
 - 安装器执行完整冲突预检；`--force` 在覆盖受管冲突文件前创建可恢复备份，并且只退役旧 manifest 明确拥有、位于 allowlist 的遗留实现文件。
 - 安装器分发受管 AI 治理指南与根合并样例；缺失的根 `AGENTS.md` 只创建为项目自有种子，现有根文件和所有嵌套 `AGENTS.md` 即使在 `--force` 下也不会被接管。
 - 已有 `openspec/config.yaml` 会保留，安装器另写合并示例；重复安装内容相同时保持幂等。

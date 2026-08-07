@@ -71,6 +71,21 @@ test("renders a deterministic navigation-only index", () => {
   });
 });
 
+test("keeps the upstream source SPEC free of ignored local process data", () => {
+  withProject((root) => {
+    write(root, "package.json", '{"name":"ai-fullstack-openspec-workflow"}\n');
+    write(root, "openspec/specs/private-capability/spec.md", "private canonical spec");
+    write(root, "openspec/changes/private-change/.openspec.yaml", "schema: product-change\n");
+    write(root, "openspec/changes/private-change/proposal.md", "private proposal");
+
+    const rendered = renderIndex(root);
+
+    assert.match(rendered, /\| _暂无_ \| - \| - \| - \|/);
+    assert.match(rendered, /\| _暂无活动 Change_ \| - \| - \| - \|/);
+    assert.doesNotMatch(rendered, /private-capability|private-change|private proposal/);
+  });
+});
+
 test("renders active changes before capability specs exist", () => {
   withProject((root) => {
     write(root, "openspec/changes/early-change/.openspec.yaml", "schema: product-change\n");

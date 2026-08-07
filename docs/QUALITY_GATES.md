@@ -58,8 +58,8 @@ CI 使用 Node.js 20.19 和 22 执行：
 
 - TypeScript source layout、build 和 compiled tests；
 - `SPEC.md` 与 pathless `openspec/change-history.json` v1 漂移、严格结构、archive 缺失持久性，以及 legacy v1/v2/非法 seed 的写入前保护；
-- bugfix/product-change 项目 Schema 和内置 spec-driven 校验；
-- 全部活动 changes 的逐项 `openspec validate <change> --strict`；
+- bugfix/product-change 项目 Schema 和固定 OpenSpec `1.8.0` 内置 spec-driven 校验；
+- 全部活动 changes 通过项目内固定运行时逐项执行 strict validation；
 - 安装器、最小 formal close 和真实 OpenSpec 集成测试。
 - 公开仓库现有 tracked-file 结构检查：保留 canonical specs、模板、示例和 compact history，同时检查上游自身的详细 change/archive、编号 REQ 与 artifacts。
 

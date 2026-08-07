@@ -125,6 +125,17 @@ export function collectCapabilities(root: string, model?: ChangeHistory): Capabi
     .sort((left, right) => left.name.localeCompare(right.name, "en"));
 }
 
+function isWorkflowSourceRepository(root: string): boolean {
+  const packageFile = path.join(root, "package.json");
+  if (!fs.existsSync(packageFile)) return false;
+  try {
+    const metadata = JSON.parse(fs.readFileSync(packageFile, "utf8")) as { name?: unknown };
+    return metadata.name === "ai-fullstack-openspec-workflow";
+  } catch {
+    return false;
+  }
+}
+
 function escapeTableCell(value: string): string {
   return value.replace(/\r?\n|\r/g, "<br>").replace(/\|/g, "\\|");
 }
@@ -178,7 +189,8 @@ function renderActiveChange(change: ChangeHistory["changes"][number]): string {
 
 export function renderIndex(root: string, model?: ChangeHistory): string {
   const history = model ?? collectChangeHistory(root);
-  const capabilities = collectCapabilities(root, history);
+  const sourceRepository = isWorkflowSourceRepository(root);
+  const capabilities = sourceRepository ? [] : collectCapabilities(root, history);
   const rows = capabilities.length > 0
     ? capabilities.map((capability) => {
       const first = capability.archived[0];
@@ -196,9 +208,11 @@ export function renderIndex(root: string, model?: ChangeHistory): string {
         active,
       ].map(escapeTableCell).join(" | ").replace(/^/, "| ").concat(" |");
     })
-    : ["| _暂无已同步或活动的 capability_ | - | - | - |"];
+    : [sourceRepository
+      ? "| _暂无_ | - | - | - |"
+      : "| _暂无已同步或活动的 capability_ | - | - | - |"];
 
-  const activeRows = history.changes
+  const activeRows = (sourceRepository ? [] : history.changes)
     .filter((change) => change.state === "active")
     .map(renderActiveChange);
 

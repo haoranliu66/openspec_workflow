@@ -1,7 +1,6 @@
 import assert from "node:assert";
 import childProcess from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 import { installWorkflow } from "../lib/installer";
@@ -109,7 +108,9 @@ function writeSystemChange(target: string): void {
   ].join("\n"));
 }
 
-const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-close-integration-"));
+const testTemporaryRoot = path.join(releaseRoot, ".test-tmp");
+fs.mkdirSync(testTemporaryRoot, { recursive: true });
+const base = fs.mkdtempSync(path.join(testTemporaryRoot, "ai-workflow-close-integration-"));
 try {
   const product = path.join(base, "product");
   installWorkflow(releaseRoot, product);

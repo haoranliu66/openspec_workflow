@@ -1,7 +1,6 @@
 import assert from "node:assert";
 import childProcess from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 
 import { installWorkflow } from "../lib/installer";
@@ -57,6 +56,12 @@ function listRelativeFiles(root: string, relativeDirectory: string): string[] {
 }
 
 const releaseRoot = path.resolve(__dirname, "..", "..");
+const testTemporaryRoot = path.join(releaseRoot, ".test-tmp");
+
+function makeTemporaryDirectory(prefix: string): string {
+  fs.mkdirSync(testTemporaryRoot, { recursive: true });
+  return fs.mkdtempSync(path.join(testTemporaryRoot, prefix));
+}
 
 interface OpenSpecProbeRecord {
   cwd: string;
@@ -101,6 +106,7 @@ function createOpenSpecProbe(base: string): {
     environment: {
       ...process.env,
       [pathKey]: `${binRoot}${path.delimiter}${process.env[pathKey] ?? ""}`,
+      AI_WORKFLOW_OPENSPEC_FORCE_PATH: "1",
       OPENSPEC_TEST_LOG: logPath,
     },
     logPath,
@@ -113,6 +119,7 @@ function makeSource(root: string): void {
   write(root, "dist/scripts/validate-schemas.js", "module.exports = {};\n");
   write(root, "dist/scripts/validate-changes.js", "module.exports = {};\n");
   write(root, "dist/bin/workflow.js", "module.exports = {};\n");
+  write(root, "dist/bin/openspec.js", "module.exports = {};\n");
   write(root, "dist/lib/schema-alignment.js", "exports.schemaAlignment = true;\n");
   write(root, "dist/lib/change-history.js", "exports.changeHistory = true;\n");
   write(root, "dist/lib/openspec-cli.js", "exports.openSpecCli = true;\n");
@@ -131,10 +138,34 @@ function makeSource(root: string): void {
   write(root, "docs/QUALITY_GATES.md", "# Gates\n");
   write(root, "docs/AI_WORKFLOW_AGENTS.md", "# Managed AI governance\n");
   write(root, "docs/AGENTS.root.example.md", "# Project AI governance\n");
+  write(root, ".agents/skills/.openspec-target", "agents\n");
+  for (const skill of [
+    "openspec-apply-change",
+    "openspec-archive-change",
+    "openspec-explore",
+    "openspec-propose",
+    "openspec-sync-specs",
+    "openspec-update-change",
+  ]) {
+    write(root, `.agents/skills/${skill}/SKILL.md`, `# ${skill}\n`);
+  }
+  write(
+    root,
+    "node_modules/@fission-ai/openspec/package.json",
+    '{"name":"@fission-ai/openspec","version":"1.8.0","dependencies":{"runtime-leaf":"1.0.0"}}\n',
+  );
+  write(root, "node_modules/@fission-ai/openspec/bin/openspec.js", "// openspec runtime\n");
+  write(root, "node_modules/@fission-ai/openspec/LICENSE", "MIT\n");
+  write(
+    root,
+    "node_modules/runtime-leaf/package.json",
+    '{"name":"runtime-leaf","version":"1.0.0"}\n',
+  );
+  write(root, "node_modules/runtime-leaf/index.js", "module.exports = {};\n");
 }
 
 function withRoots(fn: (roots: { source: string; target: string }) => void): void {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-installer-"));
+  const base = makeTemporaryDirectory("ai-workflow-installer-");
   const source = path.join(base, "source");
   const target = path.join(base, "target");
   fs.mkdirSync(source, { recursive: true });
@@ -185,6 +216,16 @@ test("installs versioned assets and required OpenSpec structure", () => {
     assert.ok(fs.existsSync(path.join(target, "openspec/schemas/bugfix/schema.yaml")));
     assert.ok(fs.existsSync(path.join(target, "openspec/schemas/product-change/schema.yaml")));
     assert.ok(!fs.existsSync(path.join(target, "openspec/schemas/spec-driven")));
+    assert.ok(fs.existsSync(path.join(target, ".agents/skills/openspec-explore/SKILL.md")));
+    assert.ok(fs.existsSync(path.join(target, ".agents/skills/openspec-archive-change/SKILL.md")));
+    assert.ok(fs.existsSync(path.join(
+      target,
+      ".ai-workflow/openspec-runtime/node_modules/@fission-ai/openspec/bin/openspec.js",
+    )));
+    assert.ok(fs.existsSync(path.join(
+      target,
+      ".ai-workflow/openspec-runtime/node_modules/runtime-leaf/index.js",
+    )));
     assert.ok(!fs.existsSync(path.join(target, "openspec/schemas/product-change/templates/feature.md")));
     assert.ok(fs.existsSync(path.join(target, "openspec/specs/.gitkeep")));
     assert.ok(fs.existsSync(path.join(target, "openspec/changes/archive/.gitkeep")));
@@ -264,7 +305,7 @@ test("upgrades managed governance assets without reclaiming the root AGENTS seed
 });
 
 test("installs the v0.0.1 release manifest and minimal emitted JavaScript runtime", () => {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-release-install-"));
+  const base = makeTemporaryDirectory("ai-workflow-release-install-");
   const target = path.join(base, "target");
   try {
     const result = installWorkflow(releaseRoot, target);
@@ -274,6 +315,7 @@ test("installs the v0.0.1 release manifest and minimal emitted JavaScript runtim
     };
     const runtimeFiles = [
       "lib/change-history.js",
+      "bin/openspec.js",
       "lib/close-workflow.js",
       "lib/installer.js",
       "lib/openspec-cli.js",
@@ -327,13 +369,21 @@ test("installs the v0.0.1 release manifest and minimal emitted JavaScript runtim
     });
     assert.ok(result.copied.includes("SPEC.md"));
     assert.ok(result.copied.includes("openspec/change-history.json"));
+    assert.strictEqual(
+      childProcess.execFileSync(
+        process.execPath,
+        [path.join(target, "bin", "openspec.js"), "--version"],
+        { cwd: target, encoding: "utf8" },
+      ).trim(),
+      "1.8.0",
+    );
   } finally {
     fs.rmSync(base, { recursive: true, force: true });
   }
 });
 
 test("runs installed emitted scripts with the target as the project root", () => {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-release-runtime-"));
+  const base = makeTemporaryDirectory("ai-workflow-release-runtime-");
   const target = path.join(base, "target");
   try {
     installWorkflow(releaseRoot, target);
@@ -381,7 +431,7 @@ test("runs installed emitted scripts with the target as the project root", () =>
 });
 
 test("runs installed schema validation when the target directory is named dist", () => {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-dist-target-runtime-"));
+  const base = makeTemporaryDirectory("ai-workflow-dist-target-runtime-");
   const target = path.join(base, "dist");
   try {
     installWorkflow(releaseRoot, target);
@@ -416,7 +466,7 @@ test("runs installed schema validation when the target directory is named dist",
 });
 
 test("rejects installed product schema drift before invoking OpenSpec", () => {
-  const base = fs.mkdtempSync(path.join(os.tmpdir(), "ai-workflow-schema-drift-runtime-"));
+  const base = makeTemporaryDirectory("ai-workflow-schema-drift-runtime-");
   const target = path.join(base, "target");
   try {
     installWorkflow(releaseRoot, target);
