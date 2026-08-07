@@ -10,8 +10,6 @@
 
 ## 2. 文档权威与分层
 
-`README.md` 和 `docs/` 是下游开发者理解、安装和使用本工作流的唯一文档表面。开发者从 README 进入本文件即可完成完整旅程，不需要阅读 `SPEC.md`、`openspec/specs/**`、活动 change 或本地 archive。后述规格与过程记录是 AI、OpenSpec 和交付团队使用的事实或证据，不是另一套使用手册。
-
 | 层级 | 位置 | 责任 |
 |---|---|---|
 | 共享 BR/PRD/FEATURE | `docs/requirements/REQ-*/` | 产品目标、结果级验收和已交付结论 |
@@ -20,13 +18,13 @@
 | 技术设计 | `openspec/changes/<change>/design.md` | 本次技术决策 |
 | 实现计划 | `openspec/changes/<change>/tasks.md` | 实施与验证任务 |
 | 验证记录 | `openspec/changes/<change>/verification.md`、可选 `evidence/` | 团队审核使用的测试、证据、风险和限制 |
-| 导航与归档摘要 | `SPEC.md`、`openspec/change-history.json` v1 | AI 导航以及已归档 change/Requirement 操作摘要，不是下游使用文档 |
+| 导航与归档摘要 | `SPEC.md`、`openspec/change-history.json`| AI 导航以及已归档 change/Requirement 操作摘要，不是下游使用文档 |
 
-`verification.md` 不是 OpenSpec artifact，也不是机器合同；Schema、脚本、CLI 和 CI 不强制其存在、格式或充分性。公开历史与当前文档的职责固定为：
+公开历史与当前文档的职责固定为：
 
 | 载体 | 唯一职责 |
 |---|---|
-| `README.md` 与 `docs/` current docs | 描述当前安装和使用方式，不承担完整历史 |
+| `README.md` 与 `docs/` current docs | 描述当前安装和使用方式|
 | `CHANGELOG.md` | 人类可读的发行记录与能力演变 |
 | `openspec/change-history.json` | 已归档 change 与 Requirement operation/ID/name 的无路径摘要 |
 | 本地 `openspec/changes/archive/**` | 团队不可变的详细过程记录，不进入公开发布内容 |
@@ -146,9 +144,9 @@ formal close 的固定顺序是：
 3. 重建 `SPEC.md` 和 `openspec/change-history.json`；
 4. 运行治理检查。
 
-index 会把新本地归档合入 pathless history v1；以后即使详细 archive 不在 checkout 中，摘要仍会稳定保留。history JSON 不是严格 pathless v1、包含旧格式字段或无效时会停止而不是覆盖。
+index 会把新本地归档合入 pathless history；以后即使详细 archive 不在 checkout 中，摘要仍会稳定保留。
 
-原生 `openspec-sync-specs` skill 已随核心 skills 安装，但正常路径不提前调用，archive 会应用 delta。只有团队明确选择提前 sync，且 change 已经同步完成的恢复场景才给 formal close 传入 `--skip-specs`。项目不再提供 `validate:close` 或其他独立关闭预检。
+原生 `openspec-sync-specs` skill 已随核心 skills 安装，但正常路径不提前调用，archive 会应用 delta。只有团队明确选择提前 sync，且 change 已经同步完成的恢复场景才给 formal close 传入 `--skip-specs`。
 
 archive 成功但 index/check 失败时，change 已经归档；修复问题后分别运行 `workflow index` 与 `workflow check`，不要重复 archive。
 
@@ -163,26 +161,16 @@ archive 成功但 index/check 失败时，change 已经归档；修复问题后�
 
 ### Stable Requirement ID 分配
 
-生成或实质修改 delta Requirement 前，必须盘点同 capability 的 canonical spec、相关活动 changes 和 `openspec/change-history.json` Requirement-level 历史：
-
 - ADDED 不得复用已属于不同逻辑 Requirement 的 ID；数字后缀默认取同 capability/prefix 已见最大值加一；
 - MODIFIED 沿用现有 stable ID；
 - 只改名称的 RENAMED 沿用 stable ID；
 - 只有纠正确认错误时，RENAMED 才能使用不同 TO ID，并记录冲突来源、新 ID 依据及不可变历史处理；
 - 计划摘要和关闭审核均展示分配与冲突结论。
 
-这是 AI/团队治理，不创建 ID registry，也不由 Schema、脚本、CLI、CI 或 formal close 强制证明。history 中 MODIFIED/RENAMED 合法重复同一 ID，因此不能用简单的全局重复计数替代语义审核。
-
 ## 8. 升级与历史边界
 
 - 新规则通过新的 delta change 演进，不改写历史摘要或已有本地 archive。
 - current docs 只描述当前安装与使用；人类可读的发行和能力演变写入 `CHANGELOG.md`，不得把旧条目当作现行操作手册。
-- `change-history.json` v1 只发布 archived change ID、日期、Schema、capability 和 Requirement operation/ID/name；legacy 完整 v1 与 v2 不再兼容，活动 change 和 artifact 路径不会持久化。
-- 本地 archive 是不可变的详细过程记录，不公开；历史错误通过新的 delta change 修正，不改写既有 archive。
-- 本工作流源仓库的详细 change/archive、编号 REQ、evidence 及其他工具/规划输出由根 `.gitignore` 在正常 Git 操作中排除；维护者提交前复核 staged/tracked 路径，不得主动强制加入。本项目不新增 CI、脚本或 hook 来阻止显式绕过，旧 Git 提交也不重写。下游项目若保留历史 `closeout.json`、local FEATURE 或 evidence，新命令会忽略但安装器不会删除这些项目记录。
-- 安装器升级只退役旧 manifest 明确拥有的 closeout 脚本、库和模板；退役前创建备份。
-- 未受管同名文件以及 `openspec/changes/**`、`artifacts/**` 永不进入退役目标。
-- 安装器不复制源仓库 `.gitignore`，下游团队自行决定是否跟踪自己的 REQ/change/archive/verification/evidence。
 
 ## 9. 完成定义
 

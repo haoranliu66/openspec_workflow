@@ -26,7 +26,6 @@
 - planning artifacts 生成完成或发生实质修改后，展示 change ID、计划与 stable ID 结论，结束当前轮次并等待后续明确实施授权。
 - 验证与团队审核完成后，展示交付、证据、未完成项、风险、stable ID 与收尾摘要，结束当前轮次并等待后续明确关闭授权。
 - `openspec-archive-change` 是本项目安装的 archive 治理 wrapper；获得关闭授权前不得执行，正常关闭不得直接运行 `node bin/openspec.js archive` 或手工移动 change。
-- 授权只适用于明确 change；artifact 生成、普通“继续”、tasks 完成或 verification 生成均不自动构成相应授权。
 
 ## 冲突处理
 

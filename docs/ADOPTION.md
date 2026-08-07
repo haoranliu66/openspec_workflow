@@ -120,5 +120,3 @@ node scripts/openspec-governance.js check
 ```bash
 node bin/workflow.js close <change> --target .
 ```
-
-formal close 只执行 strict/archive/index/check。项目不再使用 `closeout.json`、closeout template 或 `validate:close`。目标项目已有的历史 closeout/evidence 原样保留但被新命令忽略；新归档的 Requirement 演变同时进入无路径 history v1。

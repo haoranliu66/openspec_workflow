@@ -4,7 +4,7 @@
 
 当前首次公开发行：`v0.0.1`。兼容 Node.js `>=20.19.0`，使用 OpenSpec `1.8.0`（官方 commit `d57889664cab4f2f061d236ec3ff82a5578701bb`）。
 
-`README.md` 和 `docs/` 是下游开发者理解、安装和使用本工作流的唯一文档表面。`SPEC.md`、`openspec/specs/**`、活动 change 和本地 archive 服务于 AI、OpenSpec 或交付过程；使用者不需要阅读它们来拼接工作流。
+`SPEC.md`、`openspec/specs/**`、活动 change 和本地 archive 服务于 AI、OpenSpec 或交付过程；使用者不需要阅读它们来拼接工作流。
 
 ## 目录
 
@@ -61,14 +61,6 @@
 8. formal close 只负责 strict validation、archive、索引/历史重建和治理检查。
 9. 已归档 change 按团队流程不可变；历史修正使用新的 delta change。
 10. 本工作流源仓库不发布自身的详细开发过程记录；安装目标是否跟踪自己的 change、归档和需求包由目标团队决定。
-
-本项目明确不提供：
-
-- 用户批准的哈希或 approval artifact；
-- evidence 充分性、测试真实性或 N/A 合理性的自动判定；
-- `closeout.json`、`validate:close` 或 tasks/evidence/gate/trace 关闭校验器；
-- 项目级 fork 的 OpenSpec 内置 spec-driven Schema；
-- 对 archive 不可变性的 base-ref/full-history 程序证明。
 
 ## 工作流与技能协作
 
@@ -300,7 +292,7 @@ node bin/openspec.js new change add-operations-console --schema product-change
 
 ### 3. 实施、验证和交付声明
 
-实施后把详细验证写入 change。团队人工核对 delta Requirement、PRD acceptance 和共享 FEATURE。只有有实现和验证依据的结果才能标记 `ready`；共享 FEATURE 不再被 formal close 自动解析。
+实施后把详细验证写入 change。特别注意，对于改动面较大的需求，应拆分为多个独立的changes读取相对应上下文，再更改对应模块。团队人工核对 delta Requirement、PRD acceptance 和共享 FEATURE。只有有实现和验证依据的结果才能标记 `ready`；共享 FEATURE 不再被 formal close 自动解析。
 
 ## 验证记录与团队审核
 
@@ -353,13 +345,6 @@ openspec/changes/<change>/
 
 这是推荐结构，不是固定 parser 契约。团队可以按项目需要调整，只要审核者能够判断实际完成情况。
 
-证据安全要求：
-
-- 不提交密钥、令牌、个人信息或生产机密；
-- 大型日志、视频和报告使用受控外部 artifact，并在 change 中写摘要和链接；
-- evidence 只能支持真实执行过的结论；
-- 未完成工作使既有 FEATURE/Requirement 声明不再真实时，必须先修正声明。
-
 ## 正式关闭
 
 ### 源仓库
@@ -384,7 +369,7 @@ node bin/workflow.js close <change> --target .
 
 formal close 不读取 `tasks.md`、`verification.md`、`evidence/`、BR/PRD/FEATURE 或历史 `closeout.json`。
 
-索引器将本地新归档合并到 `change-history.json` v1。v1 仅保留 change ID、归档日期、Schema、capability 与 Requirement operation/ID/name；即使详细归档目录随后不在公开 checkout 中，重复 index 也不会丢失历史。只接受严格无路径 v1 seed；legacy 完整 v1、v2、无效 JSON、未知版本或结构漂移都会在写入前中止，避免静默覆盖历史。
+索引器将本地新归档合并到 `change-history.json`。
 
 ### 已经提前 sync
 
@@ -560,8 +545,6 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
         └── archive/.gitkeep
 ```
 
-`dist/` 只在构建时生成且不跟踪。上游维护者本地仍会产生 change、archive、编号 REQ、验证材料和其他工具/规划输出；根 `.gitignore` 在正常 Git 操作中排除这些内容，团队在提交前复核 tracked/staged 路径。该边界不承诺通过 CI 阻止有权限的维护者故意强制暂存。旧提交中的历史文件没有被改写，仍可能从 Git 历史恢复。安装目标接收需要的 JavaScript，并可按自己的仓库政策跟踪完整过程记录。
-
 ## 故障排查
 
 | 现象 | 是否阻止 | 处理 |
@@ -578,15 +561,6 @@ CI 验证代码、OpenSpec 结构和生成文件一致性。它不应宣称证�
 | 旧 closeout 文件没有自动删除 | 否 | 确认旧 manifest 是否拥有该路径；未受管文件需人工判断 |
 | verification 缺少内容 | 程序不阻止 | 团队退回审核并补充，不应据此授权关闭 |
 
-常见错误：
-
-- 把初始开发请求当作实施授权；
-- 把实施授权当作关闭授权；
-- 提前 sync 后仍按正常 archive 重复应用 delta；
-- 因代码量小而把权限、业务规则或公共契约变化降级；
-- 在 verification 中提交敏感信息或大型二进制；
-- 把程序 strict 通过误解为实现、测试或产品声明已经正确；
-- 为修正历史而直接修改 archive。
 
 ## 相关文档
 

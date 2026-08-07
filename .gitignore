@@ -18,3 +18,4 @@ docs/superpowers/specs/
 /docs/requirements/REQ-[0-9]*/
 /artifacts/
 openspec/specs/
+openspec/change-history.json
